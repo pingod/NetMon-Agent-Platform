@@ -1,3 +1,6 @@
+# 项目名固定为 most_agent：仓库目录改名后仍复用原有 most_agent_itops-data/itops-logs 卷，避免数据丢失
+name: most_agent
+
 services:
   itops:
     build:
