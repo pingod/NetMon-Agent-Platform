@@ -18,15 +18,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === 'light') {
-      root.setAttribute('data-theme', 'light');
-      root.classList.remove('dark');
-      document.body.style.background = 'linear-gradient(135deg, #0b101b 0%, #080c14 100%)';
-    } else {
-      root.setAttribute('data-theme', 'dark');
-      root.classList.add('dark');
-      document.body.style.background = 'linear-gradient(135deg, #0b101b 0%, #080c14 100%)';
-    }
+    root.setAttribute('data-theme', theme);
+    root.classList.toggle('dark', theme === 'dark');
+    // 背景交给 styles/theme.css 的 data-theme 变量，避免浅色模式仍被内联深色渐变覆盖
+    document.body.style.removeProperty('background');
     localStorage.setItem('theme', theme);
   }, [theme]);
 

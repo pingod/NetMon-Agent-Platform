@@ -1,17 +1,24 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, AlertCircle, Lock, ArrowRight, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../../contexts/AuthContext';
 import api from '../../../lib/api';
 
 /** 根据后端错误响应提取用户友好的错误提示 */
 function parseLoginError(err: unknown): string {
   // 优先取后端返回的 message 字段（RespondFailStatus 返回 {success:false, message:"..."}）
-  if (err && typeof err === 'object' && 'response' in err) {
-    const resp = (err as { response?: { status?: number; data?: { error?: string; message?: string } } }).response;
-    if (resp) {
-      const serverMsg = resp.data?.message || resp.data?.error;
-      if (serverMsg) return serverMsg;
+  if (typeof err === 'object' && err !== null && 'response' in err) {
+    const response = err.response;
+    if (typeof response === 'object' && response !== null && 'data' in response) {
+      const data = response.data;
+      if (typeof data === 'object' && data !== null) {
+        const message =
+          'message' in data && typeof data.message === 'string' ? data.message : '';
+        const errorMessage =
+          'error' in data && typeof data.error === 'string' ? data.error : '';
+        if (message || errorMessage) return message || errorMessage;
+      }
     }
   }
   if (err instanceof Error) return err.message;
@@ -19,6 +26,7 @@ function parseLoginError(err: unknown): string {
 }
 
 export default function Login() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { login } = useAuth();
   const [username, setUsername] = useState('');
@@ -36,7 +44,7 @@ export default function Login() {
 
       if (response.data.success) {
         login(response.data.data.token, response.data.data.user, response.data.data.refreshToken);
-        
+
         // 检查是否需要强制修改密码
         if (response.data.data.user.passwordMustChange) {
           navigate('/force-password-change', { replace: true });
@@ -56,111 +64,90 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center overflow-hidden">
-      {/* 背景 - 浅紫渐变白 */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-100 via-white to-purple-50">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-purple-300/30 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 animate-pulse" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2 animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-200/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-      </div>
+    <div className="auth-bg relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+      <div className="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-primary/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-accent/10 blur-3xl" />
 
-      {/* 主内容 */}
-      <div className="relative z-10 w-full max-w-lg px-4 flex flex-col min-h-screen">
-        {/* 主要内容区域 - 可伸缩 */}
-        <div className="flex-1 flex flex-col justify-center">
-          {/* Logo和标题 */}
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-purple-400 to-purple-600 shadow-2xl shadow-purple-500/30 mb-6">
-              <img src="/favicon.svg" alt="NetMon" className="w-16 h-16" />
+      <div className="relative z-10 flex min-h-screen w-full max-w-md flex-col">
+        <div className="flex flex-1 flex-col justify-center py-10">
+          <div className="mb-9 text-center">
+            <div className="mb-5 inline-flex h-[76px] w-[76px] items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-primary-strong shadow-[0_18px_50px_-18px_rgba(109,94,252,.9)]">
+              <img src="/favicon.svg" alt="NetMon" className="h-12 w-12" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">
-              NetMon
-            </h1>
-            <p className="text-purple-500 text-sm tracking-wide">
-              网络监控平台
+            <h1 className="text-[28px] font-semibold tracking-tight text-text-primary">NetMon</h1>
+            <p className="mt-1 text-[12.5px] tracking-[0.14em] text-text-tertiary">
+              {t('app.subtitle')}
             </p>
           </div>
 
-          {/* 登录卡片 - 白色毛玻璃 */}
-          <div className="bg-white/80 backdrop-blur-2xl rounded-3xl p-10 border border-purple-100 shadow-xl shadow-purple-200/30">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-8 text-center">
-              用户登录
-            </h2>
+          <div className="surface-card p-8 shadow-lift">
+            <div className="mb-7 text-center">
+              <h2 className="text-[19px] font-semibold text-text-primary">{t('login.title')}</h2>
+              <p className="mt-1 text-[12.5px] text-text-tertiary">{t('login.hint')}</p>
+            </div>
 
-            {/* 错误提示 - 明显醒目的错误横幅 */}
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border-2 border-red-300 rounded-2xl flex items-center gap-3 text-red-700 shadow-sm shadow-red-100">
-                <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm font-medium leading-relaxed flex-1">{error}</span>
+              <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-rose-400/25 bg-rose-500/10 px-3.5 py-3 text-[12.5px] text-rose-300">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span className="flex-1 leading-relaxed">{error}</span>
                 <button
                   type="button"
                   onClick={() => setError('')}
-                  className="flex-shrink-0 text-red-400 hover:text-red-600 transition-colors"
+                  className="shrink-0 text-rose-300/70 transition-colors hover:text-rose-200"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* 用户名 */}
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3 ml-1">
-                  用户名
+                <label className="mb-2 block text-[12.5px] font-medium text-text-secondary">
+                  {t('login.username')}
                 </label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <User className="w-5 h-5 text-gray-400 group-focus-within:text-purple-500 transition-colors" />
-                  </div>
+                <div className="group relative">
+                  <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary transition-colors group-focus-within:text-primary" />
                   <input
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="请输入用户名"
-                    className="w-full pl-12 pr-5 py-4 bg-white/60 border border-gray-200 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all duration-300 hover:border-purple-200"
+                    placeholder={t('login.usernamePlaceholder')}
+                    className="input-base h-11 pl-10"
                     required
                   />
                 </div>
               </div>
 
-              {/* 密码 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3 ml-1">
-                  密码
+                <label className="mb-2 block text-[12.5px] font-medium text-text-secondary">
+                  {t('login.password')}
                 </label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Lock className="w-5 h-5 text-gray-400 group-focus-within:text-purple-500 transition-colors" />
-                  </div>
+                <div className="group relative">
+                  <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary transition-colors group-focus-within:text-primary" />
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="请输入密码"
-                    className="w-full pl-12 pr-5 py-4 bg-white/60 border border-gray-200 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all duration-300 hover:border-purple-200"
+                    placeholder={t('login.passwordPlaceholder')}
+                    className="input-base h-11 pl-10"
                     required
                   />
                 </div>
               </div>
 
-              {/* 登录按钮 */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-4 bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 hover:from-purple-600 hover:via-purple-700 hover:to-purple-800 text-white font-semibold rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/40 transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2"
-              >
+              <button type="submit" disabled={loading} className="btn btn-primary h-11 w-full">
                 {loading ? (
                   <>
-                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    登录中...
+                    {t('login.submitting')}
                   </>
                 ) : (
                   <>
-                    登录
-                    <ArrowRight className="w-5 h-5" />
+                    {t('login.submit')}
+                    <ArrowRight className="h-4 w-4" />
                   </>
                 )}
               </button>
@@ -168,13 +155,8 @@ export default function Login() {
           </div>
         </div>
 
-        {/* 底部版权 */}
-        <div className="py-8">
-          <div className="flex items-center justify-center">
-            <p className="text-gray-400 text-sm">
-              © 2026 NetMon
-            </p>
-          </div>
+        <div className="pb-8 text-center text-[11.5px] text-text-tertiary">
+          © 2026 NetMon · NetMon Agent Platform
         </div>
       </div>
     </div>

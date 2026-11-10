@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, Database, Shield, Loader2, CheckCircle2, AlertCircle, BookOpen, Upload, FileText, Globe, Wifi, Brain, Activity, Server } from 'lucide-react';
+import { Bell, Database, Shield, Loader2, CheckCircle2, AlertCircle, BookOpen, Upload, FileText, Globe, Wifi, Brain, Activity, Server, Palette } from 'lucide-react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import api from '../../../lib/api';
@@ -13,6 +13,7 @@ import NotificationSettings from '../../notification/pages/NotificationSettings'
 import BackupSettings from '../../backup/pages/BackupSettings';
 import SecuritySettings from './settings/SecuritySettings';
 import GeneralSettings from './settings/GeneralSettings';
+import AppearanceSettings from './settings/AppearanceSettings';
 import DatabaseModeSettings from './settings/DatabaseModeSettings';
 
 export default function Settings() {
@@ -224,48 +225,51 @@ export default function Settings() {
 
   const tabs = [
     { id: 'models', name: t('settings.models'), icon: Brain },
+    { id: 'appearance', name: t('settings.appearance'), icon: Palette },
     { id: 'qanything', name: t('dashboard.knowledge'), icon: BookOpen },
     { id: 'notifications', name: t('settings.monitoring'), icon: Bell },
     { id: 'database', name: t('settings.backup'), icon: Database },
-    { id: 'mysql_storage', name: 'MySQL 生产持久化', icon: Server },
-    { id: 'influxdb', name: '时序库', icon: Activity },
+    { id: 'mysql_storage', name: t('settings.mysqlStorage'), icon: Server },
+    { id: 'influxdb', name: t('settings.influxdb'), icon: Activity },
     { id: 'security', name: t('settings.security'), icon: Shield },
   ];
 
   return (
-    <div className="h-full overflow-auto p-6">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary mb-2">{t('settings.title')}</h1>
-          <p className="text-text-secondary">{t('settings.languageDesc')}</p>
+    <div className="h-full overflow-auto">
+      <div className="page-shell space-y-6">
+        <div className="page-header">
+          <div>
+            <div className="page-eyebrow">{t('settings.eyebrow')}</div>
+            <h1 className="page-title">{t('settings.title')}</h1>
+            <p className="page-subtitle">{t('settings.description')}</p>
+          </div>
         </div>
 
-        <div className="bg-surface rounded-xl border border-border overflow-hidden">
-          <div className="flex">
-            <div className="w-64 border-r border-border p-4">
-              <nav className="space-y-1">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={clsx(
-                        'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all',
-                        activeTab === tab.id
-                          ? 'bg-primary text-white'
-                          : 'text-text-secondary hover:bg-background'
-                      )}
-                    >
-                      <Icon className="w-5 h-5" />
-                      {tab.name}
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
+        <div className="grid gap-5 lg:grid-cols-[236px_1fr]">
+          <aside className="surface-card h-fit p-2 lg:sticky lg:top-4">
+            <nav className="space-y-1">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={clsx(
+                      'flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[13px] font-medium transition-all',
+                      activeTab === tab.id
+                        ? 'bg-primary-soft text-primary shadow-[inset_0_0_0_1px_var(--primary-ring)]'
+                        : 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
+                    )}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{tab.name}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
 
-            <div className="flex-1 p-6">
+          <div className="surface-card min-w-0 p-5 lg:p-6">
               {/* ========== AI 模型配置 ========== */}
               {activeTab === 'models' && <ModelSettings />}
 
@@ -588,6 +592,8 @@ export default function Settings() {
               {/* ========== 时序库写入配置 ========== */}
               {activeTab === 'influxdb' && <InfluxdbSettings />}
 
+              {/* ========== 界面与菜单 ========== */}
+              {activeTab === 'appearance' && <AppearanceSettings />}
               {/* ========== 安全设置 + 通用设置 ========== */}
               {activeTab === 'security' && (
                 <div className="space-y-6">
@@ -609,7 +615,6 @@ export default function Settings() {
           </div>
         </div>
       </div>
-    </div>
   );
 }
 

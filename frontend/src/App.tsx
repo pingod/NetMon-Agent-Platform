@@ -5,6 +5,7 @@ import { ConfigProvider, theme as antdTheme } from 'antd';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { UIPreferencesProvider } from './contexts/UIPreferencesContext';
 import ErrorBoundary from './shared/components/ErrorBoundary';
 import ProtectedRoute from './shared/components/ProtectedRoute';
 import Layout from './shared/layouts/Layout';
@@ -19,10 +20,10 @@ const NotFound = lazyRetry(() => import('./shared/pages/NotFound'));
 // ==================== 加载占位 ====================
 function PageLoader() {
   return (
-    <div className="flex items-center justify-center h-screen bg-slate-950">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-slate-400 text-xs tracking-wider">NetMon 系统加载中...</p>
+    <div className="flex h-screen items-center justify-center" style={{ background: 'var(--bg-app)' }}>
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-9 w-9 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <p className="text-[12px] tracking-[0.12em] text-text-tertiary">NETMON LOADING</p>
       </div>
     </div>
   );
@@ -30,15 +31,17 @@ function PageLoader() {
 
 function ContentLoader() {
   return (
-    <div className="flex-1 p-6 h-full flex flex-col gap-4 animate-pulse">
-      <div className="h-8 bg-slate-800/40 rounded-lg w-1/4" />
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="h-24 bg-slate-800/30 rounded-xl" />
-        <div className="h-24 bg-slate-800/30 rounded-xl" />
-        <div className="h-24 bg-slate-800/30 rounded-xl" />
-        <div className="h-24 bg-slate-800/30 rounded-xl" />
+    <div className="page-shell">
+      <div className="flex flex-1 animate-pulse flex-col gap-5">
+        <div className="h-8 w-1/4 rounded-lg bg-surface-3" />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="h-24 rounded-xl bg-surface-2" />
+          <div className="h-24 rounded-xl bg-surface-2" />
+          <div className="h-24 rounded-xl bg-surface-2" />
+          <div className="h-24 rounded-xl bg-surface-2" />
+        </div>
+        <div className="h-64 w-full flex-1 rounded-xl bg-surface-2" />
       </div>
-      <div className="h-64 bg-slate-800/20 rounded-xl w-full flex-1" />
     </div>
   );
 }
@@ -49,13 +52,49 @@ function SuspenseRoute({ children, isInner = false }: { children: React.ReactNod
 
 function ThemedConfigProvider({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
+  const dark = theme === 'dark';
+  const surface = dark ? '#0b1220' : '#ffffff';
+  const surface2 = dark ? '#101a2b' : '#f7f9fd';
+  const border = dark ? 'rgba(148,163,184,0.13)' : '#e3e8f2';
+  const text = dark ? '#eef2fa' : '#0f172a';
+  const text2 = dark ? '#9aa8bf' : '#51607a';
+
   return (
     <ConfigProvider
       theme={{
-        algorithm: theme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+        algorithm: dark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
         token: {
-          colorPrimary: '#8b5cf6',
-          borderRadius: 6,
+          colorPrimary: '#6d5efc',
+          colorInfo: '#6d5efc',
+          colorBgBase: dark ? '#060a12' : '#f4f6fb',
+          colorBgContainer: surface,
+          colorBgElevated: surface,
+          colorBorder: border,
+          colorBorderSecondary: border,
+          colorSplit: border,
+          colorText: text,
+          colorTextSecondary: text2,
+          borderRadius: 10,
+          borderRadiusLG: 14,
+          controlHeight: 36,
+          fontSize: 13,
+          fontFamily:
+            "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif",
+          boxShadowSecondary: '0 24px 60px -28px rgba(0,0,0,0.6)',
+        },
+        components: {
+          Button: { primaryShadow: 'none', fontWeight: 500 },
+          Card: { colorBgContainer: surface, colorBorderSecondary: border },
+          Modal: { borderRadiusLG: 16 },
+          Table: {
+            headerBg: surface2,
+            headerColor: text2,
+            borderColor: border,
+            rowHoverBg: dark ? 'rgba(148,163,184,0.06)' : 'rgba(15,23,42,0.035)',
+          },
+          Tabs: { itemSelectedColor: '#6d5efc', inkBarColor: '#6d5efc' },
+          Tooltip: { colorBgSpotlight: dark ? '#16223a' : '#0f172a' },
+          Select: { optionSelectedBg: 'rgba(109,94,252,0.14)' },
         },
       }}
     >
@@ -93,6 +132,7 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
+        <UIPreferencesProvider>
         <ThemedConfigProvider>
           <AuthProvider>
             <ToastProvider>
@@ -134,8 +174,9 @@ function App() {
           </ToastProvider>
         </AuthProvider>
 
-      </ThemedConfigProvider>
-    </ThemeProvider>
+        </ThemedConfigProvider>
+        </UIPreferencesProvider>
+      </ThemeProvider>
   </ErrorBoundary>
   );
 }

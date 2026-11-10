@@ -70,8 +70,8 @@ export default function Dashboard() {
   const quickActions = [
     {
       id: 'networkTopology',
-      title: '网络拓扑',
-      desc: '可视化拓扑绘制与端口告警',
+      title: t('dashboard.networkTopology'),
+      desc: t('dashboard.networkTopologyDesc'),
       icon: Network,
       color: 'text-sky-500',
       bg: 'bg-sky-500/10',
@@ -221,18 +221,19 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="h-full overflow-auto p-6 space-y-6">
+    <div className="h-full overflow-auto page-shell space-y-6">
       {/* 页面标题 */}
-      <div className="flex items-center justify-between">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary mb-1">{t('dashboard.title')}</h1>
-          <p className="text-sm text-text-secondary">{t('dashboard.subtitle')}</p>
+          <div className="page-eyebrow">OVERVIEW</div>
+          <h1 className="page-title">{t('dashboard.title')}</h1>
+          <p className="page-subtitle">{t('dashboard.subtitle')}</p>
         </div>
 
         <div className="flex items-center gap-2">
           <Link
             to="/topology"
-            className="px-3.5 py-1.5 text-xs font-semibold bg-sky-600/20 text-sky-400 hover:bg-sky-600/30 border border-sky-500/30 rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
+            className="btn btn-soft h-9 px-3.5 text-[12px]"
           >
             <Network className="w-3.5 h-3.5" />
             进入网络拓扑
@@ -257,11 +258,11 @@ export default function Dashboard() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
           {/* 左侧：6个统计卡片 */}
-          <div className="lg:col-span-4 grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:col-span-4">
             {stats.map((stat) => (
               <div
                 key={stat.id}
-                className="bg-surface rounded-lg px-3 py-3 border border-border hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
+                className="metric-card cursor-pointer"
                 onClick={() => {
                   if (stat.id === 'servers') navigate('/servers');
                   else if (stat.id === 'agents') navigate('/agents');
@@ -271,19 +272,19 @@ export default function Dashboard() {
                   else if (stat.id === 'knowledge') navigate('/knowledge');
                 }}
               >
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className={`p-1.5 rounded-md ${stat.bg}`}>
-                    <stat.icon className={`w-3.5 h-3.5 ${stat.color}`} />
-                  </div>
-                  <span className="text-[11px] text-text-tertiary">{t(`dashboard.${stat.id}`)}</span>
+                <div className="mb-3 flex items-center justify-between">
+                  <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${stat.bg}`}>
+                    <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                  </span>
                 </div>
-                <p className="text-xl font-bold text-text-primary">{stat.value}</p>
+                <p className="metric-value">{stat.value}</p>
+                <p className="metric-label mt-1">{t(`dashboard.${stat.id}`)}</p>
               </div>
             ))}
           </div>
 
           {/* 右侧：最新告警 */}
-          <div className="lg:col-span-3 bg-surface rounded-xl p-4 border border-border">
+          <div className="panel p-4 lg:col-span-3">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-text-primary flex items-center gap-1.5">
                 <Bell className="w-4 h-4 text-red-500" />
@@ -297,7 +298,7 @@ export default function Dashboard() {
               {alerts?.slice(0, 6).map((alert) => (
                 <div
                   key={alert.id}
-                  className="p-2.5 rounded-lg bg-background hover:bg-background/80 transition-all"
+                  className="rounded-lg border border-transparent bg-surface-2 px-3 py-2.5 transition-colors hover:border-border"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-medium text-text-primary text-xs leading-tight truncate">{alert.title}</h3>
@@ -328,7 +329,7 @@ export default function Dashboard() {
       )}
 
       {/* 快捷操作 */}
-      <div className="bg-surface rounded-xl p-5 border border-border">
+      <div className="panel p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-text-primary flex items-center gap-2">
             <Zap className="w-4 h-4 text-primary" />
@@ -340,7 +341,7 @@ export default function Dashboard() {
             <button
               key={action.id}
               onClick={action.action}
-              className="p-3 rounded-xl bg-background hover:bg-background/80 border border-border hover:border-primary/50 transition-all text-left group"
+              className="group rounded-xl border border-border bg-surface-2 p-4 text-left transition-all hover:border-primary/40 hover:bg-surface-3"
             >
               <div className={`w-10 h-10 rounded-lg ${action.bg} flex items-center justify-center mb-2 group-hover:scale-110 transition-transform`}>
                 <action.icon className={`w-5 h-5 ${action.color}`} />
@@ -354,7 +355,7 @@ export default function Dashboard() {
 
       {/* 底部各板块概览 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="bg-surface rounded-xl p-4 border border-border">
+        <div className="panel p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-text-primary flex items-center gap-1.5">
               <Server className="w-4 h-4 text-purple-500" />
@@ -366,7 +367,7 @@ export default function Dashboard() {
             {(Array.isArray(servers) ? servers : []).slice(0, 5).map((server) => (
               <div
                 key={server.id}
-                className="flex items-center gap-2 p-2 rounded-lg bg-background hover:bg-background/80 transition-all"
+                className="flex items-center gap-2 rounded-lg bg-surface-2 px-2.5 py-2 transition-colors hover:bg-surface-3"
               >
                 <div className={`p-1.5 rounded-md ${server.enabled ? 'bg-purple-500/10' : 'bg-status-failed/10'}`}>
                   <Server className={`w-4 h-4 ${server.enabled ? 'text-purple-500' : 'text-text-secondary'}`} />
@@ -392,7 +393,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-surface rounded-xl p-4 border border-border">
+        <div className="panel p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-text-primary flex items-center gap-1.5">
               <Bot className="w-4 h-4 text-primary" />
@@ -404,7 +405,7 @@ export default function Dashboard() {
             {agents?.slice(0, 5).map((agent) => (
               <div
                 key={agent.id}
-                className="flex items-center gap-2 p-2 rounded-lg bg-background hover:bg-background/80 transition-all"
+                className="flex items-center gap-2 rounded-lg bg-surface-2 px-2.5 py-2 transition-colors hover:bg-surface-3"
               >
                 <span className="text-lg">{agent.avatar}</span>
                 <div className="flex-1 min-w-0">
@@ -425,7 +426,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-surface rounded-xl p-4 border border-border">
+        <div className="panel p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-text-primary flex items-center gap-1.5">
               <BookOpen className="w-4 h-4 text-cyan-500" />
@@ -437,7 +438,7 @@ export default function Dashboard() {
             {knowledge?.slice(0, 5).map((item) => (
               <div
                 key={item.id}
-                className="flex items-start gap-2 p-2 rounded-lg bg-background hover:bg-background/80 transition-all"
+                className="flex items-start gap-2 rounded-lg bg-surface-2 px-2.5 py-2 transition-colors hover:bg-surface-3"
               >
                 <div className="p-1.5 rounded-md bg-cyan-500/10">
                   <BookOpen className="w-3.5 h-3.5 text-cyan-500" />
@@ -457,7 +458,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-surface rounded-xl p-4 border border-border lg:col-span-3">
+        <div className="panel p-4 lg:col-span-3">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-text-primary flex items-center gap-1.5">
               <Play className="w-4 h-4 text-green-500" />
