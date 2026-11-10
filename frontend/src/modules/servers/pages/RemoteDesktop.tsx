@@ -202,6 +202,7 @@ export default function RemoteDesktop() {
         <div className="bg-card border border-border rounded-lg p-4">
           <div className="flex flex-wrap gap-4 items-center">
             <select
+              aria-label="选择服务器"
               value={selectedServer || ''}
               onChange={(e) => setSelectedServer(e.target.value || undefined)}
               className="px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:border-primary text-text-primary"

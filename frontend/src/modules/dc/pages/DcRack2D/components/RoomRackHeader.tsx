@@ -51,6 +51,7 @@ export const RoomRackHeader: React.FC<RoomRackHeaderProps> = ({
               <span>切换机房:</span>
             </span>
             <select
+              aria-label="切换机房"
               value={selectedRoomId}
               onChange={(e) => onSelectRoom(e.target.value)}
               className="cursor-pointer rounded-lg border border-border-strong bg-surface-2 px-2.5 py-1.5 text-xs text-text-primary transition hover:border-primary/40 focus:border-primary focus:outline-none"

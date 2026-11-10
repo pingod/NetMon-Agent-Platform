@@ -132,6 +132,7 @@ export default function NetworkDashboard() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => window.history.back()}
+              aria-label="返回"
               className="p-1.5 hover:bg-white/5 rounded-lg transition-colors"
             >
               <ChevronLeft className="w-5 h-5 text-blue-400" />
@@ -160,6 +161,7 @@ export default function NetworkDashboard() {
             </button>
             <button
               onClick={handleRefresh}
+              aria-label="刷新数据"
               className="p-1.5 hover:bg-white/5 rounded-lg transition-colors text-slate-400 hover:text-white"
             >
               <RefreshCw className="w-4 h-4" />
@@ -706,6 +708,7 @@ function CustomMetricsPanel({ vendorFilter = 'all' }: { vendorFilter?: string })
         <div className="flex items-center gap-3">
           {/* 设备 IP 选择器 */}
           <select
+            aria-label="选择设备"
             value={selectedDeviceId}
             onChange={e => setSelectedDeviceId(e.target.value)}
             className="px-2.5 py-1 bg-[#0d1225] border border-blue-500/20 rounded-md text-xs text-slate-300 focus:outline-none focus:border-blue-500 cursor-pointer"
@@ -1930,6 +1933,7 @@ function TopInterfaceMetricsSection({ devices = [] }: { devices?: any[] }) {
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-slate-300">目标设备:</span>
           <select
+            aria-label="选择目标设备"
             value={selectedDeviceId}
             onChange={e => setSelectedDeviceId(e.target.value)}
             className="px-3 py-1.5 bg-[#111836] border border-blue-500/30 rounded-lg text-xs text-slate-100 font-medium focus:outline-none focus:border-blue-500 cursor-pointer shadow-inner"

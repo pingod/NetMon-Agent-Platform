@@ -648,7 +648,7 @@ export default function Networks() {
             className="w-full pl-9 pr-4 py-2 bg-surface border border-border rounded-lg text-text-primary text-sm placeholder-text-tertiary focus:outline-none focus:border-primary"
           />
         </div>
-        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
+        <select aria-label="子网类型筛选" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
           className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary text-sm focus:outline-none focus:border-primary">
           <option value="">全部类型</option>
           {Object.entries(TYPE_MAP).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}

@@ -146,6 +146,7 @@ export default function AuditLogs() {
             </div>
             <div className="flex items-center gap-2">
               <select
+                aria-label="操作类型筛选"
                 value={selectedAction}
                 onChange={(e) => setSelectedAction(e.target.value)}
                 className="px-3 py-2 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary"
@@ -156,6 +157,7 @@ export default function AuditLogs() {
                 ))}
               </select>
               <select
+                aria-label="资源类型筛选"
                 value={selectedResource}
                 onChange={(e) => setSelectedResource(e.target.value)}
                 className="px-3 py-2 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary"

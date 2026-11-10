@@ -104,6 +104,7 @@ export default function AlertNoiseManagement() {
           <div className="flex gap-3">
             <button
               onClick={() => queryClient.invalidateQueries({ queryKey: ['alert-noise-stats', 'suppressed-alerts'] })}
+              aria-label="刷新告警抑制数据"
               className="p-2 hover:bg-surface rounded-lg transition-colors"
             >
               <RefreshCw className="w-5 h-5 text-text-secondary" />

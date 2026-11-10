@@ -34,6 +34,7 @@ export default function AlertFilterBar({
           />
         </div>
         <select
+          aria-label="告警级别筛选"
           value={severityFilter}
           onChange={(e) => onSeverityChange(e.target.value)}
           className="px-3 py-2 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary"
@@ -45,6 +46,7 @@ export default function AlertFilterBar({
           <option value="low">低</option>
         </select>
         <select
+          aria-label="告警状态筛选"
           value={statusFilter}
           onChange={(e) => onStatusChange(e.target.value)}
           className="px-3 py-2 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary"

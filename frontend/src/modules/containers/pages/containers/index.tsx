@@ -40,6 +40,7 @@ export default function ContainersPage() {
           <span className="text-sm text-text-secondary">Docker 主机:</span>
         </div>
         <select
+          aria-label="Docker 主机"
           value={endpointId}
           onChange={(e) => {
             setEndpointId(e.target.value);

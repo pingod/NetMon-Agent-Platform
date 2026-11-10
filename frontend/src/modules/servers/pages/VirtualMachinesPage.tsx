@@ -311,6 +311,7 @@ export const VirtualMachinesPage: React.FC = () => {
           </div>
 
           <select
+            aria-label="虚拟机分组筛选"
             value={selectedGroupId || ''}
             onChange={(e) => setSelectedGroupId(e.target.value || null)}
             className="px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 focus:border-indigo-500"

@@ -496,6 +496,7 @@ export default function InspectionTemplates() {
             <Button
               type="text"
               size="small"
+              aria-label="查看指令"
               icon={<Eye size={14} className="text-sky-400" />}
               onClick={() => setPreviewTemplate(record)}
             />
@@ -504,6 +505,7 @@ export default function InspectionTemplates() {
             <Button
               type="text"
               size="small"
+              aria-label="克隆模版"
               icon={<Copy size={14} className="text-purple-400" />}
               onClick={() => handleClone(record.id)}
             />
@@ -512,6 +514,7 @@ export default function InspectionTemplates() {
             <Button
               type="text"
               size="small"
+              aria-label="编辑"
               icon={<Edit size={14} className="text-amber-400" />}
               onClick={() => openEdit(record)}
             />
@@ -520,6 +523,7 @@ export default function InspectionTemplates() {
             <Button
               type="text"
               size="small"
+              aria-label="导出 JSON"
               icon={<Download size={14} className="text-emerald-400" />}
               onClick={() => exportTemplateJSON(record)}
             />
@@ -527,7 +531,7 @@ export default function InspectionTemplates() {
           {!record.isPreset && (
             <Popconfirm title="确定删除该自定义模版?" onConfirm={() => handleDelete(record.id)}>
               <Tooltip title="删除">
-                <Button type="text" size="small" danger icon={<Trash2 size={14} />} />
+                <Button type="text" size="small" danger aria-label="删除" icon={<Trash2 size={14} />} />
               </Tooltip>
             </Popconfirm>
           )}
@@ -773,6 +777,7 @@ export default function InspectionTemplates() {
                     <Tooltip title="查看全部指令">
                       <Button
                         size="small"
+                        aria-label="查看全部指令"
                         type="text"
                         className="text-slate-300 hover:text-white"
                         icon={<Eye size={14} />}
@@ -782,6 +787,7 @@ export default function InspectionTemplates() {
                     <Tooltip title="克隆为自定义模版">
                       <Button
                         size="small"
+                        aria-label="克隆为自定义模版"
                         type="text"
                         className="text-purple-400 hover:text-purple-300"
                         icon={<Copy size={14} />}
@@ -791,6 +797,7 @@ export default function InspectionTemplates() {
                     <Tooltip title="编辑模版">
                       <Button
                         size="small"
+                        aria-label="编辑模版"
                         type="text"
                         className="text-amber-400 hover:text-amber-300"
                         icon={<Edit size={14} />}
@@ -800,6 +807,7 @@ export default function InspectionTemplates() {
                     <Tooltip title="导出 JSON">
                       <Button
                         size="small"
+                        aria-label="导出 JSON"
                         type="text"
                         className="text-emerald-400 hover:text-emerald-300"
                         icon={<Download size={14} />}
@@ -809,7 +817,7 @@ export default function InspectionTemplates() {
                     {!tpl.isPreset && (
                       <Popconfirm title="确定删除该自定义模版?" onConfirm={() => handleDelete(tpl.id)}>
                         <Tooltip title="删除">
-                          <Button size="small" type="text" danger icon={<Trash2 size={14} />} />
+                          <Button size="small" type="text" danger aria-label="删除" icon={<Trash2 size={14} />} />
                         </Tooltip>
                       </Popconfirm>
                     )}

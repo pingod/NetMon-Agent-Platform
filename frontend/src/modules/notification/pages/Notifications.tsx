@@ -162,6 +162,7 @@ export default function Notifications() {
               <div className="flex items-center gap-2">
                 <Filter className="w-5 h-5 text-text-secondary" />
                 <select
+                  aria-label="通知类型筛选"
                   value={selectedType}
                   onChange={(e) => setSelectedType(e.target.value)}
                   className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary"
@@ -172,6 +173,7 @@ export default function Notifications() {
                   ))}
                 </select>
                 <select
+                  aria-label="通知状态筛选"
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
                   className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary"

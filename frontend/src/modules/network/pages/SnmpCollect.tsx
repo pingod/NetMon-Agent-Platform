@@ -673,6 +673,7 @@ function MibTab() {
       <div className="bg-surface rounded-xl border border-border p-4">
         <div className="flex gap-2">
           <select
+            aria-label="搜索类型"
             value={searchType}
             onChange={e => setSearchType(e.target.value)}
             className="flex-shrink-0 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500 cursor-pointer"

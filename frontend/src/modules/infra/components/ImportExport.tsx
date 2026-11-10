@@ -168,6 +168,7 @@ export function ImportExport({ resourceType, onImportSuccess }: ImportExportProp
         {showExportButton && (
           <div className="flex items-center gap-1">
             <select
+              aria-label="导出格式"
               value={exportFormat}
               onChange={(e) => setExportFormat(e.target.value as 'csv' | 'json')}
               className="px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"

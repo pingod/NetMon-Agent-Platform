@@ -48,6 +48,7 @@ export function ContainersTab({ ctx }: { ctx: Ctx }) {
           />
         </div>
         <select
+          aria-label="容器状态筛选"
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           className="px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
