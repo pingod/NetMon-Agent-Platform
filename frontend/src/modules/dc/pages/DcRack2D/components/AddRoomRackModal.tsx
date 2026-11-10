@@ -72,24 +72,24 @@ export const AddRoomRackModal: React.FC<AddRoomModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900 border border-cyan-800/80 rounded-2xl p-6 w-full max-w-sm shadow-2xl relative select-none">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-surface-1 border border-border rounded-2xl p-6 w-full max-w-sm shadow-2xl relative select-none">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+          className="absolute top-4 right-4 text-text-tertiary hover:text-text-primary p-1 rounded-lg hover:bg-surface-3 transition"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
           {mode === 'room' ? (
             <>
-              <Building2 className="w-5 h-5 text-cyan-400" />
+              <Building2 className="w-5 h-5 text-primary" />
               <span>新增机房</span>
             </>
           ) : (
             <>
-              <Server className="w-5 h-5 text-cyan-400" />
+              <Server className="w-5 h-5 text-primary" />
               <span>新增机柜</span>
             </>
           )}
@@ -98,11 +98,11 @@ export const AddRoomRackModal: React.FC<AddRoomModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           {mode === 'rack' && rooms.length > 0 && (
             <div>
-              <label className="block text-slate-300 font-medium mb-1">所属机房 *</label>
+              <label className="block text-text-secondary font-medium mb-1">所属机房 *</label>
               <select
                 value={targetRoomId}
                 onChange={e => setTargetRoomId(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:border-cyan-400 focus:outline-none"
+                className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-text-primary focus:border-primary focus:outline-none"
               >
                 {rooms.map(r => (
                   <option key={r.id} value={r.id}>
@@ -114,7 +114,7 @@ export const AddRoomRackModal: React.FC<AddRoomModalProps> = ({
           )}
 
           <div>
-            <label className="block text-slate-300 font-medium mb-1">
+            <label className="block text-text-secondary font-medium mb-1">
               {mode === 'room' ? '机房名称 *' : '机柜名称/编号 *'}
             </label>
             <input
@@ -123,49 +123,49 @@ export const AddRoomRackModal: React.FC<AddRoomModalProps> = ({
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder={mode === 'room' ? '如: test数据中心' : '如: R4 / A03'}
-              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:border-cyan-400 focus:outline-none"
+              className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-text-primary focus:border-primary focus:outline-none"
             />
           </div>
 
           {mode === 'room' && (
             <div>
-              <label className="block text-slate-300 font-medium mb-1">所属楼层</label>
+              <label className="block text-text-secondary font-medium mb-1">所属楼层</label>
               <input
                 type="text"
                 value={floor}
                 onChange={e => setFloor(e.target.value)}
                 placeholder="如: 3F"
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:border-cyan-400 focus:outline-none"
+                className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-text-primary focus:border-primary focus:outline-none"
               />
             </div>
           )}
 
           {mode === 'rack' && (
             <div>
-              <label className="block text-slate-300 font-medium mb-1">机柜高度规格 (U数)</label>
+              <label className="block text-text-secondary font-medium mb-1">机柜高度规格 (U数)</label>
               <input
                 type="number"
                 min={12}
                 max={54}
                 value={heightU}
                 onChange={e => setHeightU(parseInt(e.target.value, 10) || 42)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:border-cyan-400 focus:outline-none font-mono"
+                className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-text-primary focus:border-primary focus:outline-none font-mono"
               />
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
+              className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-text-secondary rounded-lg transition"
             >
               取消
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 disabled:opacity-50 text-white font-semibold rounded-lg transition shadow-md shadow-purple-500/25 flex items-center gap-1.5"
+              className="px-5 py-2 bg-gradient-to-r from-primary-strong to-primary hover:opacity-90 disabled:opacity-50 text-white font-semibold rounded-lg transition shadow-[0_2px_8px_rgba(109,94,252,0.35)] flex items-center gap-1.5"
             >
               <Check className="w-4 h-4" />
               <span>{isSubmitting ? '保存中...' : '确认保存'}</span>

@@ -80,17 +80,17 @@ export const CustomDeviceModal: React.FC<CustomDeviceModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900 border border-cyan-800/80 rounded-2xl p-6 w-full max-w-lg shadow-2xl relative overflow-hidden select-none">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-surface-1 border border-border rounded-2xl p-6 w-full max-w-lg shadow-2xl relative overflow-hidden select-none">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+          className="absolute top-4 right-4 text-text-tertiary hover:text-text-primary p-1 rounded-lg hover:bg-surface-3 transition"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <h3 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
-          <Upload className="w-5 h-5 text-cyan-400" />
+        <h3 className="text-lg font-bold text-text-primary mb-5 flex items-center gap-2">
+          <Upload className="w-5 h-5 text-primary" />
           <span>{editingTemplate ? '编辑设备模板' : '创建自定义设备模板'}</span>
         </h3>
 
@@ -98,22 +98,22 @@ export const CustomDeviceModal: React.FC<CustomDeviceModalProps> = ({
           {/* 设备名称与所属分类 */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-300 font-medium mb-1">设备名称 *</label>
+              <label className="block text-text-secondary font-medium mb-1">设备名称 *</label>
               <input
                 type="text"
                 required
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="如: 48口核心交换机"
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:border-cyan-400 focus:outline-none"
+                className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-text-primary focus:border-primary focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-slate-300 font-medium mb-1">分类</label>
+              <label className="block text-text-secondary font-medium mb-1">分类</label>
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value as DeviceCategory)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:border-cyan-400 focus:outline-none"
+                className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-text-primary focus:border-primary focus:outline-none"
               >
                 <option value="custom">自定义设备</option>
                 <option value="odf">ODF组件</option>
@@ -125,11 +125,11 @@ export const CustomDeviceModal: React.FC<CustomDeviceModalProps> = ({
           {/* 硬件类型与占用 U 数 */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-300 font-medium mb-1">硬件类型</label>
+              <label className="block text-text-secondary font-medium mb-1">硬件类型</label>
               <select
                 value={hardwareType}
                 onChange={e => setHardwareType(e.target.value as DeviceHardwareType)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:border-cyan-400 focus:outline-none"
+                className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-text-primary focus:border-primary focus:outline-none"
               >
                 <option value="switch">网络交换机 (Switch)</option>
                 <option value="router">路由器 (Router)</option>
@@ -143,7 +143,7 @@ export const CustomDeviceModal: React.FC<CustomDeviceModalProps> = ({
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-slate-300 font-medium">占用 U 数 (高度)</label>
+                <label className="text-text-secondary font-medium">占用 U 数 (高度)</label>
                 <div className="flex items-center gap-1">
                   {[1, 2, 3, 4, 8].map(u => (
                     <button
@@ -152,8 +152,8 @@ export const CustomDeviceModal: React.FC<CustomDeviceModalProps> = ({
                       onClick={() => setUHeight(u)}
                       className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition ${
                         uHeight === u
-                          ? 'bg-cyan-500 text-slate-950 font-bold'
-                          : 'bg-slate-800 text-slate-400 hover:text-white'
+                          ? 'bg-primary text-white font-bold'
+                          : 'bg-surface-2 text-text-tertiary hover:text-text-primary'
                       }`}
                     >
                       {u}U
@@ -167,7 +167,7 @@ export const CustomDeviceModal: React.FC<CustomDeviceModalProps> = ({
                 max={20}
                 value={uHeight}
                 onChange={e => setUHeight(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:border-cyan-400 focus:outline-none font-mono"
+                className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-text-primary focus:border-primary focus:outline-none font-mono"
               />
             </div>
           </div>
@@ -175,43 +175,43 @@ export const CustomDeviceModal: React.FC<CustomDeviceModalProps> = ({
           {/* 厂商与型号 */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-300 font-medium mb-1">厂商品牌</label>
+              <label className="block text-text-secondary font-medium mb-1">厂商品牌</label>
               <input
                 type="text"
                 value={vendor}
                 onChange={e => setVendor(e.target.value)}
                 placeholder="如: 华为 / 戴尔 / 康普"
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:border-cyan-400 focus:outline-none"
+                className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-text-primary focus:border-primary focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-slate-300 font-medium mb-1">设备型号</label>
+              <label className="block text-text-secondary font-medium mb-1">设备型号</label>
               <input
                 type="text"
                 value={model}
                 onChange={e => setModel(e.target.value)}
                 placeholder="如: CE6800-48T"
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:border-cyan-400 focus:outline-none"
+                className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-text-primary focus:border-primary focus:outline-none"
               />
             </div>
           </div>
 
           {/* 上传前面板图片 */}
           <div>
-            <label className="block text-slate-300 font-medium mb-1">前面板图片 (可选)</label>
+            <label className="block text-text-secondary font-medium mb-1">前面板图片 (可选)</label>
             <div className="flex items-center gap-3">
-              <label className="px-3 py-2 bg-slate-950 border border-dashed border-cyan-800/80 hover:border-cyan-400 rounded-lg text-cyan-400 cursor-pointer flex items-center gap-2 transition">
+              <label className="px-3 py-2 bg-surface-2 border border-dashed border-primary cursor-pointer text-primary rounded-lg flex items-center gap-2 transition">
                 <ImageIcon className="w-4 h-4" />
                 <span>选择图片...</span>
                 <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
               </label>
               {frontImage && (
                 <div className="flex items-center gap-2">
-                  <img src={frontImage} alt="Preview" className="w-16 h-7 object-cover rounded border border-slate-700" />
+                  <img src={frontImage} alt="Preview" className="w-16 h-7 object-cover rounded border border-border" />
                   <button
                     type="button"
                     onClick={() => setFrontImage('')}
-                    className="text-red-400 hover:text-red-300 underline text-[11px]"
+                    className="text-status-failed hover:text-status-failed underline text-[11px]"
                   >
                     清除
                   </button>
@@ -222,28 +222,28 @@ export const CustomDeviceModal: React.FC<CustomDeviceModalProps> = ({
 
           {/* 描述 */}
           <div>
-            <label className="block text-slate-300 font-medium mb-1">规格备注</label>
+            <label className="block text-text-secondary font-medium mb-1">规格备注</label>
             <textarea
               rows={2}
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="如: 48口千兆电口，双冗余电源"
-              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:border-cyan-400 focus:outline-none"
+              className="w-full bg-surface-2 border border-border rounded-lg px-3 py-2 text-text-primary focus:border-primary focus:outline-none"
             />
           </div>
 
           {/* 底部按钮 */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
+              className="px-4 py-2 bg-surface-2 hover:bg-surface-3 text-text-secondary rounded-lg transition"
             >
               取消
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white font-semibold rounded-lg transition shadow-md shadow-purple-500/25 flex items-center gap-1.5"
+              className="px-5 py-2 bg-gradient-to-r from-primary-strong to-primary hover:opacity-90 text-white font-semibold rounded-lg transition shadow-[0_2px_8px_rgba(109,94,252,0.35)] flex items-center gap-1.5"
             >
               <Check className="w-4 h-4" />
               <span>保存模板</span>
