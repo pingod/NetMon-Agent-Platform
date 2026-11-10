@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>ITOps 前端未构建</title></head>
+<body style="font-family:sans-serif;padding:2rem">
+<h2>前端产物未构建</h2>
+<p>此文件仅用于让 <code>go:embed frontend_dist/*</code> 在未构建前端时也能编译。</p>
+<p>请先执行 <code>npm run build</code>（frontend 目录），再运行 <code>./build_release.sh</code>
+或把 <code>frontend/dist</code> 复制到 <code>backend-go/internal/modules/frontend_dist/</code>。</p>
+</body>
+</html>

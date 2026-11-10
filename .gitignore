@@ -86,4 +86,6 @@ scripts/
 release/itops-server-*
 backend-go/release/itops-server-*
 backend-go/frontend_dist/
-backend-go/internal/modules/frontend_dist/
+backend-go/internal/modules/frontend_dist/*
+# 仅保留占位文件，保证未构建前端时 go build/embed 不报错
+!backend-go/internal/modules/frontend_dist/placeholder.html
