@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"itops-backend/internal/httpx"
+	"itops-backend/internal/middleware"
 	"itops-backend/internal/repos"
 )
 
@@ -27,7 +28,7 @@ func AIModelRoutes() chi.Router {
 	})
 
 	// POST / — 创建模型
-	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin")).Post("/", func(w http.ResponseWriter, r *http.Request) {
 		var input repos.CreateAIModelInput
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 			httpx.RespondError(w, "无效请求参数: "+err.Error(), http.StatusBadRequest)
@@ -47,7 +48,7 @@ func AIModelRoutes() chi.Router {
 	})
 
 	// PUT /reorder — 重新排序模型
-	r.Put("/reorder", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin")).Put("/reorder", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			ModelIDs []string `json:"modelIds"`
 		}
@@ -63,7 +64,7 @@ func AIModelRoutes() chi.Router {
 	})
 
 	// PUT /{id} — 更新模型（支持编辑基本信息、开关状态、默认模型设置）
-	r.Put("/{id}", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin")).Put("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		var input repos.UpdateAIModelInput
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -80,7 +81,7 @@ func AIModelRoutes() chi.Router {
 	})
 
 	// DELETE /{id} — 删除模型
-	r.Delete("/{id}", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin")).Delete("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		if err := repos.AIModels.Delete(id); err != nil {
 			httpx.RespondError(w, "删除模型失败: "+err.Error(), http.StatusInternalServerError)
@@ -90,7 +91,7 @@ func AIModelRoutes() chi.Router {
 	})
 
 	// POST /{id}/test — 测试模型连通性
-	r.Post("/{id}/test", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin")).Post("/{id}/test", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		model, err := repos.AIModels.GetByID(id)
 		if err != nil || model == nil {

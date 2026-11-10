@@ -5,9 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 	"time"
+
+	"github.com/go-sql-driver/mysql"
 
 	"itops-backend/internal/appdb"
 	"itops-backend/internal/config"
@@ -17,19 +18,20 @@ import (
 
 // MigrationReport 迁移结果报告
 type MigrationReport struct {
-	TotalTables int                 `json:"total_tables"`
-	TotalRows   int                 `json:"total_rows"`
-	DurationMs  int64               `json:"duration_ms"`
-	Details     []TableMigrateStat  `json:"details"`
-	MigratedAt  string              `json:"migrated_at"`
+	TotalTables int                `json:"total_tables"`
+	TotalRows   int                `json:"total_rows"`
+	DurationMs  int64              `json:"duration_ms"`
+	Details     []TableMigrateStat `json:"details"`
+	MigratedAt  string             `json:"migrated_at"`
 }
 
 // TableMigrateStat 单表迁移统计
 type TableMigrateStat struct {
-	TableName string `json:"table_name"`
-	Rows      int    `json:"rows"`
-	Status    string `json:"status"` // "success" | "skipped" | "error"
-	Error     string `json:"error,omitempty"`
+	TableName  string `json:"table_name"`
+	Rows       int    `json:"rows"`
+	Status     string `json:"status"` // "success" | "skipped" | "error"
+	FailedRows int    `json:"failed_rows,omitempty"`
+	Error      string `json:"error,omitempty"`
 }
 
 // DatabaseModeStatus 数据库运行状态
@@ -231,12 +233,25 @@ func MigrateSQLiteToMySQL(targetDSN string) (*MigrationReport, error) {
 	}
 
 	// 4. 逐表迁移数据
+	hadFailure := false
 	for _, table := range coreTablesToMigrate {
 		stat := TableMigrateStat{TableName: table, Status: "success"}
 
-		// 检查 SQLite 中是否存在该表
+		// 指标类表位于 metrics.db，其余位于 app.db（不依赖 ATTACH）
+		tableDB := sqliteDB
+		if appdb.IsMetricsTable(table) && appdb.IsMetricsInitialized() {
+			tableDB = appdb.MetricsDB()
+		}
+
+		// 检查源库中是否存在该表
 		var tblExists int
-		_ = sqliteDB.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?", table).Scan(&tblExists)
+		if err := tableDB.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?", table).Scan(&tblExists); err != nil {
+			stat.Status = "error"
+			stat.Error = err.Error()
+			hadFailure = true
+			report.Details = append(report.Details, stat)
+			continue
+		}
 		if tblExists == 0 {
 			stat.Status = "skipped"
 			report.Details = append(report.Details, stat)
@@ -244,10 +259,11 @@ func MigrateSQLiteToMySQL(targetDSN string) (*MigrationReport, error) {
 		}
 
 		// 获取 SQLite 表列信息
-		colRows, err := sqliteDB.Query(fmt.Sprintf("PRAGMA table_info(%s)", table))
+		colRows, err := tableDB.Query(fmt.Sprintf("PRAGMA table_info(%s)", table))
 		if err != nil {
 			stat.Status = "error"
 			stat.Error = err.Error()
+			hadFailure = true
 			report.Details = append(report.Details, stat)
 			continue
 		}
@@ -273,10 +289,11 @@ func MigrateSQLiteToMySQL(targetDSN string) (*MigrationReport, error) {
 		// 查询 SQLite 全量行数据
 		colList := "`" + strings.Join(columns, "`, `") + "`"
 		querySQL := fmt.Sprintf("SELECT %s FROM `%s`", colList, table)
-		rows, err := sqliteDB.Query(querySQL)
+		rows, err := tableDB.Query(querySQL)
 		if err != nil {
 			stat.Status = "error"
 			stat.Error = err.Error()
+			hadFailure = true
 			report.Details = append(report.Details, stat)
 			continue
 		}
@@ -307,7 +324,7 @@ func MigrateSQLiteToMySQL(targetDSN string) (*MigrationReport, error) {
 			continue
 		}
 
-		rowCount := 0
+		rowCount, scanFail, execFail := 0, 0, 0
 		for rows.Next() {
 			// 扫描每一行
 			values := make([]interface{}, len(columns))
@@ -317,6 +334,7 @@ func MigrateSQLiteToMySQL(targetDSN string) (*MigrationReport, error) {
 			}
 
 			if err := rows.Scan(valuePtrs...); err != nil {
+				scanFail++
 				continue
 			}
 
@@ -332,19 +350,33 @@ func MigrateSQLiteToMySQL(targetDSN string) (*MigrationReport, error) {
 
 			if _, err := stmt.Exec(execArgs...); err == nil {
 				rowCount++
+			} else {
+				execFail++
 			}
 		}
 		rows.Close()
 		stmt.Close()
+		if err := rows.Err(); err != nil {
+			scanFail++
+		}
 
 		if err := tx.Commit(); err != nil {
 			stat.Status = "error"
-			stat.Error = err.Error()
-		} else {
-			stat.Rows = rowCount
-			report.TotalRows += rowCount
-			report.TotalTables++
+			stat.Error = "commit failed: " + err.Error()
+			hadFailure = true
+			report.Details = append(report.Details, stat)
+			report.DurationMs = time.Since(start).Milliseconds()
+			return report, fmt.Errorf("表 %s 提交失败: %w", table, err)
 		}
+		stat.Rows = rowCount
+		if scanFail > 0 || execFail > 0 {
+			stat.FailedRows = scanFail + execFail
+			stat.Status = "error"
+			stat.Error = fmt.Sprintf("扫描失败 %d 行，写入失败 %d 行", scanFail, execFail)
+			hadFailure = true
+		}
+		report.TotalRows += rowCount
+		report.TotalTables++
 
 		report.Details = append(report.Details, stat)
 	}
@@ -353,6 +385,9 @@ func MigrateSQLiteToMySQL(targetDSN string) (*MigrationReport, error) {
 	logger.Infof("SQLite 到 MySQL 数据迁移完成: %d 张表, 共 %d 条记录 (耗时 %dms)",
 		report.TotalTables, report.TotalRows, report.DurationMs)
 
+	if hadFailure {
+		return report, fmt.Errorf("部分表迁移失败，详见报告 details（失败行数计入 failed_rows）")
+	}
 	return report, nil
 }
 
@@ -453,19 +488,12 @@ func updateEnvFile(updates map[string]string) error {
 
 // maskDSN 隐藏 DSN 中的密码部分
 func maskDSN(dsn string) string {
-	re := regexp.MustCompile(`://([^:]+):([^@]+)@|([^:]+):([^@]+)@tcp`)
-	if re.MatchString(dsn) {
-		return re.ReplaceAllStringFunc(dsn, func(m string) string {
-			parts := strings.Split(m, ":")
-			if len(parts) >= 2 {
-				user := parts[0]
-				rest := strings.Split(parts[1], "@")
-				if len(rest) >= 2 {
-					return fmt.Sprintf("%s:******@%s", user, rest[1])
-				}
-			}
-			return m
-		})
+	cfg, err := mysql.ParseDSN(dsn)
+	if err != nil {
+		return "******"
 	}
-	return dsn
+	if cfg.Passwd != "" {
+		cfg.Passwd = "******"
+	}
+	return cfg.FormatDSN()
 }

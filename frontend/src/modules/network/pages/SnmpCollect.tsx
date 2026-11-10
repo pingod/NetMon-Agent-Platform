@@ -146,6 +146,18 @@ function HardwareMetricsTab({ onOpenTest }: { onOpenTest: (target: { moduleId?: 
     return filteredObjects.slice(start, start + pageSize);
   }, [filteredObjects, page]);
 
+  // 筛选条件变化时回到第一页，避免停留在越界页
+  useEffect(() => {
+    setPage(1);
+  }, [selectedCategory, debouncedSearch]);
+
+  // 数据量变化导致当前页超出总页数时收敛到最后一页
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
   const copyOid = (oid: string) => {
     navigator.clipboard.writeText(oid);
     setCopiedOid(oid);

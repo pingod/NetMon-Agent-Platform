@@ -14,6 +14,7 @@ import (
 	"itops-backend/internal/appdb"
 	"itops-backend/internal/crypto"
 	"itops-backend/internal/logger"
+	"itops-backend/internal/middleware"
 	"itops-backend/internal/modules/network/services"
 	"itops-backend/internal/repos"
 )
@@ -25,17 +26,164 @@ type DeviceQueryResult struct {
 	IP           string `json:"ip"`
 	DeviceType   string `json:"device_type"` // switch, router, firewall, server
 	Vendor       string `json:"vendor"`
-	Status       string `json:"status"` // success, timeout, failed, blocked
+	Status       string `json:"status"` // success, stale, timeout, failed, blocked, cancelled
 	DurationMs   int64  `json:"duration_ms"`
 	Command      string `json:"command"`
 	Output       string `json:"output"`
 	ErrorMessage string `json:"error_message,omitempty"`
-	Source       string `json:"source"` // live_ssh, cached_inspection
+	Source       string `json:"source"` // live_ssh, cached, none
+}
+
+// targetDeviceItem 待执行设备（网络设备或服务器）
+type targetDeviceItem struct {
+	isServer   bool
+	netDev     *repos.NetworkDevice
+	serverItem *repos.Server
+}
+
+// resolveTargetDevices 解析目标设备范围：精确名称/IP 优先，其次设备类别关键字，最后模糊匹配
+// 返回 (设备列表, 未找到提示)。未找到明确目标时绝不退化为“全量设备”。
+func resolveTargetDevices(targetScope string) ([]targetDeviceItem, string) {
+	allNetDevices, _ := repos.NetworkDevices.List()
+	allServers, _ := repos.Servers.List()
+	scope := strings.TrimSpace(targetScope)
+	scopeLower := strings.ToLower(scope)
+
+	// 1. 精确匹配设备名称或管理 IP（优先级最高，避免“核心交换机-1”被当成类别关键字）
+	var exact []targetDeviceItem
+	for i := range allNetDevices {
+		dev := allNetDevices[i]
+		if dev == nil {
+			continue
+		}
+		if strings.EqualFold(dev.Name, scope) || (dev.IPAddress != "" && strings.EqualFold(dev.IPAddress, scope)) {
+			exact = append(exact, targetDeviceItem{netDev: dev})
+		}
+	}
+	for i := range allServers {
+		srv := &allServers[i]
+		nameHit := strings.EqualFold(srv.Name, scope)
+		ipHit := srv.IPAddress != nil && *srv.IPAddress != "" && strings.EqualFold(*srv.IPAddress, scope)
+		if nameHit || ipHit {
+			exact = append(exact, targetDeviceItem{isServer: true, serverItem: srv})
+		}
+	}
+	if len(exact) > 0 {
+		return exact, ""
+	}
+
+	// 2. 设备类别关键字
+	switch scopeLower {
+	case "", "all", "全网", "全部":
+		var targets []targetDeviceItem
+		for i := range allNetDevices {
+			if allNetDevices[i] != nil {
+				targets = append(targets, targetDeviceItem{netDev: allNetDevices[i]})
+			}
+		}
+		for i := range allServers {
+			targets = append(targets, targetDeviceItem{isServer: true, serverItem: &allServers[i]})
+		}
+		if len(targets) == 0 {
+			return nil, "⚠️ 当前系统中暂无已纳管的网络设备或服务器，无法执行指令查询。"
+		}
+		return targets, ""
+	case "network", "networks", "switches", "switch", "交换机", "网络", "交换机群", "网络设备":
+		var targets []targetDeviceItem
+		for i := range allNetDevices {
+			if allNetDevices[i] != nil {
+				targets = append(targets, targetDeviceItem{netDev: allNetDevices[i]})
+			}
+		}
+		if len(targets) == 0 {
+			return nil, "⚠️ 当前系统中暂无已纳管的网络设备，无法执行指令查询。"
+		}
+		return targets, ""
+	case "servers", "server", "hosts", "host", "服务器", "主机", "服务器群":
+		var targets []targetDeviceItem
+		for i := range allServers {
+			targets = append(targets, targetDeviceItem{isServer: true, serverItem: &allServers[i]})
+		}
+		if len(targets) == 0 {
+			return nil, "⚠️ 当前系统中暂无已纳管的服务器主机，无法执行指令查询。"
+		}
+		return targets, ""
+	}
+
+	// 3. 名称/IP 关键字模糊匹配
+	var fuzzy []targetDeviceItem
+	for i := range allNetDevices {
+		dev := allNetDevices[i]
+		if dev == nil {
+			continue
+		}
+		if strings.Contains(strings.ToLower(dev.Name), scopeLower) || strings.Contains(strings.ToLower(dev.IPAddress), scopeLower) {
+			fuzzy = append(fuzzy, targetDeviceItem{netDev: dev})
+		}
+	}
+	for i := range allServers {
+		srv := &allServers[i]
+		ip := ""
+		if srv.IPAddress != nil {
+			ip = *srv.IPAddress
+		}
+		if strings.Contains(strings.ToLower(srv.Name), scopeLower) || (ip != "" && strings.Contains(strings.ToLower(ip), scopeLower)) {
+			fuzzy = append(fuzzy, targetDeviceItem{isServer: true, serverItem: srv})
+		}
+	}
+	if len(fuzzy) > 0 {
+		return fuzzy, ""
+	}
+
+	// 4. 未找到明确目标：不执行任何设备
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("⚠️ **未找到匹配的目标设备**：`%s`\n\n", scope))
+	sb.WriteString("为避免指令误发到非目标设备，本次 **未向任何设备执行查询**。当前纳管设备如下：\n\n")
+	for _, d := range allNetDevices {
+		if d != nil {
+			sb.WriteString(fmt.Sprintf("- 网络设备：**%s** (`%s`)\n", d.Name, d.IPAddress))
+		}
+	}
+	for i := range allServers {
+		srv := &allServers[i]
+		ip := ""
+		if srv.IPAddress != nil {
+			ip = *srv.IPAddress
+		}
+		sb.WriteString(fmt.Sprintf("- 服务器主机：**%s** (`%s`)\n", srv.Name, ip))
+	}
+	sb.WriteString("\n> 💡 请使用准确的设备名称或管理 IP 重试，例如「**执行指令 df -h**」。")
+	return nil, sb.String()
+}
+
+func targetDeviceID(it targetDeviceItem) string {
+	if it.isServer {
+		return it.serverItem.ID
+	}
+	return it.netDev.ID
+}
+
+func targetDeviceName(it targetDeviceItem) string {
+	if it.isServer {
+		return it.serverItem.Name
+	}
+	return it.netDev.Name
+}
+
+func targetDeviceIP(it targetDeviceItem) string {
+	if it.isServer {
+		if it.serverItem.IPAddress != nil {
+			return *it.serverItem.IPAddress
+		}
+		return ""
+	}
+	return it.netDev.IPAddress
 }
 
 // ExecuteReadOnlyQueryOnDevices 执行多设备只读指令查询
 // targetScope: "switches", "servers", "all", 或具体设备名称/IP
-func ExecuteReadOnlyQueryOnDevices(ctx context.Context, targetScope string, cmd string) (string, []DeviceQueryResult) {
+// role: 当前用户角色，用于 middleware.CheckCommandSafety 策略校验
+func ExecuteReadOnlyQueryOnDevices(ctx context.Context, targetScope string, cmd string, role string) (string, []DeviceQueryResult) {
 	startAll := time.Now()
 
 	// 1. 安全指令审查（第一道绝对硬隔离红线）
@@ -46,55 +194,26 @@ func ExecuteReadOnlyQueryOnDevices(ctx context.Context, targetScope string, cmd 
 		return GenerateSecurityBlockNotice(cmd, blockReason), nil
 	}
 
+	// 1.1 执行前的角色策略校验（在建立任何 SSH 连接之前）
+	if strings.TrimSpace(role) == "" {
+		role = "admin"
+	}
+	if safety := middleware.CheckCommandSafety(cmd, role); !safety.Allowed {
+		reason := safety.Reason
+		if reason == "" {
+			reason = "命令未通过当前角色的安全策略校验"
+		}
+		logger.Warnf("安全拦截：角色 [%s] 执行指令 [%s] 被策略阻断: %s", role, cmd, reason)
+		return GenerateSecurityBlockNotice(cmd, reason), nil
+	}
+
 	// 2. 解析与筛选目标设备
-	scopeLower := strings.ToLower(targetScope)
-	allNetDevices, _ := repos.NetworkDevices.List()
-	allServers, _ := repos.Servers.List()
-
-	type targetDeviceItem struct {
-		isServer   bool
-		netDev     *repos.NetworkDevice
-		serverItem *repos.Server
+	targets, notFoundMsg := resolveTargetDevices(targetScope)
+	if notFoundMsg != "" {
+		return notFoundMsg, nil
 	}
 
-	var targets []targetDeviceItem
-
-	for i := range allNetDevices {
-		dev := allNetDevices[i]
-		if dev == nil {
-			continue
-		}
-		if targetScope == "" || targetScope == "all" || targetScope == "network" || targetScope == "switches" ||
-			strings.Contains(scopeLower, "交换机") || strings.Contains(scopeLower, "网络") ||
-			strings.Contains(strings.ToLower(dev.Name), scopeLower) || strings.Contains(dev.IPAddress, scopeLower) {
-			targets = append(targets, targetDeviceItem{isServer: false, netDev: dev})
-		}
-	}
-
-	for i := range allServers {
-		srv := &allServers[i]
-		if targetScope == "all" || targetScope == "servers" || targetScope == "hosts" ||
-			strings.Contains(scopeLower, "服务器") || strings.Contains(scopeLower, "主机") ||
-			strings.Contains(strings.ToLower(srv.Name), scopeLower) || (srv.IPAddress != nil && strings.Contains(*srv.IPAddress, scopeLower)) {
-			targets = append(targets, targetDeviceItem{isServer: true, serverItem: srv})
-		}
-	}
-
-	// 如果没有匹配到，默认目标为所有在线网络设备；若网络设备为空则加上服务器
-	if len(targets) == 0 {
-		for i := range allNetDevices {
-			if allNetDevices[i] != nil {
-				targets = append(targets, targetDeviceItem{isServer: false, netDev: allNetDevices[i]})
-			}
-		}
-		if len(targets) == 0 {
-			for i := range allServers {
-				targets = append(targets, targetDeviceItem{isServer: true, serverItem: &allServers[i]})
-			}
-		}
-	}
-
-	// 3. 并发执行指令（Goroutines + WaitGroup）
+	// 3. 并发执行指令（Goroutines + WaitGroup，遵循 ctx 取消）
 	var mu sync.Mutex
 	var results []DeviceQueryResult
 	var wg sync.WaitGroup
@@ -103,8 +222,25 @@ func ExecuteReadOnlyQueryOnDevices(ctx context.Context, targetScope string, cmd 
 		wg.Add(1)
 		go func(it targetDeviceItem) {
 			defer wg.Done()
-			var res DeviceQueryResult
 
+			select {
+			case <-ctx.Done():
+				mu.Lock()
+				results = append(results, DeviceQueryResult{
+					DeviceID:     targetDeviceID(it),
+					DeviceName:   targetDeviceName(it),
+					IP:           targetDeviceIP(it),
+					Command:      cmd,
+					Status:       "cancelled",
+					Source:       "none",
+					ErrorMessage: "请求已取消或超时，未执行 SSH",
+				})
+				mu.Unlock()
+				return
+			default:
+			}
+
+			var res DeviceQueryResult
 			if it.isServer {
 				res = executeOnServer(it.serverItem, cmd)
 			} else {
@@ -120,13 +256,17 @@ func ExecuteReadOnlyQueryOnDevices(ctx context.Context, targetScope string, cmd 
 	wg.Wait()
 	totalDuration := time.Since(startAll).Milliseconds()
 
-	// 4. 统计成功与失败
+	// 4. 统计成功、缓存快照与失败
 	successCount := 0
+	staleCount := 0
 	failedCount := 0
 	for _, r := range results {
-		if r.Status == "success" {
+		switch r.Status {
+		case "success":
 			successCount++
-		} else {
+		case "stale":
+			staleCount++
+		default:
 			failedCount++
 		}
 	}
@@ -138,8 +278,8 @@ func ExecuteReadOnlyQueryOnDevices(ctx context.Context, targetScope string, cmd 
 
 	sb.WriteString("| 执行指标 | 运行数据 |\n")
 	sb.WriteString("| :--- | :--- |\n")
-	sb.WriteString(fmt.Sprintf("| **查询指令** | `%s` |\n", cmd))
-	sb.WriteString(fmt.Sprintf("| **目标设备总数** | `%d 台`（成功 `%d`，异常/超时 `%d`） |\n", len(results), successCount, failedCount))
+	sb.WriteString(fmt.Sprintf("| **查询指令** | `%s` |\n", strings.ReplaceAll(cmd, "`", "'")))
+	sb.WriteString(fmt.Sprintf("| **目标设备总数** | `%d 台`（实时成功 `%d`，缓存快照 `%d`，异常/超时 `%d`） |\n", len(results), successCount, staleCount, failedCount))
 	sb.WriteString(fmt.Sprintf("| **总调度耗时** | `%d ms` |\n", totalDuration))
 	sb.WriteString("| **安全审计** | `全部只读白名单校验通过，无任何配置下发或状态修改` |\n\n")
 
@@ -148,8 +288,14 @@ func ExecuteReadOnlyQueryOnDevices(ctx context.Context, targetScope string, cmd 
 
 	for idx, r := range results {
 		statusBadge := "🟢 执行成功"
-		if r.Status != "success" {
-			statusBadge = "🟡 " + r.Status
+		switch r.Status {
+		case "success":
+		case "stale":
+			statusBadge = "🟡 缓存快照（非实时）"
+		case "cancelled":
+			statusBadge = "⚪ 已取消"
+		default:
+			statusBadge = "🔴 " + r.Status
 		}
 		vendorTag := r.Vendor
 		if vendorTag == "" {
@@ -158,8 +304,8 @@ func ExecuteReadOnlyQueryOnDevices(ctx context.Context, targetScope string, cmd 
 
 		sb.WriteString(fmt.Sprintf("#### %d. 🖥️ %s (%s)\n", idx+1, r.DeviceName, r.IP))
 		sb.WriteString(fmt.Sprintf("* **规格属性**：品牌/系统 `%s` · 类别 `%s` · 耗时 `%d ms` · 状态 `%s`", vendorTag, r.DeviceType, r.DurationMs, statusBadge))
-		if r.Source == "cached_inspection" {
-			sb.WriteString(" · *(设备离线/超时，自动关联最近巡检快照回显)*")
+		if r.Source == "cached" {
+			sb.WriteString(" · *(设备不可达，以下为最近一次同类巡检的缓存快照，非本次实时回显)*")
 		}
 		sb.WriteString("\n\n")
 
@@ -185,7 +331,7 @@ func ExecuteReadOnlyQueryOnDevices(ctx context.Context, targetScope string, cmd 
 	// 6. AI 智能交叉比对与提炼分析
 	sb.WriteString("---\n\n")
 	sb.WriteString("### 🤖 NetMon AI 智能诊断与提炼总结\n\n")
-	aiSummary := generateAIInsightOnResults(ctx, cmd, results)
+	aiSummary := generateAIInsightOnResults(cmd, results)
 	sb.WriteString(aiSummary)
 
 	return sb.String(), results
@@ -246,15 +392,17 @@ func executeOnNetworkDevice(dev *repos.NetworkDevice, cmd string) DeviceQueryRes
 		return res
 	}
 
-	// 如果网络超时或失败，尝试回退查找最近巡检记录中的真实历史回显数据，保证界面展示可用
-	cachedOut := findCachedOutputForDevice(dev.ID, cmd)
-	if cachedOut != "" {
-		res.Status = "success"
-		res.Source = "cached_inspection"
-		res.Output = cachedOut
-		return res
+	// 实时 SSH 失败后，仅允许使用同类型巡检快照兜底
+	// 只有在缓存命令类型与本次指令完全一致时，才使用巡检快照，并明确标记 stale/cached
+	if wantType := cachedCommandType(cmd); wantType != "" {
+		if cachedOut, ok := findCachedOutputForDevice(dev.ID, wantType); ok {
+			res.Status = "stale"
+			res.Source = "cached"
+			res.Output = cachedOut
+			res.DurationMs = time.Since(start).Milliseconds()
+			return res
+		}
 	}
-
 	// 若无缓存且连接失败，输出清晰的连接状态提示
 	res.Status = "timeout"
 	if sshErr != nil {
@@ -368,17 +516,61 @@ func executeOnServer(srv *repos.Server, cmd string) DeviceQueryResult {
 	return res
 }
 
-// findCachedOutputForDevice 在历史巡检或快照中查找该指令的输出（供离线仿真测试环境兜底展示）
-func findCachedOutputForDevice(deviceID string, cmd string) string {
+// cachedCommandType 将只读指令映射为巡检快照中的命令类型
+// 仅用于“同类型缓存”判定；无法精确对应时返回空串，表示不允许使用缓存。
+func cachedCommandType(cmd string) string {
+	c := strings.Join(strings.Fields(strings.ToLower(strings.TrimSpace(cmd))), " ")
+	switch c {
+	case "display version", "show version":
+		return "version"
+	case "display vlan", "show vlan", "show vlan brief":
+		return "vlan"
+	case "display stp", "display stp brief", "show spanning-tree brief":
+		return "stp"
+	case "display arp", "show ip arp":
+		return "arp"
+	case "display mac-address", "show mac address-table":
+		return "mac"
+	case "display ip routing-table", "show ip route":
+		return "routes"
+	case "display interface brief", "show ip interface brief":
+		return "interface"
+	case "display cpu-usage":
+		return "cpu"
+	case "display memory-usage":
+		return "memory"
+	case "display logbuffer":
+		return "log"
+	case "display environment", "display temperature":
+		return "environment"
+	case "display power":
+		return "power"
+	case "display fan":
+		return "fan"
+	case "display lldp neighbor brief", "show lldp neighbors detail":
+		return "neighbor"
+	case "display ntp status", "display ntp-service status":
+		return "ntp"
+	}
+	// 巡检快照中的 config_checksum 仅包含配置摘要，不能冒充全量配置回显
+	return ""
+}
+
+// findCachedOutputForDevice 在历史巡检快照中查找“同类型”指令的输出
+// 只有 wantType 与快照条目类型完全一致时才返回，绝不回退到任意历史输出。
+func findCachedOutputForDevice(deviceID string, wantType string) (string, bool) {
+	if wantType == "" {
+		return "", false
+	}
 	db := appdb.DB()
 	if db == nil {
-		return ""
+		return "", false
 	}
 
 	var resultsStr sql.NullString
 	err := db.QueryRow("SELECT results FROM network_inspection_history WHERE device_id = ? ORDER BY created_at DESC LIMIT 1", deviceID).Scan(&resultsStr)
 	if err != nil || !resultsStr.Valid || resultsStr.String == "" {
-		return ""
+		return "", false
 	}
 
 	type cachedItem struct {
@@ -387,86 +579,61 @@ func findCachedOutputForDevice(deviceID string, cmd string) string {
 	}
 	var items []cachedItem
 	if err := json.Unmarshal([]byte(resultsStr.String), &items); err != nil {
-		return ""
+		return "", false
 	}
 
-	cmdLower := strings.ToLower(cmd)
 	for _, it := range items {
-		if it.RawOutput == "" {
-			continue
-		}
-		// 匹配命令类型
-		if strings.Contains(cmdLower, "version") && (it.Type == "version" || strings.Contains(it.RawOutput, "Version")) {
-			return it.RawOutput
-		}
-		if strings.Contains(cmdLower, "current-configuration") || strings.Contains(cmdLower, "config") {
-			if it.Type == "config_checksum" || strings.Contains(it.RawOutput, "sysname") || strings.Contains(it.RawOutput, "interface") {
-				return it.RawOutput
-			}
-		}
-		if strings.Contains(cmdLower, "vlan") && (it.Type == "vlan" || strings.Contains(it.RawOutput, "vlan")) {
-			return it.RawOutput
-		}
-		if strings.Contains(cmdLower, "stp") && it.Type == "stp" {
-			return it.RawOutput
-		}
-		if strings.Contains(cmdLower, "arp") && it.Type == "arp" {
-			return it.RawOutput
-		}
-		if strings.Contains(cmdLower, "mac") && it.Type == "mac" {
-			return it.RawOutput
-		}
-		if strings.Contains(cmdLower, "route") || strings.Contains(cmdLower, "routing") {
-			if strings.Contains(it.RawOutput, "Routing") || strings.Contains(it.RawOutput, "Destination") {
-				return it.RawOutput
-			}
+		if it.Type == wantType && it.RawOutput != "" {
+			return it.RawOutput, true
 		}
 	}
+	return "", false
 
-	// 若匹配不到具体类型但有巡检，返回第一条非空输出作为参考
-	for _, it := range items {
-		if len(it.RawOutput) > 30 {
-			return it.RawOutput
-		}
-	}
-
-	return ""
 }
 
-// generateAIInsightOnResults 对多设备返回结果进行智能交叉对比分析
-func generateAIInsightOnResults(ctx context.Context, cmd string, results []DeviceQueryResult) string {
+// generateAIInsightOnResults 对多设备返回结果进行交叉对比分析
+func generateAIInsightOnResults(cmd string, results []DeviceQueryResult) string {
 	var summaryText strings.Builder
 
-	// 提取简要特征
-	successCount := 0
+	liveCount := 0
+	staleCount := 0
+	failedCount := 0
 	for _, r := range results {
-		if r.Status == "success" {
-			successCount++
+		switch r.Status {
+		case "success":
+			liveCount++
+		case "stale":
+			staleCount++
+		default:
+			failedCount++
 		}
 	}
 
-	summaryText.WriteString(fmt.Sprintf("1. **全网覆盖度**：本次指令 `%s` 成功在 **%d/%d** 台纳管设备上完成只读扫描与数据采集。\n", cmd, successCount, len(results)))
-
-	// 针对不同指令类型提炼分析重点
-	cmdLower := strings.ToLower(cmd)
-	if strings.Contains(cmdLower, "version") {
-		summaryText.WriteString("2. **系统版本分析**：各交换机软硬件基线版本一致性良好。建议重点关注各设备固件补丁补丁包（VRP/Comware）是否处于相同维护基线，避免跨版本协议交互异常。\n")
-		summaryText.WriteString("3. **合规审计意见**：系统运行环境良好，未发现未授权重启或异常崩溃记录。\n")
-	} else if strings.Contains(cmdLower, "current-configuration") || strings.Contains(cmdLower, "config") {
-		summaryText.WriteString("2. **配置一致性与安全策略**：各设备命名规则清晰（sysname 规范统一）。全网 VLAN、接口隔离与防环路机制正常生效。\n")
-		summaryText.WriteString("3. **只读合规保障**：本次配置查询全程在只读沙箱下完成，未触发任何配置写操作，设备哈希校验与配置时间戳未发生变动。\n")
-	} else if strings.Contains(cmdLower, "interface") {
-		summaryText.WriteString("2. **端口状态与物理链路**：主干互联端口状态正常，无严重错包（CRC/Error）激增迹象；部分未连接终端端口处于正常 Admin Down 或 Down 状态。\n")
-		summaryText.WriteString("3. **流量瓶颈预警**：目前全网接口未出现持续高负载利用率（>80%），链路吞吐处于健康平稳区间。\n")
-	} else if strings.Contains(cmdLower, "routing") || strings.Contains(cmdLower, "route") {
-		summaryText.WriteString("2. **路由收敛与互联可达性**：直连路由与静态默认网关条目正常建立，网段互联未出现黑洞或震荡路由。\n")
-	} else if strings.Contains(cmdLower, "df") || strings.Contains(cmdLower, "disk") {
-		summaryText.WriteString("2. **主机资源利用率**：根目录与数据目录空间充足，存储利用率健康，无磁盘爆满风险。\n")
-	} else {
-		summaryText.WriteString("2. **数据一致性验证**：各设备返回结构符合预期，系统健康度评分 **98/100**。\n")
+	summaryText.WriteString(fmt.Sprintf("1. **采集覆盖度**：指令 `%s` 共覆盖 **%d** 台设备，其中实时 SSH 回显 **%d** 台，缓存快照（非实时）**%d** 台，执行失败/超时 **%d** 台。\n", cmd, len(results), liveCount, staleCount, failedCount))
+	if staleCount > 0 {
+		summaryText.WriteString("   *缓存快照仅用于临时参考，不代表本次实时设备状态，请以实时采集结果为准。*\n")
 	}
 
-	summaryText.WriteString("\n> 💡 **操作提示**：如需进一步查询特定设备的详细端口计数器或邻居拓扑，您可以继续提问：例如 `查询核心交换机接口简报` 或 `展示当前网络拓扑结构`。")
+	if liveCount == 0 {
+		summaryText.WriteString("\n2. **结论**：本次没有获取到任何实时设备回显，无法给出设备侧分析结论。请先排查设备可达性与 SSH 凭证后重试。\n")
+		summaryText.WriteString("\n> 💡 **操作提示**：可先执行「巡检核心交换机-1」确认设备连通性，或检查设备管理 IP / SSH 端口配置。")
+		return summaryText.String()
+	}
+
+	cmdLower := strings.ToLower(cmd)
+	if strings.Contains(cmdLower, "version") {
+		summaryText.WriteString("2. **系统版本**：请以各设备实时回显中的版本号为准进行基线比对，重点关注存在差异的固件版本。\n")
+	} else if strings.Contains(cmdLower, "current-configuration") || strings.Contains(cmdLower, "config") {
+		summaryText.WriteString("2. **配置查询**：配置回显已原样呈现，只读查询未触发任何写操作；请人工核对关键配置项差异。\n")
+	} else if strings.Contains(cmdLower, "interface") {
+		summaryText.WriteString("2. **端口状态**：请结合各设备回显中的 UP/DOWN 数量与错包计数进行链路排查。\n")
+	} else if strings.Contains(cmdLower, "routing") || strings.Contains(cmdLower, "route") {
+		summaryText.WriteString("2. **路由状态**：请以各设备返回的路由表条目为准，核对是否存在缺失或异常路由。\n")
+	} else if strings.Contains(cmdLower, "df") || strings.Contains(cmdLower, "disk") {
+		summaryText.WriteString("2. **磁盘资源**：请以各主机实时返回的挂载点使用率为准评估容量风险。\n")
+	}
+
+	summaryText.WriteString("\n> 💡 **操作提示**：如需进一步查询特定设备的详细端口计数器或邻居拓扑，您可以继续提问，例如 `display interface brief`。")
 
 	return summaryText.String()
 }

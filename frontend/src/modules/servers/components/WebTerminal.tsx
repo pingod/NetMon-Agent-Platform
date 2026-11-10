@@ -200,11 +200,14 @@ export default function WebTerminal({ serverId, serverName, token, onClose, devi
       onResizeDisposeRef.current = null;
 
       // 发送关闭消息
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && sessionIdRef.current) {
-        wsRef.current.send(JSON.stringify({
-          type: 'close',
-          sessionId: sessionIdRef.current,
-        }));
+      // 无论 readyState 如何都关闭当前 socket，避免连接中/重连中的句柄泄漏
+      if (wsRef.current) {
+        if (wsRef.current.readyState === WebSocket.OPEN && sessionIdRef.current) {
+          wsRef.current.send(JSON.stringify({
+            type: 'close',
+            sessionId: sessionIdRef.current,
+          }));
+        }
         wsRef.current.close(1000, 'terminal closed');
       }
 

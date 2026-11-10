@@ -52,7 +52,7 @@ func (s *NetworkInspectionService) InspectDevice(deviceID string, inspectionType
 }
 
 // InspectDeviceWithTemplate 支持传入 templateID 与指定 commandNames 执行模版巡检（严格执行同品牌模版校验）
-func (s *NetworkInspectionService) InspectDeviceWithTemplate(deviceID string, inspectionType string, customTypes []string, templateID string, selectedCommandNames []string) (*InspectionResult, error) {
+func (s *NetworkInspectionService) InspectDeviceWithTemplate(deviceID string, inspectionType string, customTypes []string, templateID string, selectedCommandNames []string) (res *InspectionResult, retErr error) {
 	start := time.Now()
 	inspectionID := uuid.New().String()
 
@@ -69,6 +69,12 @@ func (s *NetworkInspectionService) InspectDeviceWithTemplate(deviceID string, in
 	repoID, createErr := repos.Inspections.CreateRunning(deviceID, inspectionType, "")
 	if createErr == nil && repoID != "" {
 		inspectionID = repoID
+		// 任何提前返回（模版不存在/品牌不匹配等）都要把 running 记录收尾为 failed
+		defer func() {
+			if retErr != nil {
+				_ = repos.Inspections.MarkFailed(inspectionID, retErr.Error())
+			}
+		}()
 	}
 
 	var results []ParsedResult
@@ -243,7 +249,6 @@ func (s *NetworkInspectionService) BatchInspectWithTemplate(deviceIDs []string, 
 	}
 	return finalResults
 }
-
 
 // ───────────────────────────────────────────────
 // 巡检执行

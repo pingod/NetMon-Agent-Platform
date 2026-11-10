@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -55,6 +56,18 @@ var pragmas = []string{
 	`PRAGMA automatic_index = ON`,
 }
 
+// sqlitePragmas 写入 DSN，确保连接池中每条新连接都带上关键 PRAGMA
+// （原先仅对单条连接执行 Exec PRAGMA，其余连接 busy_timeout=0 会立即失败）
+const sqlitePragmas = "_pragma=busy_timeout(10000)&_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=temp_store(memory)"
+
+// sqliteDSN 为 SQLite 路径拼接连接参数
+func sqliteDSN(path string) string {
+	if strings.Contains(path, "?") {
+		return path + "&" + sqlitePragmas
+	}
+	return path + "?" + sqlitePragmas
+}
+
 // Open 初始化主数据库连接（app.db SQLite 或 MySQL）（幂等）
 func Open(dbPath string) error {
 	mu.Lock()
@@ -69,7 +82,7 @@ func Open(dbPath string) error {
 		return fmt.Errorf("create db dir: %w", err)
 	}
 
-	db, err := sql.Open("sqlite", dbPath)
+	db, err := sql.Open("sqlite", sqliteDSN(dbPath))
 	if err != nil {
 		return fmt.Errorf("open sqlite: %w", err)
 	}
@@ -112,6 +125,7 @@ func InitServersTableSchema(db *sql.DB) {
 			{"agent_cpu_usage", "REAL DEFAULT 0"},
 			{"agent_mem_mb", "REAL DEFAULT 0"},
 			{"agent_uptime_seconds", "INTEGER DEFAULT 0"},
+			{"agent_token", "TEXT DEFAULT ''"},
 		}
 		for _, col := range cols {
 			if !ColumnExists(db, "servers", col.name) {
@@ -171,7 +185,7 @@ func OpenMetrics(dbPath string) error {
 		return fmt.Errorf("create metrics db dir: %w", err)
 	}
 
-	db, err := sql.Open("sqlite", dbPath)
+	db, err := sql.Open("sqlite", sqliteDSN(dbPath))
 	if err != nil {
 		return fmt.Errorf("open metrics sqlite: %w", err)
 	}
@@ -238,7 +252,7 @@ func OpenMySQL(dsn string) error {
 
 	mysqlConn = db
 	mysqlInited = true
-	logger.Infof("MySQL connected: %s", dsn)
+	logger.Infof("MySQL connected")
 	return nil
 }
 
@@ -267,6 +281,23 @@ func IsMySQLMode() bool {
 	mysqlMu.RLock()
 	defer mysqlMu.RUnlock()
 	return mysqlInited && mysqlConn != nil
+}
+
+// NowExpr 返回当前时间的 SQL 表达式（按当前后端方言：SQLite / MySQL）
+func NowExpr() string {
+	if IsMySQLMode() {
+		return "NOW()"
+	}
+	return "datetime('now','localtime')"
+}
+
+// NowExprFor 返回适用于指定连接的当前时间 SQL 表达式。
+// 指标库（metrics.db）等固定使用 SQLite 方言的连接即使在 MySQL 模式下也返回 SQLite 表达式。
+func NowExprFor(db *sql.DB) string {
+	if db != nil && IsMySQLMode() && db == MySQLDB() {
+		return "NOW()"
+	}
+	return "datetime('now','localtime')"
 }
 
 // SQLiteDB 返回底层的 SQLite 数据库连接（可供数据迁移和底层维护使用）
@@ -319,7 +350,7 @@ func OpenOid(dbPath string) error {
 		return fmt.Errorf("create oid db dir: %w", err)
 	}
 
-	db, err := sql.Open("sqlite", dbPath)
+	db, err := sql.Open("sqlite", sqliteDSN(dbPath))
 	if err != nil {
 		return fmt.Errorf("open oid sqlite: %w", err)
 	}
@@ -433,14 +464,13 @@ func initAlertRulesTable(db *sql.DB) {
 // OidDB 返回 OID 数据库单例（oid.db SQLite）
 func OidDB() *sql.DB {
 	mu.RLock()
-	defer mu.RUnlock()
-	if oidConn == nil {
+	conn := oidConn
+	mu.RUnlock()
+	if conn == nil {
 		return DB()
 	}
-	return oidConn
+	return conn
 }
-
-
 
 // IsInitialized 主数据库是否已初始化
 func IsInitialized() bool {
@@ -475,6 +505,13 @@ func Close() error {
 		}
 		metricsConn = nil
 		metricsInit = false
+	}
+	if oidConn != nil {
+		if err := oidConn.Close(); err != nil {
+			errs = append(errs, err)
+		}
+		oidConn = nil
+		oidInit = false
 	}
 
 	mysqlMu.Lock()

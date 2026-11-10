@@ -10,7 +10,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
+	"itops-backend/internal/crypto"
 	"itops-backend/internal/httpx"
+	"itops-backend/internal/logger"
 	"itops-backend/internal/middleware"
 	"itops-backend/internal/modules/network/services"
 	"itops-backend/internal/repos"
@@ -166,9 +168,37 @@ func NetworkDiscoveryRoutes() chi.Router {
 			if result.SysName != nil && *result.SysName != "" {
 				name = *result.SysName
 			}
+			osVersion := ""
+			if result.SysDescr != nil {
+				osVersion = *result.SysDescr
+			}
 
-			err = repos.NetworkDevices.CreateFromDiscovery(name, result.IPAddress, vendor, model, req.SSHUsername, port, "online", "")
-			if err != nil {
+			// SSH 密码必须加密后落库，避免明文存储
+			encryptedPassword := ""
+			if req.SSHPassword != "" {
+				enc, encErr := crypto.Encrypt(req.SSHPassword)
+				if encErr != nil {
+					logger.Warnf("发现结果 %s 导入失败: 密码加密失败: %v", rid, encErr)
+					failed++
+					continue
+				}
+				encryptedPassword = enc
+			}
+
+			createErr := repos.NetworkDevices.Create(repos.NetworkDeviceCreateInput{
+				ID:          uuid.New().String(),
+				Name:        name,
+				IPAddress:   result.IPAddress,
+				Vendor:      vendor,
+				Model:       model,
+				OsVersion:   osVersion,
+				SSHPort:     port,
+				Username:    req.SSHUsername,
+				Password:    encryptedPassword,
+				Status:      "online",
+				SnmpEnabled: 1,
+			})
+			if createErr != nil {
 				failed++
 			} else {
 				imported++

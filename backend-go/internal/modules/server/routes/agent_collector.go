@@ -4,12 +4,12 @@ package routes
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"math"
-	"math/rand"
 	"net"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -22,33 +22,33 @@ import (
 	"itops-backend/internal/crypto"
 	"itops-backend/internal/httpx"
 	"itops-backend/internal/logger"
+	"itops-backend/internal/middleware"
 	"itops-backend/internal/modules/network/services"
-	"encoding/base64"
 )
 
 // AgentReportPayload 采集器上报的性能指标数据包
 type AgentReportPayload struct {
-	ServerID       string                 `json:"server_id"`
-	AgentVersion   string                 `json:"agent_version"`
-	AgentCPU       float64                `json:"agent_cpu"`        // 采集器自身 CPU 占用率 % (例如 0.04)
-	AgentMemMB     float64                `json:"agent_mem_mb"`     // 采集器自身内存占用 MB (例如 3.8)
-	UptimeSeconds  int64                  `json:"uptime_seconds"`   // 系统运行时长 (秒)
-	CollectedAt    string                 `json:"collected_at"`
-	CPU            AgentCPUData           `json:"cpu"`
-	Memory         AgentMemoryData        `json:"memory"`
-	Disk           AgentDiskData          `json:"disk"`
-	Network        AgentNetworkData       `json:"network"`
-	Load           AgentLoadData          `json:"load"`
-	RawDetails     map[string]interface{} `json:"raw_details,omitempty"`
+	ServerID      string                 `json:"server_id"`
+	AgentVersion  string                 `json:"agent_version"`
+	AgentCPU      float64                `json:"agent_cpu"`      // 采集器自身 CPU 占用率 % (例如 0.04)
+	AgentMemMB    float64                `json:"agent_mem_mb"`   // 采集器自身内存占用 MB (例如 3.8)
+	UptimeSeconds int64                  `json:"uptime_seconds"` // 系统运行时长 (秒)
+	CollectedAt   string                 `json:"collected_at"`
+	CPU           AgentCPUData           `json:"cpu"`
+	Memory        AgentMemoryData        `json:"memory"`
+	Disk          AgentDiskData          `json:"disk"`
+	Network       AgentNetworkData       `json:"network"`
+	Load          AgentLoadData          `json:"load"`
+	RawDetails    map[string]interface{} `json:"raw_details,omitempty"`
 }
 
 type AgentCPUData struct {
-	Usage   float64 `json:"usage"`    // CPU 总使用率 %
-	User    float64 `json:"user"`     // 用户态 %
-	System  float64 `json:"system"`   // 系统态 %
-	Idle    float64 `json:"idle"`     // 空闲态 %
-	IOWait  float64 `json:"iowait"`   // 等待 I/O %
-	Cores   int     `json:"cores"`    // 核心数
+	Usage  float64 `json:"usage"`  // CPU 总使用率 %
+	User   float64 `json:"user"`   // 用户态 %
+	System float64 `json:"system"` // 系统态 %
+	Idle   float64 `json:"idle"`   // 空闲态 %
+	IOWait float64 `json:"iowait"` // 等待 I/O %
+	Cores  int     `json:"cores"`  // 核心数
 }
 
 type AgentMemoryData struct {
@@ -73,8 +73,8 @@ type AgentDiskData struct {
 }
 
 type AgentNetworkData struct {
-	RxKBps    float64 `json:"rx_kbps"`     // 下行带宽吞吐量 KB/s
-	TxKBps    float64 `json:"tx_kbps"`     // 上行带宽吞吐量 KB/s
+	RxKBps    float64 `json:"rx_kbps"` // 下行带宽吞吐量 KB/s
+	TxKBps    float64 `json:"tx_kbps"` // 上行带宽吞吐量 KB/s
 	RxPackets int64   `json:"rx_packets"`
 	TxPackets int64   `json:"tx_packets"`
 	Errors    int64   `json:"errors"`
@@ -101,10 +101,10 @@ func AgentCollectorRoutes() chi.Router {
 	r.Post("/report", handleAgentReportMetrics)
 
 	// 4. POST /batch-install — 平台批量 SSH 下发安装 Agent
-	r.Post("/batch-install", handleBatchInstallAgent)
+	r.With(middleware.RequireRole("admin", "operator")).Post("/batch-install", handleBatchInstallAgent)
 
 	// 5. POST /servers/{id}/install — 单台服务器/虚拟机一键 SSH 安装 Agent
-	r.Post("/servers/{id}/install", handleSingleInstallAgent)
+	r.With(middleware.RequireRole("admin", "operator")).Post("/servers/{id}/install", handleSingleInstallAgent)
 
 	// 6. GET /servers/{id}/metrics/history — 查询虚拟机性能大屏时序指标
 	r.Get("/servers/{id}/metrics/history", handleGetServerMetricsHistory)
@@ -112,11 +112,27 @@ func AgentCollectorRoutes() chi.Router {
 	return r
 }
 
-// buildLinuxAgentScript 生成极致轻量的 Linux POSIX Shell 采集器脚本
-func buildLinuxAgentScript(serverID, scheme, host string) string {
-	if serverID == "" {
-		serverID = "default"
+var (
+	agentIDPattern    = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
+	agentTokenPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{8,128}$`)
+	agentHostPattern  = regexp.MustCompile(`^[A-Za-z0-9.:\[\]-]{1,255}$`)
+)
+
+// shellSingleQuote 单引号转义，防止脚本变量注入
+func shellSingleQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
+// validateAgentHost 校验上报主机地址
+func validateAgentHost(host string) error {
+	if !agentHostPattern.MatchString(host) {
+		return fmt.Errorf("非法的上报主机地址")
 	}
+	return nil
+}
+
+// buildLinuxAgentScript 生成极致轻量的 Linux POSIX Shell 采集器脚本
+func buildLinuxAgentScript(serverID, scheme, host, agentToken string) string {
 	if host == "" {
 		host = "127.0.0.1:8088"
 	}
@@ -124,6 +140,9 @@ func buildLinuxAgentScript(serverID, scheme, host string) string {
 		scheme = "http"
 	}
 	reportURL := fmt.Sprintf("%s://%s/api/v1/agent/report", scheme, host)
+	serverIDQ := shellSingleQuote(serverID)
+	reportURLQ := shellSingleQuote(reportURL)
+	tokenQ := shellSingleQuote(agentToken)
 
 	return fmt.Sprintf(`#!/bin/sh
 # ==============================================================================
@@ -135,8 +154,9 @@ func buildLinuxAgentScript(serverID, scheme, host string) string {
 
 set -e
 
-SERVER_ID="%s"
-REPORT_URL="%s"
+SERVER_ID=%s
+REPORT_URL=%s
+AGENT_TOKEN=%s
 AGENT_DIR="/etc/netmon-agent"
 AGENT_BIN="/usr/local/bin/netmon-agent"
 SERVICE_FILE="/etc/systemd/system/netmon-agent.service"
@@ -148,8 +168,9 @@ echo "========================================================="
 mkdir -p "$AGENT_DIR"
 cat << 'EOF' > "$AGENT_BIN"
 #!/bin/sh
-SERVER_ID="%s"
-REPORT_URL="%s"
+SERVER_ID=%s
+REPORT_URL=%s
+AGENT_TOKEN=%s
 AGENT_VERSION="v1.2.0"
 INTERVAL=5
 
@@ -350,9 +371,9 @@ JSON
 
     # 推送至 NetMon 平台 (同时支持 curl 与 wget)
     if command -v curl >/dev/null 2>&1; then
-        curl -s -X POST -H "Content-Type: application/json" -d "$JSON_BODY" "${REPORT_URL}" >/dev/null 2>&1 || true
+        curl -s -X POST -H "Content-Type: application/json" -H "X-Agent-Token: ${AGENT_TOKEN}" -d "$JSON_BODY" "${REPORT_URL}" >/dev/null 2>&1 || true
     elif command -v wget >/dev/null 2>&1; then
-        wget -q -O- --post-data="$JSON_BODY" --header="Content-Type: application/json" "${REPORT_URL}" >/dev/null 2>&1 || true
+        wget -q -O- --post-data="$JSON_BODY" --header="Content-Type: application/json" --header="X-Agent-Token: ${AGENT_TOKEN}" "${REPORT_URL}" >/dev/null 2>&1 || true
     fi
 
     sleep "$INTERVAL"
@@ -393,18 +414,53 @@ else
 fi
 
 echo "🎉 采集器安装完毕！已与 NetMon 平台建立连接。"
-`, serverID, reportURL, serverID, reportURL, serverID, reportURL)
+`, serverID, reportURL, serverIDQ, reportURLQ, tokenQ, serverIDQ, reportURLQ, tokenQ)
+}
+
+// ensureAgentToken 校验 server_id 并返回（必要时生成）该服务器专属上报令牌
+func ensureAgentToken(serverID string) (string, error) {
+	if !agentIDPattern.MatchString(serverID) {
+		return "", fmt.Errorf("非法的 server_id")
+	}
+	db := appdb.DB()
+	if db == nil {
+		return "", fmt.Errorf("数据库未初始化")
+	}
+	var token string
+	err := db.QueryRow("SELECT COALESCE(agent_token, '') FROM servers WHERE id = ?", serverID).Scan(&token)
+	if err == sql.ErrNoRows {
+		return "", fmt.Errorf("服务器不存在")
+	}
+	if err != nil {
+		return "", err
+	}
+	if token == "" {
+		token = uuid.NewString()
+		if _, err := db.Exec("UPDATE servers SET agent_token = ? WHERE id = ?", token, serverID); err != nil {
+			return "", err
+		}
+	}
+	return token, nil
 }
 
 // handleGenerateLinuxInstallScript 生成并返回 Linux 采集器安装脚本
 func handleGenerateLinuxInstallScript(w http.ResponseWriter, r *http.Request) {
 	serverID := r.URL.Query().Get("server_id")
 	host := r.Host
+	if err := validateAgentHost(host); err != nil {
+		httpx.RespondFailStatus(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	token, err := ensureAgentToken(serverID)
+	if err != nil {
+		httpx.RespondFailStatus(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	scheme := "http"
 	if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
 		scheme = "https"
 	}
-	script := buildLinuxAgentScript(serverID, scheme, host)
+	script := buildLinuxAgentScript(serverID, scheme, host, token)
 	w.Header().Set("Content-Type", "text/x-shellscript; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(script))
@@ -413,12 +469,18 @@ func handleGenerateLinuxInstallScript(w http.ResponseWriter, r *http.Request) {
 // handleGenerateWindowsInstallScript 生成 Windows PowerShell Agent 安装脚本
 func handleGenerateWindowsInstallScript(w http.ResponseWriter, r *http.Request) {
 	serverID := r.URL.Query().Get("server_id")
-	if serverID == "" {
-		serverID = "default"
-	}
 	host := r.Host
 	if host == "" {
 		host = "127.0.0.1:8088"
+	}
+	if err := validateAgentHost(host); err != nil {
+		httpx.RespondFailStatus(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	token, err := ensureAgentToken(serverID)
+	if err != nil {
+		httpx.RespondFailStatus(w, http.StatusBadRequest, err.Error())
+		return
 	}
 	scheme := "http"
 	if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
@@ -429,6 +491,7 @@ func handleGenerateWindowsInstallScript(w http.ResponseWriter, r *http.Request) 
 	script := fmt.Sprintf(`# NetMon Windows Ultra-Lightweight Agent
 $ServerId = "%s"
 $ReportUrl = "%s"
+$AgentToken = "%s"
 $AgentDir = "C:\ProgramData\NetMonAgent"
 if (!(Test-Path $AgentDir)) { New-Item -ItemType Directory -Path $AgentDir -Force | Out-Null }
 
@@ -436,6 +499,7 @@ $ScriptPath = "$AgentDir\netmon-agent.ps1"
 @'
 $ServerId = "%s"
 $ReportUrl = "%s"
+$AgentToken = "%s"
 while($true) {
     try {
         $cpu = (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
@@ -465,7 +529,7 @@ while($true) {
             load = @{ load1 = [math]::Round($cpu/100, 2); load5 = [math]::Round($cpu/100*0.8, 2); load15 = [math]::Round($cpu/100*0.6, 2) }
         } | ConvertTo-Json -Depth 5
 
-        Invoke-RestMethod -Uri $ReportUrl -Method Post -Body $body -ContentType "application/json" -TimeoutSec 3 | Out-Null
+        Invoke-RestMethod -Uri $ReportUrl -Method Post -Body $body -ContentType "application/json" -Headers @{ "X-Agent-Token" = $AgentToken } -TimeoutSec 3 | Out-Null
     } catch {}
     Start-Sleep -Seconds 5
 }
@@ -474,30 +538,43 @@ while($true) {
 Write-Host "✅ NetMon Windows Agent 安装完成，正在启动后台作业..." -ForegroundColor Green
 Start-Process powershell.exe -ArgumentList '-WindowStyle Hidden -ExecutionPolicy Bypass -File "' + $ScriptPath + '"' -WindowStyle Hidden
 Write-Host "🎉 采集器已在后台运行！" -ForegroundColor Cyan
-`, serverID, reportURL, serverID, reportURL)
+`, serverID, reportURL, token, serverID, reportURL, token)
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(script))
 }
 
-// handleAgentReportMetrics 接收 Agent 上报并持久化
+// handleAgentReportMetrics 接收 Agent 上报并持久化（校验 X-Agent-Token）
 func handleAgentReportMetrics(w http.ResponseWriter, r *http.Request) {
-	var p AgentReportPayload
-	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-		httpx.RespondError(w, "无效的指标数据: "+err.Error(), http.StatusBadRequest)
+	token := strings.TrimSpace(r.Header.Get("X-Agent-Token"))
+	if token == "" {
+		httpx.RespondFailStatus(w, http.StatusUnauthorized, "缺少 X-Agent-Token")
 		return
 	}
-	if p.ServerID == "" {
-		httpx.RespondError(w, "server_id 不能为空", http.StatusBadRequest)
-		return
-	}
-
 	db := appdb.DB()
 	if db == nil {
 		httpx.RespondError(w, "数据库连接不可用", http.StatusInternalServerError)
 		return
 	}
+
+	var p AgentReportPayload
+	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+		httpx.RespondError(w, "无效的指标数据: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// 令牌必须与上报的 server_id 匹配
+	var boundServerID string
+	if err := db.QueryRow("SELECT id FROM servers WHERE agent_token = ?", token).Scan(&boundServerID); err != nil {
+		httpx.RespondFailStatus(w, http.StatusUnauthorized, "无效的 X-Agent-Token")
+		return
+	}
+	if p.ServerID != "" && p.ServerID != boundServerID {
+		httpx.RespondFailStatus(w, http.StatusForbidden, "X-Agent-Token 与 server_id 不匹配")
+		return
+	}
+	p.ServerID = boundServerID
 
 	nowStr := time.Now().Format("2006-01-02 15:04:05")
 	if p.CollectedAt == "" {
@@ -674,6 +751,10 @@ func installAgentOnSingleServer(serverID string, req BatchInstallRequest, scheme
 		ServerID: serverID,
 		Status:   "failed",
 	}
+	if !agentIDPattern.MatchString(serverID) {
+		res.Message = "非法的服务器 ID"
+		return res
+	}
 
 	db := appdb.DB()
 	if db == nil {
@@ -821,6 +902,15 @@ func installAgentOnSingleServer(serverID string, req BatchInstallRequest, scheme
 		}
 		reportHost = "127.0.0.1:" + portStr
 	}
+	if err := validateAgentHost(reportHost); err != nil {
+		res.Message = err.Error()
+		return res
+	}
+	agentToken, err := ensureAgentToken(serverID)
+	if err != nil {
+		res.Message = err.Error()
+		return res
+	}
 
 	// 5. 执行一键安装脚本指令
 	var stdout, stderr string
@@ -830,7 +920,7 @@ func installAgentOnSingleServer(serverID string, req BatchInstallRequest, scheme
 		stdout, stderr, cmdErr = sshClient.ExecCommand(installCmd, 60*time.Second)
 	} else {
 		// 直接通过 Base64 管道传入 bash 执行，彻底避免目标机反向 HTTP 请求宿主机导致的超时或防火墙拦截
-		linuxScript := buildLinuxAgentScript(serverID, scheme, reportHost)
+		linuxScript := buildLinuxAgentScript(serverID, scheme, reportHost, agentToken)
 		b64Script := base64.StdEncoding.EncodeToString([]byte(linuxScript))
 		installCmd := fmt.Sprintf("echo %s | base64 -d | bash", b64Script)
 		stdout, stderr, cmdErr = sshClient.ExecCommand(installCmd, 60*time.Second)
@@ -863,29 +953,29 @@ func installAgentOnSingleServer(serverID string, req BatchInstallRequest, scheme
 
 // MetricChartPoint 统一前端时序图表数据点
 type MetricChartPoint struct {
-	Time           string  `json:"time"`
-	Timestamp      int64   `json:"timestamp"`
+	Time      string `json:"time"`
+	Timestamp int64  `json:"timestamp"`
 	// 1. 磁盘使用 (根分区使用量 GB 与使用率 %)
-	DiskUsedGB     float64 `json:"disk_used_gb"`
-	DiskTotalGB    float64 `json:"disk_total_gb"`
-	DiskUsagePct   float64 `json:"disk_usage_pct"`
+	DiskUsedGB   float64 `json:"disk_used_gb"`
+	DiskTotalGB  float64 `json:"disk_total_gb"`
+	DiskUsagePct float64 `json:"disk_usage_pct"`
 	// 2. 磁盘 I/O (读吞吐量 KB/s, 写吞吐量 KB/s)
-	DiskReadKBps   float64 `json:"disk_read_kbps"`
-	DiskWriteKBps  float64 `json:"disk_write_kbps"`
+	DiskReadKBps  float64 `json:"disk_read_kbps"`
+	DiskWriteKBps float64 `json:"disk_write_kbps"`
 	// 3. 带宽 (公共接口下行/上行网络流量 KB/s)
-	NetRxKBps      float64 `json:"net_rx_kbps"`
-	NetTxKBps      float64 `json:"net_tx_kbps"`
+	NetRxKBps float64 `json:"net_rx_kbps"`
+	NetTxKBps float64 `json:"net_tx_kbps"`
 	// 4. 系统负载 (1分钟, 5分钟, 15分钟)
-	Load1          float64 `json:"load_1"`
-	Load5          float64 `json:"load_5"`
-	Load15         float64 `json:"load_15"`
+	Load1  float64 `json:"load_1"`
+	Load5  float64 `json:"load_5"`
+	Load15 float64 `json:"load_15"`
 	// 5. CPU & 内存详情
-	CPUUsage       float64 `json:"cpu_usage"`
-	CPUUser        float64 `json:"cpu_user"`
-	CPUSystem      float64 `json:"cpu_system"`
-	MemoryUsage    float64 `json:"memory_usage"`
-	MemoryTotalGB  float64 `json:"memory_total_gb"`
-	MemoryUsedGB   float64 `json:"memory_used_gb"`
+	CPUUsage      float64 `json:"cpu_usage"`
+	CPUUser       float64 `json:"cpu_user"`
+	CPUSystem     float64 `json:"cpu_system"`
+	MemoryUsage   float64 `json:"memory_usage"`
+	MemoryTotalGB float64 `json:"memory_total_gb"`
+	MemoryUsedGB  float64 `json:"memory_used_gb"`
 }
 
 // handleGetServerMetricsHistory 获取虚拟机性能大屏时序图表数据
@@ -996,25 +1086,31 @@ func handleGetServerMetricsHistory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 2. 如果历史记录较少（新虚机未上报足量点），生成贴合截图的真实动态平滑时序曲线
-	if len(points) < 8 {
-		points = generateRealisticMetricTimeSeries(minutes, diskGB, memGB)
+	// 2. 仅返回数据库中真实存在的采集点，不再生成任何合成时序
+	var latest MetricChartPoint
+	hasData := len(points) > 0
+	if hasData {
+		latest = points[len(points)-1]
+	}
+	if points == nil {
+		points = []MetricChartPoint{}
+	}
+	summaryNote := "暂无真实采集数据，请确认 Agent 已安装并正常上报"
+	if hasData {
+		summaryNote = ""
 	}
 
-	// 提取最新指标
-	latest := points[len(points)-1]
-
 	httpx.Respond(w, map[string]interface{}{
-		"server_id":        id,
-		"server_name":      serverName,
-		"hostname":         hostname,
-		"time_range":       timeRange,
-		"agent_installed":  agentInstalled == 1 || agentStatus == "online",
-		"agent_status":     agentStatus,
-		"agent_version":    agentVer,
-		"agent_cpu":        agentCPU,
-		"agent_mem_mb":     agentMem,
-		"uptime_seconds":   uptimeSec,
+		"server_id":       id,
+		"server_name":     serverName,
+		"hostname":        hostname,
+		"time_range":      timeRange,
+		"agent_installed": agentInstalled == 1 || agentStatus == "online",
+		"agent_status":    agentStatus,
+		"agent_version":   agentVer,
+		"agent_cpu":       agentCPU,
+		"agent_mem_mb":    agentMem,
+		"uptime_seconds":  uptimeSec,
 		"summary": map[string]interface{}{
 			"disk_total_gb":   diskGB,
 			"disk_used_gb":    latest.DiskUsedGB,
@@ -1034,7 +1130,9 @@ func handleGetServerMetricsHistory(w http.ResponseWriter, r *http.Request) {
 			"net_rx_kbps":     latest.NetRxKBps,
 			"net_tx_kbps":     latest.NetTxKBps,
 		},
-		"series": points,
+		"series":         points,
+		"data_available": hasData,
+		"summary_note":   summaryNote,
 	})
 }
 
@@ -1047,84 +1145,4 @@ func formatShortTime(dateStr string) string {
 		}
 	}
 	return dateStr
-}
-
-// generateRealisticMetricTimeSeries 生成高度拟真且符合截图风格的时序指标数据
-func generateRealisticMetricTimeSeries(minutes int, diskTotalGB, memTotalGB float64) []MetricChartPoint {
-	now := time.Now()
-	count := 24
-	stepSec := (minutes * 60) / count
-	if stepSec < 5 {
-		stepSec = 5
-	}
-
-	var list []MetricChartPoint
-	baseDiskUsed := diskTotalGB * 0.25 // 根分区约 10GB / 40GB
-	if baseDiskUsed < 8 {
-		baseDiskUsed = 8
-	}
-
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	for i := count; i >= 0; i-- {
-		t := now.Add(-time.Duration(i*stepSec) * time.Second)
-		timeLabel := t.Format("15:04")
-
-		// 构造特定波峰模拟真实业务特征 (如图中 16:10 和 16:30 的磁盘 I/O 尖峰，16:26 的带宽尖峰，15:58 的负载尖峰)
-		var spikeIORead, spikeIOWrite, spikeNetRx, spikeLoad float64
-		idxRel := count - i
-		if idxRel == 14 || idxRel == 21 { // 磁盘 I/O 突发
-			spikeIORead = float64(r.Intn(180) + 120) // ~300 KB/s
-			spikeIOWrite = float64(r.Intn(80) + 50)  // ~120 KB/s
-		}
-		if idxRel == 19 { // 带宽突发尖峰
-			spikeNetRx = float64(r.Intn(60) + 75) // ~135 KB/s
-		}
-		if idxRel == 6 { // 负载瞬时拉升
-			spikeLoad = 0.55
-		}
-
-		diskUsed := baseDiskUsed + (float64(r.Intn(20)) / 100.0) // 保持稳定的紫色长条
-		diskPct := math.Round((diskUsed/diskTotalGB)*1000) / 10
-
-		diskRead := float64(r.Intn(25)+5) + spikeIORead
-		diskWrite := float64(r.Intn(35)+15) + spikeIOWrite
-
-		netRx := float64(r.Intn(15)+2) + spikeNetRx
-		netTx := float64(r.Intn(10) + 2)
-
-		l1 := math.Round((0.08+float64(r.Intn(12))/100.0+spikeLoad)*100) / 100
-		l5 := math.Round((0.06+float64(r.Intn(8))/100.0+(spikeLoad*0.4))*100) / 100
-		l15 := math.Round((0.04+float64(r.Intn(5))/100.0+(spikeLoad*0.2))*100) / 100
-
-		cpuUsage := math.Round((float64(r.Intn(20))+8.0)*10) / 10
-		cpuUser := math.Round(cpuUsage*0.65*10) / 10
-		cpuSys := math.Round(cpuUsage*0.35*10) / 10
-
-		memUsed := math.Round((memTotalGB*0.38+float64(r.Intn(30))/100.0)*10) / 10
-		memPct := math.Round((memUsed/memTotalGB)*1000) / 10
-
-		list = append(list, MetricChartPoint{
-			Time:           timeLabel,
-			Timestamp:      t.Unix(),
-			DiskUsedGB:     math.Round(diskUsed*100) / 100,
-			DiskTotalGB:    diskTotalGB,
-			DiskUsagePct:   diskPct,
-			DiskReadKBps:   math.Round(diskRead*10) / 10,
-			DiskWriteKBps:  math.Round(diskWrite*10) / 10,
-			NetRxKBps:      math.Round(netRx*10) / 10,
-			NetTxKBps:      math.Round(netTx*10) / 10,
-			Load1:          l1,
-			Load5:          l5,
-			Load15:         l15,
-			CPUUsage:       cpuUsage,
-			CPUUser:        cpuUser,
-			CPUSystem:      cpuSys,
-			MemoryUsage:    memPct,
-			MemoryTotalGB:  memTotalGB,
-			MemoryUsedGB:   memUsed,
-		})
-	}
-
-	return list
 }

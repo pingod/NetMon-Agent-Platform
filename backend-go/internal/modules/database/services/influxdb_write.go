@@ -10,10 +10,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"unicode"
+
+	"github.com/google/uuid"
 
 	"itops-backend/internal/appdb"
 	"itops-backend/internal/config"
@@ -118,8 +121,16 @@ func EnsureInfluxdbSettings() {
 			dbType = "influxdb-v3"
 		}
 
-		encToken := crypto.Encrypt(config.Env.InfluxdbToken)
-		encPass := crypto.Encrypt(config.Env.InfluxdbPassword)
+		encToken, encErr := crypto.Encrypt(config.Env.InfluxdbToken)
+		if encErr != nil {
+			logger.Warnf("加密 InfluxDB token 失败: %v", encErr)
+			return
+		}
+		encPass, encErr := crypto.Encrypt(config.Env.InfluxdbPassword)
+		if encErr != nil {
+			logger.Warnf("加密 InfluxDB 密码失败: %v", encErr)
+			return
+		}
 
 		_ = repos.DbConnections.Insert(&repos.DbConnection{
 			ID:           connID,
@@ -370,25 +381,91 @@ func flushToInfluxdb(results []SnmpCollectResultRow) {
 		writeErr = writeInfluxdbV2WithConn(conn, body)
 	default:
 		logger.Warnf("InfluxDB 写入失败：不支持的类型 %s", conn.DBType)
+		fallbackSnmpResultsToMetricsDB(results, conn, fmt.Errorf("不支持的 InfluxDB 类型 %s", conn.DBType))
 		return
 	}
 
 	if writeErr != nil {
-		logger.Errorf("InfluxDB 写入失败: %v", writeErr)
+		logger.Errorf("InfluxDB 写入失败，回退写入 metrics.db: %v", writeErr)
+		fallbackSnmpResultsToMetricsDB(results, conn, writeErr)
 	} else {
 		logger.Infof("InfluxDB 写入成功: %d 条记录 (%s)", len(results), conn.DBType)
 	}
 }
 
-// writeInfluxdbV1 InfluxDB 1.x: POST /write
-func writeInfluxdbV1(baseURL, database, username, password, body, rp string) error {
-	url := fmt.Sprintf("%s/write?db=%s&u=%s&p=%s", baseURL,
-		escapeURL(database), escapeURL(username), escapeURL(password))
-	if rp != "" {
-		url += "&rp=" + escapeURL(rp)
+// fallbackSnmpResultsToMetricsDB InfluxDB 不可用时将采集结果写入本地 metrics.db，并记录一条系统告警
+func fallbackSnmpResultsToMetricsDB(results []SnmpCollectResultRow, conn *repos.DbConnection, cause error) {
+	if conn == nil {
+		conn = &repos.DbConnection{}
+	}
+	samples := make([]repos.SnmpMetricSample, 0, len(results))
+	now := time.Now().Format("2006-01-02 15:04:05")
+	for _, r := range results {
+		val, err := strconv.ParseFloat(strings.TrimSpace(r.MetricValue), 64)
+		if err != nil {
+			continue
+		}
+		tags, _ := json.Marshal(map[string]string{
+			"device": r.DeviceName,
+			"ip":     r.DeviceIP,
+			"task":   r.TaskName,
+			"oid":    r.OID,
+		})
+		collectedAt := r.SampledAt
+		if collectedAt == "" {
+			collectedAt = now
+		}
+		samples = append(samples, repos.SnmpMetricSample{
+			MetricName:  r.MetricName,
+			DeviceID:    r.DeviceID,
+			TagsJSON:    string(tags),
+			Value:       val,
+			CollectedAt: collectedAt,
+		})
+	}
+	if len(samples) > 0 {
+		if err := repos.SnmpMetricSamples.InsertBatch(samples); err != nil {
+			logger.Errorf("回退写入 metrics.db 失败: %v", err)
+		}
 	}
 
-	resp, err := http.Post(url, "text/plain", strings.NewReader(body))
+	// 记录告警，便于运维感知 InfluxDB 写入中断
+	if db := appdb.DB(); db != nil {
+		content, _ := json.Marshal(map[string]string{
+			"connection_id": conn.ID,
+			"connection":    conn.Name,
+			"error":         cause.Error(),
+			"fallback_rows": strconv.Itoa(len(samples)),
+		})
+		_, err := db.Exec(`INSERT INTO alerts (id, source, severity, title, content, metadata, status, created_at, updated_at)
+			VALUES (?, 'influxdb', 'warning', ?, ?, NULL, 'firing', ?, ?)`,
+			"alert-"+uuid.NewString(), "InfluxDB 写入失败，已回退本地存储", string(content), now, now)
+		if err != nil {
+			logger.Warnf("记录 InfluxDB 写入失败告警失败: %v", err)
+		}
+	}
+}
+
+// writeInfluxdbV1 InfluxDB 1.x: POST /write（凭据走 Basic Auth，不进入 URL）
+func writeInfluxdbV1(baseURL, database, username, password, body, rp string) error {
+	q := url.Values{}
+	q.Set("db", database)
+	if rp != "" {
+		q.Set("rp", rp)
+	}
+	target := baseURL + "/write?" + q.Encode()
+
+	req, err := http.NewRequest("POST", target, strings.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("InfluxDB 1.x 请求构建失败: %w", err)
+	}
+	req.Header.Set("Content-Type", "text/plain")
+	if username != "" || password != "" {
+		req.SetBasicAuth(username, password)
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("InfluxDB 1.x write request failed: %w", err)
 	}
@@ -809,32 +886,27 @@ func escapeMeasurement(s string) string {
 	return s
 }
 
-// escapeURL URL 编码（简单实现，仅处理空格和特殊字符）
+// escapeURL URL 编码：使用标准库保证非 ASCII 字符被正确编码
 func escapeURL(s string) string {
-	var sb strings.Builder
-	for _, r := range s {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-' || r == '_' || r == '.' || r == '~' {
-			sb.WriteRune(r)
-		} else if r == ' ' {
-			sb.WriteString("+")
-		} else {
-			sb.WriteString(fmt.Sprintf("%%%02X", r))
-		}
-	}
-	return sb.String()
+	return url.QueryEscape(s)
 }
 
-// parseTimeNanos 将 ISO 时间字符串转为纳秒时间戳
+// parseTimeNanos 将常见时间字符串转为纳秒时间戳
 func parseTimeNanos(timeStr string) int64 {
-	t, err := time.Parse(time.RFC3339, timeStr)
-	if err != nil {
-		// 尝试其他格式
-		t, err = time.Parse("2006-01-02T15:04:05.000Z", timeStr)
-		if err != nil {
-			return time.Now().UnixNano()
+	timeStr = strings.TrimSpace(timeStr)
+	layouts := []string{
+		time.RFC3339Nano,
+		time.RFC3339,
+		"2006-01-02 15:04:05",
+		"2006-01-02T15:04:05.000Z",
+	}
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, timeStr); err == nil {
+			return t.UnixNano()
 		}
 	}
-	return t.UnixNano()
+	logger.Warnf("无法解析采集时间 %q，使用当前时间", timeStr)
+	return time.Now().UnixNano()
 }
 
 // nullStrToPtr sql.NullString → *string

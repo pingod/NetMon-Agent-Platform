@@ -94,6 +94,15 @@ export default function ChatWidget() {
     return (error as { response?: { status?: number } })?.response?.status === 403;
   };
 
+  // 统一用本地时间展示消息时间戳（兼容后端 "YYYY-MM-DD HH:mm:ss" 格式）
+  const formatMessageTime = (timestamp: Date | string) => {
+    const raw = typeof timestamp === 'string' ? timestamp.replace(' ', 'T') : timestamp;
+    const date = new Date(raw);
+    return Number.isNaN(date.getTime())
+      ? ''
+      : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   const currentConversation = conversations?.find((c: Conversation) => c.id === currentConversationId);
 
   const sendMessageMutation = useMutation({
@@ -444,9 +453,7 @@ export default function ChatWidget() {
                                   isUser ? 'text-white text-right' : 'text-text-tertiary'
                                 }`}
                               >
-                                {typeof msg.timestamp === 'string'
-                                  ? msg.timestamp.split('T')[1]?.substring(0, 5) || msg.timestamp.substring(11, 16) || ''
-                                  : new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {formatMessageTime(msg.timestamp)}
                               </div>
                             </div>
                             {isUser && (

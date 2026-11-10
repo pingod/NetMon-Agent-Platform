@@ -5,9 +5,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
 
-	"itops-backend/internal/appdb"
 	"github.com/google/uuid"
+	"itops-backend/internal/appdb"
 )
 
 // ─────────────────────────────────────────────────────────────
@@ -16,22 +17,22 @@ import (
 
 // SnmpMetricDefinition 指标定义：命名规则 + 标签派生规则
 type SnmpMetricDefinition struct {
-	ID               string `json:"id"`
-	MetricName       string `json:"metric_name"`
-	ModuleName       string `json:"module_name"`
-	OID              string `json:"oid"`          // 标量 OID 或表列 OID 模板（含 {index}）
-	Description      string `json:"description"`
-	MetricType       string `json:"metric_type"`  // gauge | counter
-	IsTable          int    `json:"is_table"`
-	IndexOID         string `json:"index_oid"`    // 索引列 OID（表型）
-	IndexTag         string `json:"index_tag"`    // 索引标签名（如 ifIndex）
-	LabelOIDs        string `json:"label_oids"`   // 附加标签列 OID（JSON 数组）
-	LabelNames       string `json:"label_names"`  // 附加标签名（JSON 数组）
-	Unit             string `json:"unit"`
-	Source           string `json:"source"`        // mib | generator
-	GeneratorModule  string `json:"generator_module"`
-	CreatedAt        string `json:"created_at"`
-	UpdatedAt        string `json:"updated_at"`
+	ID              string `json:"id"`
+	MetricName      string `json:"metric_name"`
+	ModuleName      string `json:"module_name"`
+	OID             string `json:"oid"` // 标量 OID 或表列 OID 模板（含 {index}）
+	Description     string `json:"description"`
+	MetricType      string `json:"metric_type"` // gauge | counter
+	IsTable         int    `json:"is_table"`
+	IndexOID        string `json:"index_oid"`   // 索引列 OID（表型）
+	IndexTag        string `json:"index_tag"`   // 索引标签名（如 ifIndex）
+	LabelOIDs       string `json:"label_oids"`  // 附加标签列 OID（JSON 数组）
+	LabelNames      string `json:"label_names"` // 附加标签名（JSON 数组）
+	Unit            string `json:"unit"`
+	Source          string `json:"source"` // mib | generator
+	GeneratorModule string `json:"generator_module"`
+	CreatedAt       string `json:"created_at"`
+	UpdatedAt       string `json:"updated_at"`
 }
 
 var SnmpMetricDefs = &SnmpMetricDefinitionRepo{}
@@ -40,7 +41,7 @@ type SnmpMetricDefinitionRepo struct{}
 
 // UpsertByMetricName 按 metric_name 唯一插入或更新（避免重复定义）
 func (SnmpMetricDefinitionRepo) Upsert(def *SnmpMetricDefinition) error {
-	db := appdb.MetricsDB()
+	db := appdb.DBForTable("snmp_metric_definitions")
 	if db == nil {
 		return fmt.Errorf("metrics database not initialized")
 	}
@@ -48,17 +49,27 @@ func (SnmpMetricDefinitionRepo) Upsert(def *SnmpMetricDefinition) error {
 		def.ID = uuid.New().String()
 	}
 	now := nowLocal()
-	_, err := db.Exec(`
-		INSERT INTO snmp_metric_definitions
-			(id, metric_name, module_name, oid, description, metric_type, is_table,
-			 index_oid, index_tag, label_oids, label_names, unit, source, generator_module, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	conflictClause := `
 		ON CONFLICT(metric_name) DO UPDATE SET
 			module_name=excluded.module_name, oid=excluded.oid, description=excluded.description,
 			metric_type=excluded.metric_type, is_table=excluded.is_table, index_oid=excluded.index_oid,
 			index_tag=excluded.index_tag, label_oids=excluded.label_oids, label_names=excluded.label_names,
 			unit=excluded.unit, source=excluded.source, generator_module=excluded.generator_module,
-			updated_at=excluded.updated_at`,
+			updated_at=excluded.updated_at`
+	if appdb.NowExprFor(db) == "NOW()" {
+		conflictClause = `
+		ON DUPLICATE KEY UPDATE
+			module_name=VALUES(module_name), oid=VALUES(oid), description=VALUES(description),
+			metric_type=VALUES(metric_type), is_table=VALUES(is_table), index_oid=VALUES(index_oid),
+			index_tag=VALUES(index_tag), label_oids=VALUES(label_oids), label_names=VALUES(label_names),
+			unit=VALUES(unit), source=VALUES(source), generator_module=VALUES(generator_module),
+			updated_at=VALUES(updated_at)`
+	}
+	_, err := db.Exec(`
+		INSERT INTO snmp_metric_definitions
+			(id, metric_name, module_name, oid, description, metric_type, is_table,
+			 index_oid, index_tag, label_oids, label_names, unit, source, generator_module, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`+conflictClause,
 		def.ID, def.MetricName, def.ModuleName, def.OID, def.Description,
 		def.MetricType, def.IsTable, def.IndexOID, def.IndexTag,
 		def.LabelOIDs, def.LabelNames, def.Unit, def.Source, def.GeneratorModule,
@@ -283,13 +294,13 @@ func (SnmpMetricSampleRepo) InsertBatch(samples []SnmpMetricSample) error {
 
 // MetricQueryOptions 面板查询选项
 type MetricQueryOptions struct {
-	MetricName   string
-	DeviceID     string
-	TagFilters   map[string]string
-	GroupBy      []string
-	Aggregation  string // avg | max | min | sum | last
-	Hours        int
-	Limit        int
+	MetricName  string
+	DeviceID    string
+	TagFilters  map[string]string
+	GroupBy     []string
+	Aggregation string // avg | max | min | sum | last
+	Hours       int
+	Limit       int
 }
 
 // QueryAggregated 按面板配置聚合查询（Grafana 式）
@@ -311,8 +322,9 @@ func (SnmpMetricSampleRepo) QueryAggregated(opt MetricQueryOptions) ([]MetricSer
 	}
 
 	// 构建 WHERE 条件
-	where := "WHERE metric_name = ? AND collected_at >= datetime('now','localtime', ?||' hours')"
-	args := []interface{}{opt.MetricName, fmt.Sprintf("-%d", hours)}
+	cutoff := time.Now().Add(-time.Duration(hours) * time.Hour).Format("2006-01-02 15:04:05")
+	where := "WHERE metric_name = ? AND collected_at >= ?"
+	args := []interface{}{opt.MetricName, cutoff}
 
 	if opt.DeviceID != "" {
 		where += " AND device_id = ?"
@@ -335,7 +347,11 @@ func (SnmpMetricSampleRepo) QueryAggregated(opt MetricQueryOptions) ([]MetricSer
 	}
 
 	// 简化实现：按 device_id 分组 + 时间分桶（1 分钟），标签过滤已通过 WHERE 收缩
-	groupClause := "GROUP BY device_id, strftime('%Y-%m-%d %H:%M:00', collected_at)"
+	bucketExpr := "strftime('%Y-%m-%d %H:%M:00', collected_at)"
+	if appdb.NowExprFor(db) == "NOW()" {
+		bucketExpr = "DATE_FORMAT(collected_at, '%Y-%m-%d %H:%i:00')"
+	}
+	groupClause := "GROUP BY device_id, " + bucketExpr
 
 	funcExpr := map[string]string{
 		"avg":  "AVG(value)",
@@ -349,7 +365,7 @@ func (SnmpMetricSampleRepo) QueryAggregated(opt MetricQueryOptions) ([]MetricSer
 	}
 
 	query := fmt.Sprintf(`
-		SELECT device_id, strftime('%%Y-%%m-%%d %%H:%%M:00', collected_at) AS bucket, %s AS val
+		SELECT device_id, `+bucketExpr+` AS bucket, %s AS val
 		FROM snmp_metric_samples
 		%s
 		%s
@@ -377,8 +393,9 @@ func (SnmpMetricSampleRepo) QueryAggregated(opt MetricQueryOptions) ([]MetricSer
 
 	// 若在指定窗口内未落入数据，自动扩大范围至最近 7 天，避免大屏显示空白
 	if len(seriesMap) == 0 {
-		argsFallback := []interface{}{opt.MetricName}
-		whereFallback := "WHERE metric_name = ? AND collected_at >= datetime('now','localtime', '-168 hours')"
+		cutoffFallback := time.Now().Add(-168 * time.Hour).Format("2006-01-02 15:04:05")
+		argsFallback := []interface{}{opt.MetricName, cutoffFallback}
+		whereFallback := "WHERE metric_name = ? AND collected_at >= ?"
 		if opt.DeviceID != "" {
 			whereFallback += " AND device_id = ?"
 			argsFallback = append(argsFallback, opt.DeviceID)
@@ -390,7 +407,7 @@ func (SnmpMetricSampleRepo) QueryAggregated(opt MetricQueryOptions) ([]MetricSer
 			}
 		}
 		queryFB := fmt.Sprintf(`
-			SELECT device_id, strftime('%%Y-%%m-%%d %%H:%%M:00', collected_at) AS bucket, %s AS val
+			SELECT device_id, `+bucketExpr+` AS bucket, %s AS val
 			FROM snmp_metric_samples
 			%s
 			%s
@@ -427,9 +444,9 @@ func (SnmpMetricSampleRepo) QueryAggregated(opt MetricQueryOptions) ([]MetricSer
 
 // MetricSeries 一个时间序列（一个设备/一个标签组合）
 type MetricSeries struct {
-	DeviceID string             `json:"device_id"`
-	Tags     map[string]string  `json:"tags,omitempty"`
-	Points   []MetricPoint      `json:"points"`
+	DeviceID string            `json:"device_id"`
+	Tags     map[string]string `json:"tags,omitempty"`
+	Points   []MetricPoint     `json:"points"`
 }
 
 // MetricPoint 时间点
@@ -453,8 +470,8 @@ type DashboardPanel struct {
 	MetricName      string `json:"metric_name"`
 	Aggregation     string `json:"aggregation"`
 	FunctionFilter  string `json:"function_filter"`
-	TagFilters      string `json:"tag_filters"`  // JSON
-	GroupBy         string `json:"group_by"`     // JSON 数组
+	TagFilters      string `json:"tag_filters"` // JSON
+	GroupBy         string `json:"group_by"`    // JSON 数组
 	ChartType       string `json:"chart_type"`
 	TimeRange       string `json:"time_range"`
 	RefreshInterval int    `json:"refresh_interval"`

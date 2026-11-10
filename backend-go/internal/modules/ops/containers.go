@@ -19,6 +19,7 @@ import (
 	"itops-backend/internal/appdb"
 	"itops-backend/internal/httpx"
 	"itops-backend/internal/logger"
+	"itops-backend/internal/middleware"
 	"itops-backend/internal/repos"
 )
 
@@ -59,6 +60,97 @@ func (c *dockerSSHClient) ExecCommand(cmd string, timeout time.Duration) (string
 	case err := <-done:
 		return stdoutBuf.String(), stderrBuf.String(), err
 	}
+}
+
+// containerRefPattern 容器 ID / 名称 / 镜像标签白名单：首字符字母数字，其余仅允许字母数字与 _.:-
+var containerRefPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.:-]*$`)
+
+func validContainerRef(s string) bool {
+	return s != "" && len(s) <= 256 && containerRefPattern.MatchString(s)
+}
+
+// shellQuote 单引号转义，确保参数不会被目标 shell 解释
+func shellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
+// portMappingPattern 端口映射白名单：host:container[/proto] 或 container[/proto]
+var portMappingPattern = regexp.MustCompile(`^[0-9A-Za-z.:\[\]-]+(/[a-zA-Z]+)?$`)
+
+func validPortMapping(s string) bool {
+	return portMappingPattern.MatchString(s)
+}
+
+// envPair 允许 KEY=VALUE，KEY 受标识符约束，VALUE 不允许换行
+var envNamePattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+
+func validEnvPair(s string) bool {
+	if strings.ContainsAny(s, "\r\n\x00") {
+		return false
+	}
+	idx := strings.Index(s, "=")
+	if idx <= 0 {
+		return false
+	}
+	return envNamePattern.MatchString(s[:idx])
+}
+
+// validVolumeSpec 宿主路径:容器路径[:ro|rw]，拒绝换行与命令替换字符
+func validVolumeSpec(s string) bool {
+	if s == "" || strings.ContainsAny(s, "\r\n\x00;&|`$()") {
+		return false
+	}
+	return strings.Contains(s, ":")
+}
+
+var restartPolicyPattern = regexp.MustCompile(`^(no|always|unless-stopped|on-failure(:\d+)?)$`)
+
+// respondHostUnavailable 宿主机不可用时返回 502，绝不回退到伪造数据
+func respondHostUnavailable(w http.ResponseWriter, err error) {
+	httpx.RespondFailStatus(w, http.StatusBadGateway, "无法连接 Docker 宿主机: "+err.Error())
+}
+
+// parseDockerBytes 解析 docker 命令输出的容量字符串（如 5.727MiB / 414B / 1.5GB）
+func parseDockerBytes(s string) (int64, bool) {
+	s = strings.TrimSpace(s)
+	if s == "" || s == "0B" {
+		return 0, s == "0B"
+	}
+	i := 0
+	for i < len(s) && (s[i] == '.' || (s[i] >= '0' && s[i] <= '9')) {
+		i++
+	}
+	if i == 0 {
+		return 0, false
+	}
+	num, err := strconv.ParseFloat(s[:i], 64)
+	if err != nil {
+		return 0, false
+	}
+	unit := strings.TrimSpace(s[i:])
+	mult := map[string]float64{
+		"B": 1, "kB": 1e3, "KB": 1e3, "MB": 1e6, "GB": 1e9, "TB": 1e12,
+		"KiB": 1024, "MiB": 1024 * 1024, "GiB": 1024 * 1024 * 1024, "TiB": 1024 * 1024 * 1024 * 1024,
+	}
+	m, ok := mult[unit]
+	if !ok {
+		return 0, false
+	}
+	return int64(num * m), true
+}
+
+// splitDockerPair 拆分 docker 输出中的 "a / b" 容量对
+func splitDockerPair(s string) (int64, int64, bool) {
+	parts := strings.SplitN(s, "/", 2)
+	if len(parts) != 2 {
+		return 0, 0, false
+	}
+	used, ok1 := parseDockerBytes(parts[0])
+	limit, ok2 := parseDockerBytes(parts[1])
+	if !ok1 || !ok2 {
+		return 0, 0, false
+	}
+	return used, limit, true
 }
 
 // getDockerSSHClient 获取目标 Docker 宿主机的 SSH 连接
@@ -153,25 +245,21 @@ func DockerMonitorRoutes() chi.Router {
 		endpointID := r.URL.Query().Get("endpointId")
 		client, _, err := getDockerSSHClient(endpointID)
 		if err != nil {
-			httpx.Respond(w, map[string]interface{}{
-				"totalContainers":    1,
-				"runningContainers":  1,
-				"totalCpuPercent":    "0.0%",
-				"totalMemoryUsage":   6000000,
-				"totalMemoryLimit":   1996165120,
-				"totalMemoryPercent": "0.3%",
-			})
+			respondHostUnavailable(w, err)
 			return
 		}
 		defer client.Close()
 
-		stdout, _, _ := client.ExecCommand("docker stats --no-stream --format '{{json .}}'", 8*time.Second)
+		stdout, _, err := client.ExecCommand("docker stats --no-stream --format '{{json .}}'", 8*time.Second)
+		if err != nil {
+			respondHostUnavailable(w, fmt.Errorf("采集容器指标失败: %w", err))
+			return
+		}
 		lines := strings.Split(strings.TrimSpace(stdout), "\n")
 
-		total := len(lines)
+		total := 0
 		running := 0
-		var totalMemUsage float64
-		var totalMemLimit float64 = 1996165120
+		var totalMemUsage, totalMemLimit int64
 		var totalCPU float64
 
 		for _, l := range lines {
@@ -179,50 +267,43 @@ func DockerMonitorRoutes() chi.Router {
 			if l == "" {
 				continue
 			}
+			total++
 			running++
 			var m map[string]interface{}
 			if json.Unmarshal([]byte(l), &m) == nil {
-				cpuStr := fmt.Sprintf("%v", m["CPUPerc"])
-				cpuStr = strings.TrimSuffix(cpuStr, "%")
+				cpuStr := strings.TrimSuffix(fmt.Sprintf("%v", m["CPUPerc"]), "%")
 				if v, err := strconv.ParseFloat(cpuStr, 64); err == nil {
 					totalCPU += v
 				}
-				memUsageStr := fmt.Sprintf("%v", m["MemUsage"])
-				if parts := strings.Split(memUsageStr, "/"); len(parts) == 2 {
-					uStr := strings.TrimSpace(parts[0])
-					if strings.HasSuffix(uStr, "MiB") {
-						u, _ := strconv.ParseFloat(strings.TrimSuffix(uStr, "MiB"), 64)
-						totalMemUsage += u * 1024 * 1024
-					}
+				if used, limit, ok := splitDockerPair(fmt.Sprintf("%v", m["MemUsage"])); ok {
+					totalMemUsage += used
+					totalMemLimit += limit
 				}
 			}
 		}
 
-		if total == 0 {
-			total = 1
-			running = 1
-			totalMemUsage = 6000000
+		memPct := 0.0
+		if totalMemLimit > 0 {
+			memPct = float64(totalMemUsage) / float64(totalMemLimit) * 100
 		}
-
-		memPct := (totalMemUsage / totalMemLimit) * 100
 		httpx.Respond(w, map[string]interface{}{
 			"totalContainers":    total,
 			"runningContainers":  running,
 			"totalCpuPercent":    fmt.Sprintf("%.1f%%", totalCPU),
-			"totalMemoryUsage":   int64(totalMemUsage),
-			"totalMemoryLimit":   int64(totalMemLimit),
+			"totalMemoryUsage":   totalMemUsage,
+			"totalMemoryLimit":   totalMemLimit,
 			"totalMemoryPercent": fmt.Sprintf("%.2f%%", memPct),
 		})
 	})
 
-	// 2. 开始监控
-	r.Post("/start/{id}", func(w http.ResponseWriter, r *http.Request) {
-		httpx.Respond(w, map[string]interface{}{"success": true, "status": "monitored"})
+	// 2. 监控开关：当前未实现持久化监控任务，明确返回 501
+	r.With(middleware.RequireRole("admin")).Post("/start/{id}", func(w http.ResponseWriter, r *http.Request) {
+		httpx.RespondFailStatus(w, http.StatusNotImplemented, "容器监控启停功能尚未实现")
 	})
 
 	// 3. 停止监控
-	r.Post("/stop/{id}", func(w http.ResponseWriter, r *http.Request) {
-		httpx.Respond(w, map[string]interface{}{"success": true, "status": "stopped"})
+	r.With(middleware.RequireRole("admin")).Post("/stop/{id}", func(w http.ResponseWriter, r *http.Request) {
+		httpx.RespondFailStatus(w, http.StatusNotImplemented, "容器监控启停功能尚未实现")
 	})
 
 	return r
@@ -305,15 +386,8 @@ func DockerHostsRoute(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	if len(list) == 0 {
-		list = append(list, map[string]interface{}{
-			"id":       "05ea2a70-c0ff-46d6-a15c-4660e0ec8f0c",
-			"name":     "180.76.184.2 (百度云虚机)",
-			"host":     "180.76.184.2",
-			"port":     22,
-			"protocol": "ssh",
-			"status":   "active",
-		})
+	if list == nil {
+		list = []map[string]interface{}{}
 	}
 	httpx.Respond(w, list)
 }
@@ -340,15 +414,12 @@ func FullContainerRoutes() chi.Router {
 							port = 22
 						}
 						list = append(list, map[string]interface{}{
-							"id":                 id,
-							"name":               fmt.Sprintf("%s (Linux VM)", name),
-							"host":               host,
-							"port":               port,
-							"protocol":           "ssh",
-							"status":             "active",
-							"containers_running": 2,
-							"containers_total":   2,
-							"images":             2,
+							"id":       id,
+							"name":     fmt.Sprintf("%s (Linux VM)", name),
+							"host":     host,
+							"port":     port,
+							"protocol": "ssh",
+							"status":   "active",
 						})
 					}
 				}
@@ -364,40 +435,27 @@ func FullContainerRoutes() chi.Router {
 					var tlsCa, tlsCert, tlsKey sql.NullString
 					if epRows.Scan(&id, &name, &host, &port, &protocol, &status, &tlsCa, &tlsCert, &tlsKey) == nil {
 						list = append(list, map[string]interface{}{
-							"id":                 id,
-							"name":               name,
-							"host":               host,
-							"port":               port,
-							"protocol":           protocol,
-							"status":             status,
-							"tlsCa":              tlsCa.String,
-							"tlsCert":            tlsCert.String,
-							"tlsKey":             tlsKey.String,
-							"containers_running": 1,
-							"containers_total":   1,
-							"images":             1,
+							"id":       id,
+							"name":     name,
+							"host":     host,
+							"port":     port,
+							"protocol": protocol,
+							"status":   status,
+							"tlsCa":    tlsCa.String,
+							"tlsCert":  tlsCert.String,
+							"tlsKey":   tlsKey.String,
 						})
 					}
 				}
 			}
 		}
-		if len(list) == 0 {
-			list = append(list, map[string]interface{}{
-				"id":                 "05ea2a70-c0ff-46d6-a15c-4660e0ec8f0c",
-				"name":               "180.76.184.2 (Linux VM)",
-				"host":               "180.76.184.2",
-				"port":               22,
-				"protocol":           "ssh",
-				"status":             "active",
-				"containers_running": 2,
-				"containers_total":   2,
-				"images":             2,
-			})
+		if list == nil {
+			list = []map[string]interface{}{}
 		}
 		httpx.Respond(w, list)
 	})
 
-	r.Post("/endpoints/test", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin")).Post("/endpoints/test", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Host     string `json:"host"`
 			Port     int    `json:"port"`
@@ -422,7 +480,7 @@ func FullContainerRoutes() chi.Router {
 		})
 	})
 
-	r.Post("/endpoints", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin")).Post("/endpoints", func(w http.ResponseWriter, r *http.Request) {
 		initContainerEndpointsTable()
 		var req struct {
 			Name     string `json:"name"`
@@ -488,7 +546,7 @@ func FullContainerRoutes() chi.Router {
 		})
 	})
 
-	r.Put("/endpoints/{id}", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin")).Put("/endpoints/{id}", func(w http.ResponseWriter, r *http.Request) {
 		initContainerEndpointsTable()
 		id := chi.URLParam(r, "id")
 		var req struct {
@@ -519,7 +577,7 @@ func FullContainerRoutes() chi.Router {
 		})
 	})
 
-	r.Delete("/endpoints/{id}", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin")).Delete("/endpoints/{id}", func(w http.ResponseWriter, r *http.Request) {
 		initContainerEndpointsTable()
 		id := chi.URLParam(r, "id")
 		db := appdb.DB()
@@ -533,7 +591,7 @@ func FullContainerRoutes() chi.Router {
 		})
 	})
 
-	r.Post("/endpoints/{id}/refresh", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin")).Post("/endpoints/{id}/refresh", func(w http.ResponseWriter, r *http.Request) {
 		initContainerEndpointsTable()
 		id := chi.URLParam(r, "id")
 		db := appdb.DB()
@@ -561,12 +619,16 @@ func FullContainerRoutes() chi.Router {
 	// ── 容器列表（含实时规格与指标） ──
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		endpointID := r.URL.Query().Get("endpointId")
-		client, _, err := getDockerSSHClient(endpointID)
+		client, host, err := getDockerSSHClient(endpointID)
+		if err != nil {
+			respondHostUnavailable(w, err)
+			return
+		}
+		defer client.Close()
 
 		var containersList []map[string]interface{}
 
-		if err == nil {
-			defer client.Close()
+		{
 
 			// 1. 获取容器实时列表
 			stdout, _, _ := client.ExecCommand("docker ps -a --format '{{json .}}'", 8*time.Second)
@@ -588,34 +650,13 @@ func FullContainerRoutes() chi.Router {
 					memPctStr := fmt.Sprintf("%v", sm["MemPerc"])
 					netIOStr := fmt.Sprintf("%v", sm["NetIO"])
 					pidsStr := fmt.Sprintf("%v", sm["PIDs"])
-
-					var rxBytes, txBytes int64
-					if netParts := strings.Split(netIOStr, "/"); len(netParts) == 2 {
-						rxS := strings.TrimSpace(netParts[0])
-						txS := strings.TrimSpace(netParts[1])
-						if strings.HasSuffix(rxS, "kB") {
-							f, _ := strconv.ParseFloat(strings.TrimSuffix(rxS, "kB"), 64)
-							rxBytes = int64(f * 1024)
-						}
-						if strings.HasSuffix(txS, "B") && !strings.HasSuffix(txS, "kB") && !strings.HasSuffix(txS, "MB") {
-							f, _ := strconv.ParseFloat(strings.TrimSuffix(txS, "B"), 64)
-							txBytes = int64(f)
-						}
+					rxBytes, _ := parseDockerBytes(strings.TrimSpace(strings.SplitN(netIOStr, "/", 2)[0]))
+					var txBytes int64
+					if netParts := strings.SplitN(netIOStr, "/", 2); len(netParts) == 2 {
+						txBytes, _ = parseDockerBytes(netParts[1])
 					}
 
-					var memBytes, limitBytes int64 = 6000000, 1996165120
-					if memParts := strings.Split(memUsageStr, "/"); len(memParts) == 2 {
-						uS := strings.TrimSpace(memParts[0])
-						lS := strings.TrimSpace(memParts[1])
-						if strings.HasSuffix(uS, "MiB") {
-							f, _ := strconv.ParseFloat(strings.TrimSuffix(uS, "MiB"), 64)
-							memBytes = int64(f * 1024 * 1024)
-						}
-						if strings.HasSuffix(lS, "GiB") {
-							f, _ := strconv.ParseFloat(strings.TrimSuffix(lS, "GiB"), 64)
-							limitBytes = int64(f * 1024 * 1024 * 1024)
-						}
-					}
+					memBytes, limitBytes, _ := splitDockerPair(memUsageStr)
 
 					pids, _ := strconv.Atoi(pidsStr)
 
@@ -698,54 +739,18 @@ func FullContainerRoutes() chi.Router {
 						"Status":       status,
 						"ports":        portsList,
 						"Ports":        portsList,
-						"host":         "180.76.184.2",
+						"host":         host,
 						"created_at":   createdStr,
-						"created":      time.Now().Unix() - 3600,
-						"Created":      time.Now().Unix() - 3600,
+						"created":      int64(0),
+						"Created":      int64(0),
 						"stats":        cStat,
 					})
 				}
 			}
 		}
 
-		// 如果远程暂时不可连，提供备用缓存展示
-		if len(containersList) == 0 {
-			containersList = append(containersList, map[string]interface{}{
-				"id":           "be5414e4cc73",
-				"container_id": "be5414e4cc73",
-				"name":         "nginx",
-				"Names":        []string{"/nginx"},
-				"image":        "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/xscys/nginx-sidecar-basic-auth:latest",
-				"Image":        "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/xscys/nginx-sidecar-basic-auth:latest",
-				"status":       "running",
-				"state":        "running",
-				"State":        "running",
-				"Status":       "Up About an hour",
-				"ports": []map[string]interface{}{
-					{"IP": "0.0.0.0", "PublicPort": 80, "PrivatePort": 80, "Type": "tcp"},
-				},
-				"Ports": []map[string]interface{}{
-					{"IP": "0.0.0.0", "PublicPort": 80, "PrivatePort": 80, "Type": "tcp"},
-				},
-				"host":       "180.76.184.2",
-				"created_at": "2026-09-16 14:58:09",
-				"created":    time.Now().Unix() - 3600,
-				"Created":    time.Now().Unix() - 3600,
-				"stats": map[string]interface{}{
-					"containerId": "be5414e4cc73",
-					"cpuPercent":  "0.00%",
-					"memory": map[string]interface{}{
-						"usage":   6004940,
-						"limit":   1996165120,
-						"percent": "0.30",
-					},
-					"network": map[string]interface{}{
-						"rx_bytes": 2180,
-						"tx_bytes": 420,
-					},
-					"pids": 9,
-				},
-			})
+		if containersList == nil {
+			containersList = []map[string]interface{}{}
 		}
 
 		httpx.RespondRaw(w, http.StatusOK, map[string]interface{}{
@@ -758,27 +763,30 @@ func FullContainerRoutes() chi.Router {
 	// ── 容器详情 ──
 	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
+		if !validContainerRef(id) {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的容器 ID")
+			return
+		}
 		endpointID := r.URL.Query().Get("endpointId")
 		client, _, err := getDockerSSHClient(endpointID)
-		if err == nil {
-			defer client.Close()
-			stdout, _, _ := client.ExecCommand(fmt.Sprintf("docker inspect %s", id), 8*time.Second)
-			var inspectArr []map[string]interface{}
-			if json.Unmarshal([]byte(stdout), &inspectArr) == nil && len(inspectArr) > 0 {
-				httpx.Respond(w, inspectArr[0])
-				return
-			}
+		if err != nil {
+			respondHostUnavailable(w, err)
+			return
 		}
-		httpx.Respond(w, map[string]interface{}{
-			"id":     id,
-			"name":   "nginx",
-			"image":  "nginx:latest",
-			"status": "running",
-			"state":  "running",
-		})
+		defer client.Close()
+		stdout, stderr, execErr := client.ExecCommand("docker inspect "+shellQuote(id), 8*time.Second)
+		if execErr != nil {
+			httpx.RespondFailStatus(w, http.StatusBadGateway, fmt.Sprintf("查询容器详情失败: %v %s", execErr, stderr))
+			return
+		}
+		var inspectArr []map[string]interface{}
+		if err := json.Unmarshal([]byte(stdout), &inspectArr); err != nil || len(inspectArr) == 0 {
+			httpx.RespondFailStatus(w, http.StatusNotFound, "容器不存在")
+			return
+		}
+		httpx.Respond(w, inspectArr[0])
 	})
 
-	// ── 容器日志 ──
 	// ── 容器日志 ──
 	r.Get("/logs/{id}", handleGetContainerLogs)
 	r.Get("/{id}/logs", handleGetContainerLogs)
@@ -788,11 +796,15 @@ func FullContainerRoutes() chi.Router {
 	r.Get("/{id}/stats", handleGetContainerStats)
 
 	// ── 容器操作 (start/stop/restart) ──
-	r.Post("/{id}/{action}", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin")).Post("/{id}/{action}", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		action := chi.URLParam(r, "action")
 		endpointID := r.URL.Query().Get("endpointId")
 
+		if !validContainerRef(id) {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的容器 ID")
+			return
+		}
 		if action != "start" && action != "stop" && action != "restart" {
 			httpx.RespondError(w, "不支持的操作类型", http.StatusBadRequest)
 			return
@@ -800,15 +812,15 @@ func FullContainerRoutes() chi.Router {
 
 		client, host, err := getDockerSSHClient(endpointID)
 		if err != nil {
-			httpx.RespondError(w, err.Error(), http.StatusInternalServerError)
+			respondHostUnavailable(w, err)
 			return
 		}
 		defer client.Close()
 
-		stdout, stderr, cmdErr := client.ExecCommand(fmt.Sprintf("docker %s %s", action, id), 15*time.Second)
+		stdout, stderr, cmdErr := client.ExecCommand("docker "+action+" "+shellQuote(id), 15*time.Second)
 		if cmdErr != nil {
 			logger.Warnf("执行 docker %s 失败 (%s): %v, stderr: %s", action, host, cmdErr, stderr)
-			httpx.RespondError(w, fmt.Sprintf("执行 docker %s 失败: %v %s", action, cmdErr, stderr), http.StatusInternalServerError)
+			httpx.RespondFailStatus(w, http.StatusBadGateway, fmt.Sprintf("执行 docker %s 失败: %v %s", action, cmdErr, stderr))
 			return
 		}
 
@@ -820,7 +832,7 @@ func FullContainerRoutes() chi.Router {
 	})
 
 	// ── 创建并运行容器 ──
-	r.Post("/run", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin")).Post("/run", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Image         string   `json:"image"`
 			Name          string   `json:"name"`
@@ -835,64 +847,79 @@ func FullContainerRoutes() chi.Router {
 			httpx.RespondError(w, "参数解析错误", http.StatusBadRequest)
 			return
 		}
-		if req.Image == "" {
-			httpx.RespondError(w, "镜像名称不能为空", http.StatusBadRequest)
+		if !validContainerRef(req.Image) {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的镜像名称")
+			return
+		}
+		if req.Name != "" && !validContainerRef(req.Name) {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的容器名称")
+			return
+		}
+		for _, p := range req.Ports {
+			if !validPortMapping(p) {
+				httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的端口映射: "+p)
+				return
+			}
+		}
+		for _, e := range req.Env {
+			if !validEnvPair(e) {
+				httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的环境变量: "+e)
+				return
+			}
+		}
+		for _, v := range req.Volumes {
+			if !validVolumeSpec(v) {
+				httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的数据卷映射: "+v)
+				return
+			}
+		}
+		restartPolicy := req.RestartPolicy
+		if restartPolicy == "" {
+			restartPolicy = "no"
+		}
+		if !restartPolicyPattern.MatchString(restartPolicy) {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的重启策略")
 			return
 		}
 
 		endpointID := r.URL.Query().Get("endpointId")
 		client, host, err := getDockerSSHClient(endpointID)
 		if err != nil {
-			httpx.RespondError(w, err.Error(), http.StatusInternalServerError)
+			respondHostUnavailable(w, err)
 			return
 		}
 		defer client.Close()
 
-		// 确保常见镜像本地存在（国内镜像别名）
-		if strings.HasPrefix(req.Image, "redis") {
-			_, _, _ = client.ExecCommand("docker tag swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/wechatpadpro/redis:6 redis:latest 2>/dev/null; docker tag swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/wechatpadpro/redis:6 redis:6 2>/dev/null; docker tag swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/wechatpadpro/redis:6 redis 2>/dev/null", 5*time.Second)
-		}
-		if strings.HasPrefix(req.Image, "nginx") {
-			_, _, _ = client.ExecCommand("docker tag swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/xscys/nginx-sidecar-basic-auth:latest nginx:latest 2>/dev/null; docker tag swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/xscys/nginx-sidecar-basic-auth:latest nginx 2>/dev/null", 5*time.Second)
-		}
-
-		// 若指定了容器名，先清理可能已停止的同名旧容器，避免名称冲突
+		args := []string{"docker", "run", "-d"}
 		if req.Name != "" {
-			_, _, _ = client.ExecCommand(fmt.Sprintf("docker rm -f %s 2>/dev/null", req.Name), 5*time.Second)
-		}
-
-		var cmdBuilder strings.Builder
-		cmdBuilder.WriteString("docker run -d")
-		if req.Name != "" {
-			cmdBuilder.WriteString(fmt.Sprintf(" --name %s", req.Name))
+			args = append(args, "--name", req.Name)
 		}
 		for _, p := range req.Ports {
-			cmdBuilder.WriteString(fmt.Sprintf(" -p %s", p))
+			args = append(args, "-p", p)
 		}
 		for _, e := range req.Env {
-			cmdBuilder.WriteString(fmt.Sprintf(" -e %s", e))
+			args = append(args, "-e", e)
 		}
 		for _, v := range req.Volumes {
-			cmdBuilder.WriteString(fmt.Sprintf(" -v %s", v))
+			args = append(args, "-v", v)
 		}
-		if req.RestartPolicy != "" && req.RestartPolicy != "no" {
-			cmdBuilder.WriteString(fmt.Sprintf(" --restart %s", req.RestartPolicy))
+		if restartPolicy != "no" {
+			args = append(args, "--restart", restartPolicy)
 		}
 		if req.Memory > 0 {
-			cmdBuilder.WriteString(fmt.Sprintf(" -m %d", req.Memory))
+			args = append(args, "-m", strconv.FormatInt(req.Memory, 10))
 		}
-		cmdBuilder.WriteString(" " + req.Image)
+		args = append(args, req.Image)
 
-		// 特殊处理：如果是 redis 镜像，附加 redis-server 以防止特定镜像内置的 /usr/local/etc/redis/redis.conf 包含 BOM 导致启动崩溃
-		if strings.Contains(req.Image, "redis") {
-			cmdBuilder.WriteString(" redis-server")
+		quoted := make([]string, len(args))
+		for i, a := range args {
+			quoted[i] = shellQuote(a)
 		}
 
-		runCmd := cmdBuilder.String()
-		stdout, stderr, cmdErr := client.ExecCommand(runCmd, 60*time.Second)
+		stdout, stderr, cmdErr := client.ExecCommand(strings.Join(quoted, " "), 60*time.Second)
 		if cmdErr != nil {
 			logger.Warnf("创建容器失败 (%s): %v, stderr: %s", host, cmdErr, stderr)
-			httpx.RespondError(w, fmt.Sprintf("创建容器失败: %v %s", cmdErr, stderr), http.StatusInternalServerError)
+			httpx.RespondFailStatus(w, http.StatusBadGateway, fmt.Sprintf("创建容器失败: %v %s", cmdErr, stderr))
 			return
 		}
 
@@ -904,19 +931,23 @@ func FullContainerRoutes() chi.Router {
 	})
 
 	// ── 删除容器 ──
-	r.Delete("/{id}", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin")).Delete("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
+		if !validContainerRef(id) {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的容器 ID")
+			return
+		}
 		endpointID := r.URL.Query().Get("endpointId")
 		client, _, err := getDockerSSHClient(endpointID)
 		if err != nil {
-			httpx.RespondError(w, err.Error(), http.StatusInternalServerError)
+			respondHostUnavailable(w, err)
 			return
 		}
 		defer client.Close()
 
-		_, stderr, cmdErr := client.ExecCommand(fmt.Sprintf("docker rm -f %s", id), 15*time.Second)
+		_, stderr, cmdErr := client.ExecCommand("docker rm -f "+shellQuote(id), 15*time.Second)
 		if cmdErr != nil {
-			httpx.RespondError(w, "删除容器失败: "+stderr, http.StatusInternalServerError)
+			httpx.RespondFailStatus(w, http.StatusBadGateway, "删除容器失败: "+stderr)
 			return
 		}
 		httpx.Respond(w, map[string]interface{}{"success": true, "message": "容器已删除"})
@@ -945,51 +976,45 @@ func FullContainerRoutes() chi.Router {
 func handleListDockerImages(w http.ResponseWriter, r *http.Request) {
 	endpointID := r.URL.Query().Get("endpointId")
 	client, host, err := getDockerSSHClient(endpointID)
+	if err != nil {
+		respondHostUnavailable(w, err)
+		return
+	}
+	defer client.Close()
+	stdout, stderr, execErr := client.ExecCommand("docker images --format '{{json .}}'", 8*time.Second)
+	if execErr != nil {
+		httpx.RespondFailStatus(w, http.StatusBadGateway, fmt.Sprintf("获取镜像列表失败: %v %s", execErr, stderr))
+		return
+	}
 	var list []map[string]interface{}
-	if err == nil {
-		defer client.Close()
-		stdout, _, _ := client.ExecCommand("docker images --format '{{json .}}'", 8*time.Second)
-		for _, line := range strings.Split(strings.TrimSpace(stdout), "\n") {
-			line = strings.TrimSpace(line)
-			if line == "" {
-				continue
-			}
-			var m map[string]interface{}
-			if json.Unmarshal([]byte(line), &m) == nil {
-				repo := fmt.Sprintf("%v", m["Repository"])
-				tag := fmt.Sprintf("%v", m["Tag"])
-				sizeStr := fmt.Sprintf("%v", m["Size"])
-				id := fmt.Sprintf("%v", m["ID"])
-				created := fmt.Sprintf("%v", m["CreatedSince"])
+	for _, line := range strings.Split(strings.TrimSpace(stdout), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		var m map[string]interface{}
+		if json.Unmarshal([]byte(line), &m) == nil {
+			repo := fmt.Sprintf("%v", m["Repository"])
+			tag := fmt.Sprintf("%v", m["Tag"])
+			sizeStr := fmt.Sprintf("%v", m["Size"])
+			id := fmt.Sprintf("%v", m["ID"])
+			created := fmt.Sprintf("%v", m["CreatedSince"])
 
-				var sizeBytes int64 = 32000000
-				if strings.HasSuffix(sizeStr, "MB") {
-					f, _ := strconv.ParseFloat(strings.TrimSuffix(sizeStr, "MB"), 64)
-					sizeBytes = int64(f * 1024 * 1024)
-				}
+			sizeBytes, _ := parseDockerBytes(sizeStr)
 
-				list = append(list, map[string]interface{}{
-					"id":         id,
-					"name":       repo,
-					"tag":        tag,
-					"size_bytes": sizeBytes,
-					"size":       sizeBytes,
-					"host":       host,
-					"created_at": created,
-				})
-			}
+			list = append(list, map[string]interface{}{
+				"id":         id,
+				"name":       repo,
+				"tag":        tag,
+				"size_bytes": sizeBytes,
+				"size":       sizeBytes,
+				"host":       host,
+				"created_at": created,
+			})
 		}
 	}
-	if len(list) == 0 {
-		list = append(list, map[string]interface{}{
-			"id":         "c9a0e2b80f37",
-			"name":       "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/xscys/nginx-sidecar-basic-auth",
-			"tag":        "latest",
-			"size_bytes": 32191283,
-			"size":       32191283,
-			"host":       "180.76.184.2",
-			"created_at": "7 years ago",
-		})
+	if list == nil {
+		list = []map[string]interface{}{}
 	}
 	httpx.RespondRaw(w, http.StatusOK, map[string]interface{}{
 		"success": true,
@@ -1001,32 +1026,39 @@ func handleListDockerImages(w http.ResponseWriter, r *http.Request) {
 func handleListDockerVolumes(w http.ResponseWriter, r *http.Request) {
 	endpointID := r.URL.Query().Get("endpointId")
 	client, host, err := getDockerSSHClient(endpointID)
+	if err != nil {
+		respondHostUnavailable(w, err)
+		return
+	}
+	defer client.Close()
+	stdout, stderr, execErr := client.ExecCommand("docker volume ls --format '{{json .}}'", 8*time.Second)
+	if execErr != nil {
+		httpx.RespondFailStatus(w, http.StatusBadGateway, fmt.Sprintf("获取数据卷列表失败: %v %s", execErr, stderr))
+		return
+	}
 	var list []map[string]interface{}
-	if err == nil {
-		defer client.Close()
-		stdout, _, _ := client.ExecCommand("docker volume ls --format '{{json .}}'", 8*time.Second)
-		for _, line := range strings.Split(strings.TrimSpace(stdout), "\n") {
-			line = strings.TrimSpace(line)
-			if line == "" {
-				continue
-			}
-			var m map[string]interface{}
-			if json.Unmarshal([]byte(line), &m) == nil {
-				name := fmt.Sprintf("%v", m["Name"])
-				driver := fmt.Sprintf("%v", m["Driver"])
-				list = append(list, map[string]interface{}{
-					"id":          name,
-					"name":        name,
-					"driver":      driver,
-					"type":        "docker",
-					"host":        host,
-					"mount_point": fmt.Sprintf("/var/lib/docker/volumes/%s/_data", name),
-					"status":      "available",
-					"size_gb":     40,
-					"used_gb":     8,
-				})
-			}
+	for _, line := range strings.Split(strings.TrimSpace(stdout), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
 		}
+		var m map[string]interface{}
+		if json.Unmarshal([]byte(line), &m) == nil {
+			name := fmt.Sprintf("%v", m["Name"])
+			driver := fmt.Sprintf("%v", m["Driver"])
+			list = append(list, map[string]interface{}{
+				"id":          name,
+				"name":        name,
+				"driver":      driver,
+				"type":        "docker",
+				"host":        host,
+				"mount_point": fmt.Sprintf("/var/lib/docker/volumes/%s/_data", name),
+				"status":      "available",
+			})
+		}
+	}
+	if list == nil {
+		list = []map[string]interface{}{}
 	}
 	httpx.RespondRaw(w, http.StatusOK, map[string]interface{}{
 		"success": true,
@@ -1038,33 +1070,42 @@ func handleListDockerVolumes(w http.ResponseWriter, r *http.Request) {
 func handleListDockerNetworks(w http.ResponseWriter, r *http.Request) {
 	endpointID := r.URL.Query().Get("endpointId")
 	client, _, err := getDockerSSHClient(endpointID)
+	if err != nil {
+		respondHostUnavailable(w, err)
+		return
+	}
+	defer client.Close()
+	stdout, stderr, execErr := client.ExecCommand("docker network ls --format '{{json .}}'", 8*time.Second)
+	if execErr != nil {
+		httpx.RespondFailStatus(w, http.StatusBadGateway, fmt.Sprintf("获取网络列表失败: %v %s", execErr, stderr))
+		return
+	}
 	var list []map[string]interface{}
-	if err == nil {
-		defer client.Close()
-		stdout, _, _ := client.ExecCommand("docker network ls --format '{{json .}}'", 8*time.Second)
-		for _, line := range strings.Split(strings.TrimSpace(stdout), "\n") {
-			line = strings.TrimSpace(line)
-			if line == "" {
-				continue
-			}
-			var m map[string]interface{}
-			if json.Unmarshal([]byte(line), &m) == nil {
-				id := fmt.Sprintf("%v", m["ID"])
-				name := fmt.Sprintf("%v", m["Name"])
-				driver := fmt.Sprintf("%v", m["Driver"])
-				scope := fmt.Sprintf("%v", m["Scope"])
-				list = append(list, map[string]interface{}{
-					"id":     id,
-					"Id":     id,
-					"name":   name,
-					"Name":   name,
-					"driver": driver,
-					"Driver": driver,
-					"scope":  scope,
-					"Scope":  scope,
-				})
-			}
+	for _, line := range strings.Split(strings.TrimSpace(stdout), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
 		}
+		var m map[string]interface{}
+		if json.Unmarshal([]byte(line), &m) == nil {
+			id := fmt.Sprintf("%v", m["ID"])
+			name := fmt.Sprintf("%v", m["Name"])
+			driver := fmt.Sprintf("%v", m["Driver"])
+			scope := fmt.Sprintf("%v", m["Scope"])
+			list = append(list, map[string]interface{}{
+				"id":     id,
+				"Id":     id,
+				"name":   name,
+				"Name":   name,
+				"driver": driver,
+				"Driver": driver,
+				"scope":  scope,
+				"Scope":  scope,
+			})
+		}
+	}
+	if list == nil {
+		list = []map[string]interface{}{}
 	}
 	httpx.RespondRaw(w, http.StatusOK, map[string]interface{}{
 		"success": true,
@@ -1075,54 +1116,105 @@ func handleListDockerNetworks(w http.ResponseWriter, r *http.Request) {
 
 func handleGetContainerLogs(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	endpointID := r.URL.Query().Get("endpointId")
-	client, _, err := getDockerSSHClient(endpointID)
-	if err == nil {
-		defer client.Close()
-		stdout, stderr, _ := client.ExecCommand(fmt.Sprintf("docker logs --tail 200 %s", id), 8*time.Second)
-		logs := stdout
-		if logs == "" {
-			logs = stderr
-		}
-		httpx.Respond(w, logs)
+	if !validContainerRef(id) {
+		httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的容器 ID")
 		return
 	}
-	httpx.Respond(w, "2026/09/16 14:58:09 [notice] 1#1: using the \"epoll\" event method\n2026/09/16 14:58:09 [notice] 1#1: nginx/1.21.6\n2026/09/16 14:58:09 [notice] 1#1: start worker processes\n2026/09/16 14:58:09 [notice] 1#1: start worker process 24\n")
+	endpointID := r.URL.Query().Get("endpointId")
+	client, _, err := getDockerSSHClient(endpointID)
+	if err != nil {
+		respondHostUnavailable(w, err)
+		return
+	}
+	defer client.Close()
+	stdout, stderr, execErr := client.ExecCommand("docker logs --tail 200 "+shellQuote(id), 8*time.Second)
+	if execErr != nil {
+		httpx.RespondFailStatus(w, http.StatusBadGateway, fmt.Sprintf("获取容器日志失败: %v %s", execErr, stderr))
+		return
+	}
+	logs := stdout
+	if logs == "" {
+		logs = stderr
+	}
+	httpx.Respond(w, logs)
 }
 
 func handleGetContainerStats(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	if !validContainerRef(id) {
+		httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的容器 ID")
+		return
+	}
 	endpointID := r.URL.Query().Get("endpointId")
 	client, _, err := getDockerSSHClient(endpointID)
-	if err == nil {
-		defer client.Close()
-		stdout, _, _ := client.ExecCommand(fmt.Sprintf("docker stats --no-stream --format '{{json .}}' %s", id), 8*time.Second)
-		var sm map[string]interface{}
-		if json.Unmarshal([]byte(strings.TrimSpace(stdout)), &sm) == nil {
-			httpx.Respond(w, sm)
-			return
-		}
+	if err != nil {
+		respondHostUnavailable(w, err)
+		return
 	}
-	httpx.Respond(w, map[string]interface{}{
-		"CPUPerc":  "0.00%",
-		"MemPerc":  "0.30%",
-		"MemUsage": "5.727MiB / 1.859GiB",
-		"NetIO":    "2.13kB / 414B",
-		"PIDs":     "9",
-	})
+	defer client.Close()
+	stdout, stderr, execErr := client.ExecCommand("docker stats --no-stream --format '{{json .}}' "+shellQuote(id), 8*time.Second)
+	if execErr != nil {
+		httpx.RespondFailStatus(w, http.StatusBadGateway, fmt.Sprintf("获取容器指标失败: %v %s", execErr, stderr))
+		return
+	}
+	var sm map[string]interface{}
+	if json.Unmarshal([]byte(strings.TrimSpace(stdout)), &sm) != nil {
+		httpx.RespondFailStatus(w, http.StatusBadGateway, "无法解析容器指标输出")
+		return
+	}
+	httpx.Respond(w, sm)
 }
 
 // ImagesRoutes 镜像管理独立路由 (/api/v1/images)
 func ImagesRoutes() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/", handleListDockerImages)
-	r.Post("/sync", func(w http.ResponseWriter, r *http.Request) {
-		httpx.Respond(w, map[string]interface{}{"synced": 1})
+	r.With(middleware.RequireRole("admin")).Post("/sync", func(w http.ResponseWriter, r *http.Request) {
+		httpx.RespondFailStatus(w, http.StatusNotImplemented, "镜像同步功能尚未实现")
 	})
-	r.Post("/pull", func(w http.ResponseWriter, r *http.Request) {
-		httpx.Respond(w, map[string]interface{}{"success": true, "message": "镜像拉取中"})
+	r.With(middleware.RequireRole("admin")).Post("/pull", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Image      string `json:"image"`
+			EndpointID string `json:"endpointId"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			httpx.RespondError(w, "参数解析失败", http.StatusBadRequest)
+			return
+		}
+		if !validContainerRef(req.Image) {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的镜像名称")
+			return
+		}
+		client, _, err := getDockerSSHClient(req.EndpointID)
+		if err != nil {
+			respondHostUnavailable(w, err)
+			return
+		}
+		defer client.Close()
+		stdout, stderr, cmdErr := client.ExecCommand("docker pull "+shellQuote(req.Image), 120*time.Second)
+		if cmdErr != nil {
+			httpx.RespondFailStatus(w, http.StatusBadGateway, fmt.Sprintf("拉取镜像失败: %v %s", cmdErr, stderr))
+			return
+		}
+		httpx.Respond(w, map[string]interface{}{"success": true, "message": "镜像拉取成功", "output": stdout})
 	})
-	r.Delete("/{id}", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin")).Delete("/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		if !validContainerRef(id) {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的镜像 ID")
+			return
+		}
+		client, _, err := getDockerSSHClient(r.URL.Query().Get("endpointId"))
+		if err != nil {
+			respondHostUnavailable(w, err)
+			return
+		}
+		defer client.Close()
+		_, stderr, cmdErr := client.ExecCommand("docker rmi "+shellQuote(id), 30*time.Second)
+		if cmdErr != nil {
+			httpx.RespondFailStatus(w, http.StatusBadGateway, "删除镜像失败: "+stderr)
+			return
+		}
 		httpx.Respond(w, map[string]interface{}{"success": true, "message": "镜像已删除"})
 	})
 	return r
@@ -1132,12 +1224,50 @@ func ImagesRoutes() chi.Router {
 func VolumesRoutes() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/", handleListDockerVolumes)
-	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-		httpx.Respond(w, map[string]interface{}{"success": true, "message": "数据卷创建成功"})
+	r.With(middleware.RequireRole("admin")).Post("/", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Name       string `json:"name"`
+			EndpointID string `json:"endpointId"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			httpx.RespondError(w, "参数解析失败", http.StatusBadRequest)
+			return
+		}
+		if !validContainerRef(req.Name) {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的数据卷名称")
+			return
+		}
+		client, _, err := getDockerSSHClient(req.EndpointID)
+		if err != nil {
+			respondHostUnavailable(w, err)
+			return
+		}
+		defer client.Close()
+		_, stderr, cmdErr := client.ExecCommand("docker volume create "+shellQuote(req.Name), 30*time.Second)
+		if cmdErr != nil {
+			httpx.RespondFailStatus(w, http.StatusBadGateway, "创建数据卷失败: "+stderr)
+			return
+		}
+		httpx.Respond(w, map[string]interface{}{"success": true, "message": "数据卷创建成功", "name": req.Name})
 	})
-	r.Delete("/{id}", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin")).Delete("/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		if !validContainerRef(id) {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的数据卷名称")
+			return
+		}
+		client, _, err := getDockerSSHClient(r.URL.Query().Get("endpointId"))
+		if err != nil {
+			respondHostUnavailable(w, err)
+			return
+		}
+		defer client.Close()
+		_, stderr, cmdErr := client.ExecCommand("docker volume rm "+shellQuote(id), 30*time.Second)
+		if cmdErr != nil {
+			httpx.RespondFailStatus(w, http.StatusBadGateway, "删除数据卷失败: "+stderr)
+			return
+		}
 		httpx.Respond(w, map[string]interface{}{"success": true, "message": "数据卷已删除"})
 	})
 	return r
 }
-

@@ -234,7 +234,7 @@ export function useKubernetes() {
   const scaleMutation = useMutation({
     mutationFn: async ({ dep, replicas }: { dep: Deployment; replicas: number }) => {
       await api.put(
-        `/api/kubernetes/deployments/${dep.namespace}/${dep.name}/scale`,
+        `/kubernetes/deployments/${dep.namespace}/${dep.name}/scale`,
         { replicas },
         { params: { context: effectiveContext } },
       );
@@ -255,13 +255,13 @@ export function useKubernetes() {
   const restartMutation = useMutation({
     mutationFn: async (dep: Deployment) => {
       await api.put(
-        `/api/kubernetes/deployments/${dep.namespace}/${dep.name}/scale`,
+        `/kubernetes/deployments/${dep.namespace}/${dep.name}/scale`,
         { replicas: 0 },
         { params: { context: effectiveContext } },
       );
       setTimeout(async () => {
         await api.put(
-          `/api/kubernetes/deployments/${dep.namespace}/${dep.name}/scale`,
+          `/kubernetes/deployments/${dep.namespace}/${dep.name}/scale`,
           { replicas: dep.replicas },
           { params: { context: effectiveContext } },
         );

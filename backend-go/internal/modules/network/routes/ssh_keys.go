@@ -108,7 +108,11 @@ func SshKeyRoutes() chi.Router {
 			fingerprint := "SHA256:" + hex.EncodeToString(hash[:])[:43]
 
 			// 加密私钥
-			encryptedKey := crypto.Encrypt(privKey)
+			encryptedKey, encErr := crypto.Encrypt(privKey)
+			if encErr != nil {
+				httpx.RespondError(w, "加密私钥失败", http.StatusInternalServerError)
+				return
+			}
 
 			desc := ""
 			if req.Description != nil {
@@ -127,7 +131,11 @@ func SshKeyRoutes() chi.Router {
 			}
 
 			// 加密密码
-			encryptedPwd := crypto.Encrypt(*req.Password)
+			encryptedPwd, encErr := crypto.Encrypt(*req.Password)
+			if encErr != nil {
+				httpx.RespondError(w, "加密密码失败", http.StatusInternalServerError)
+				return
+			}
 
 			desc := ""
 			if req.Description != nil {
@@ -199,7 +207,11 @@ func SshKeyRoutes() chi.Router {
 
 		// 处理密码更新
 		if req.Password != nil && *req.Password != "" && finalAuthType == "password" {
-			encrypted := crypto.Encrypt(*req.Password)
+			encrypted, encErr := crypto.Encrypt(*req.Password)
+			if encErr != nil {
+				httpx.RespondError(w, "加密密码失败", http.StatusInternalServerError)
+				return
+			}
 			update.Password = &encrypted
 		}
 
@@ -227,7 +239,11 @@ func SshKeyRoutes() chi.Router {
 			hash := sha256.Sum256([]byte(privKey))
 			fp := "SHA256:" + hex.EncodeToString(hash[:])[:43]
 
-			encrypted := crypto.Encrypt(privKey)
+			encrypted, encErr := crypto.Encrypt(privKey)
+			if encErr != nil {
+				httpx.RespondError(w, "加密私钥失败", http.StatusInternalServerError)
+				return
+			}
 			update.PrivateKey = &encrypted
 			update.KeyType = &keyType
 			update.Fingerprint = &fp

@@ -17,17 +17,17 @@ import (
 
 // MibModule MIB 模块记录
 type MibModule struct {
-	ID          string  `json:"id"`
-	Name        string  `json:"name"`
-	FileName    *string `json:"file_name"`
-	FileContent *string `json:"file_content,omitempty"`
-	Description *string `json:"description"`
+	ID           string  `json:"id"`
+	Name         string  `json:"name"`
+	FileName     *string `json:"file_name"`
+	FileContent  *string `json:"file_content,omitempty"`
+	Description  *string `json:"description"`
 	Organization *string `json:"organization"`
-	ContactInfo *string `json:"contact_info"`
-	LastUpdated *string `json:"last_updated"`
-	OidTreeJSON *string `json:"oid_tree_json,omitempty"`
-	ObjectCount int     `json:"object_count"`
-	UploadedAt  string  `json:"uploaded_at"`
+	ContactInfo  *string `json:"contact_info"`
+	LastUpdated  *string `json:"last_updated"`
+	OidTreeJSON  *string `json:"oid_tree_json,omitempty"`
+	ObjectCount  int     `json:"object_count"`
+	UploadedAt   string  `json:"uploaded_at"`
 }
 
 // MibObject MIB 对象记录
@@ -257,7 +257,7 @@ type CollectTask struct {
 	Description     *string `json:"description"`
 	DeviceType      *string `json:"device_type"`
 	DeviceIDs       string  `json:"device_ids"` // JSON array
-	OIDs            string  `json:"oids"`        // JSON array
+	OIDs            string  `json:"oids"`       // JSON array
 	ScheduleType    string  `json:"schedule_type"`
 	IntervalSeconds int     `json:"interval_seconds"`
 	CronExpression  *string `json:"cron_expression"`
@@ -434,8 +434,17 @@ func (r *CollectResultRepo) List(page, pageSize int, taskID, deviceID string) ([
 	if pageSize <= 0 || pageSize > 500 {
 		pageSize = 50
 	}
-	offset := (page - 1) * pageSize
+	return r.ListByOffset(pageSize, (page-1)*pageSize, taskID, deviceID)
+}
 
+// ListByOffset 按 limit/offset 查询采集结果（调用方可直接使用 offset 分页）
+func (r *CollectResultRepo) ListByOffset(pageSize, offset int, taskID, deviceID string) ([]CollectResult, int, error) {
+	if pageSize <= 0 || pageSize > 500 {
+		pageSize = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
 	query := `SELECT r.id, r.task_id, t.name, r.device_id, nd.name, nd.ip_address, r.oid, r.metric_name, r.metric_value, r.metric_type, r.error_message, r.duration_ms, r.sampled_at
 		FROM snmp_collect_results r
 		LEFT JOIN snmp_collect_tasks t ON r.task_id = t.id

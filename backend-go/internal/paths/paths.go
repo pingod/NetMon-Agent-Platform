@@ -63,8 +63,13 @@ func DatabasePath() string {
 				if _, err := os.Stat(p2); err == nil {
 					return p2
 				}
-				// 文件都不存在，说明是全新安装；回退到 dev 模式默认路径
-				return filepath.Join(projectRoot, "backend", "data", "app.db")
+				// 文件都不存在（全新安装）：按 env 值落位创建，不再回退 backend/data/app.db
+				// .env 的相对路径以 backend/ 目录为基准（与 TS 后端一致）
+				backendRoot := filepath.Join(projectRoot, "backend")
+				if fi, err := os.Stat(backendRoot); err == nil && fi.IsDir() {
+					return filepath.Join(backendRoot, v)
+				}
+				return p1
 			}
 			return filepath.Join(AppRoot(), v)
 		}
@@ -172,4 +177,15 @@ func BackendDataDir() string {
 		return filepath.Join(filepath.Dir(wd), "backend", "data")
 	}
 	return "./data"
+}
+
+// StaticDir 前端静态资源目录（SPA 回退使用）：优先 STATIC_DIR，其次 FrontendDist
+func StaticDir() string {
+	if v := os.Getenv("STATIC_DIR"); v != "" {
+		if filepath.IsAbs(v) {
+			return v
+		}
+		return filepath.Join(AppRoot(), v)
+	}
+	return FrontendDist()
 }

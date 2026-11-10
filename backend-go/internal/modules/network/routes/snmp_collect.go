@@ -31,8 +31,8 @@ func SnmpCollectRoutes() chi.Router {
 	// GET / — 采集概览
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		var modCount, taskCount int
-		appdb.DB().QueryRow(`SELECT COUNT(*) FROM mib_modules`).Scan(&modCount)
-		appdb.DB().QueryRow(`SELECT COUNT(*) FROM snmp_collect_tasks`).Scan(&taskCount)
+		appdb.DBForTable("mib_modules").QueryRow(`SELECT COUNT(*) FROM mib_modules`).Scan(&modCount)
+		appdb.DBForTable("snmp_collect_tasks").QueryRow(`SELECT COUNT(*) FROM snmp_collect_tasks`).Scan(&taskCount)
 		httpx.Respond(w, map[string]interface{}{
 			"mib_modules_count": modCount,
 			"tasks_count":       taskCount,
@@ -53,7 +53,7 @@ func SnmpCollectRoutes() chi.Router {
 
 	// GET /custom-metrics & GET /metrics/all — 自定义指标列表
 	handleCustomMetrics := func(w http.ResponseWriter, r *http.Request) {
-		rows, err := appdb.DB().Query(`SELECT id, custom_name, oid, device_id, unit, chart_type FROM custom_dashboard_metrics ORDER BY display_order ASC`)
+		rows, err := appdb.DBForTable("custom_dashboard_metrics").Query(`SELECT id, custom_name, oid, device_id, unit, chart_type FROM custom_dashboard_metrics ORDER BY display_order ASC`)
 		if err != nil {
 			httpx.Respond(w, []interface{}{})
 			return
@@ -324,11 +324,11 @@ func SnmpCollectRoutes() chi.Router {
 			SnmpVersion      string                   `json:"snmp_version"`       // 可选覆盖
 			Community        string                   `json:"community"`          // 可选覆盖
 			SnmpUser         string                   `json:"snmp_user"`          // v3 用户名
-			SnmpAuthProtocol string                   `json:"snmp_auth_protocol"`  // v3 认证协议
-			SnmpAuthKey      string                   `json:"snmp_auth_key"`       // v3 认证密码
-			SnmpPrivProtocol string                   `json:"snmp_priv_protocol"`  // v3 加密协议
-			SnmpPrivKey      string                   `json:"snmp_priv_key"`       // v3 加密密码
-			SnmpCredentialID string                   `json:"snmp_credential_id"`  // 可选指定凭证ID
+			SnmpAuthProtocol string                   `json:"snmp_auth_protocol"` // v3 认证协议
+			SnmpAuthKey      string                   `json:"snmp_auth_key"`      // v3 认证密码
+			SnmpPrivProtocol string                   `json:"snmp_priv_protocol"` // v3 加密协议
+			SnmpPrivKey      string                   `json:"snmp_priv_key"`      // v3 加密密码
+			SnmpCredentialID string                   `json:"snmp_credential_id"` // 可选指定凭证ID
 			TimeoutMs        int                      `json:"timeout_ms"`
 		}
 		if !parseJSON(w, r, &req) {
@@ -376,9 +376,9 @@ func SnmpCollectRoutes() chi.Router {
 
 			// 1. 从设备关联凭证或显式指定凭证读取（自动解密），前端传的 community/version/v3 作为可选覆盖
 			var (
-				snmpPort     int
-				snmpVersion  services.SnmpVersion
-				community    string
+				snmpPort                                           int
+				snmpVersion                                        services.SnmpVersion
+				community                                          string
 				user, authProtocol, authKey, privProtocol, privKey string
 			)
 
@@ -445,10 +445,10 @@ func SnmpCollectRoutes() chi.Router {
 						isTable = iv
 					}
 				}
-				// 若前端未显式传递 is_table，从 DB 实时查询 is_table / syntax 是否为 COLUMNAR
+				// 若前端未显式传递 is_table，从 OID 库实时查询 is_table / syntax 是否为 COLUMNAR
 				if isTable == 0 && oid != "" {
 					var dbIsTable int
-					_ = appdb.DB().QueryRow(`
+					_ = appdb.OidDB().QueryRow(`
 						SELECT CASE 
 							WHEN is_table = 1 THEN 1 
 							WHEN LOWER(syntax) LIKE '%column%' OR LOWER(syntax) LIKE '%table%' THEN 1 
@@ -537,18 +537,18 @@ func SnmpCollectRoutes() chi.Router {
 	// POST /tasks — 创建采集任务
 	r.With(middleware.RequireRole("admin")).Post("/tasks", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			Name           string   `json:"name"`
-			DeviceIDs      []string `json:"device_ids"`
-			OIDs           []string `json:"oids"`
-			ScheduleType   string   `json:"schedule_type"`
-			CronExpression string   `json:"cron_expression"`
-			IntervalSeconds int     `json:"interval_seconds"`
-			SnmpVersion    string   `json:"snmp_version"`
-			Community      string   `json:"community"`
-			TimeoutMs      int      `json:"timeout_ms"`
-			Retries        int      `json:"retries"`
-			Enabled        bool     `json:"enabled"`
-			RetentionDays  int      `json:"retention_days"`
+			Name            string   `json:"name"`
+			DeviceIDs       []string `json:"device_ids"`
+			OIDs            []string `json:"oids"`
+			ScheduleType    string   `json:"schedule_type"`
+			CronExpression  string   `json:"cron_expression"`
+			IntervalSeconds int      `json:"interval_seconds"`
+			SnmpVersion     string   `json:"snmp_version"`
+			Community       string   `json:"community"`
+			TimeoutMs       int      `json:"timeout_ms"`
+			Retries         int      `json:"retries"`
+			Enabled         bool     `json:"enabled"`
+			RetentionDays   int      `json:"retention_days"`
 		}
 		if !parseJSON(w, r, &req) {
 			return
@@ -588,7 +588,7 @@ func SnmpCollectRoutes() chi.Router {
 			TimeoutMs:       req.TimeoutMs,
 			Retries:         req.Retries,
 			Enabled:         enabled,
-			RetentionDays:    req.RetentionDays,
+			RetentionDays:   req.RetentionDays,
 		}
 
 		if err := repos.CollectTasks.Create(task); err != nil {
@@ -655,18 +655,21 @@ func SnmpCollectRoutes() chi.Router {
 	r.Get("/results", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
 		limit, _ := strconv.Atoi(q.Get("limit"))
-		if limit <= 0 {
+		if limit <= 0 || limit > 500 {
 			limit = 100
 		}
 		offset, _ := strconv.Atoi(q.Get("offset"))
+		if offset < 0 {
+			offset = 0
+		}
 
-		results, total, err := repos.CollectResults.List(1, limit, q.Get("task_id"), q.Get("device_id"))
+		// 仓库层直接支持 limit/offset，offset 不再被丢弃
+		results, total, err := repos.CollectResults.ListByOffset(limit, offset, q.Get("task_id"), q.Get("device_id"))
 		if err != nil {
 			httpx.RespondError(w, "获取采集结果失败", http.StatusInternalServerError)
 			return
 		}
-		_ = offset
-		httpx.Respond(w, map[string]interface{}{"results": results, "total": total})
+		httpx.Respond(w, map[string]interface{}{"results": results, "total": total, "limit": limit, "offset": offset})
 	})
 
 	// GET /results/latest — 获取设备最新采集数据
@@ -812,9 +815,9 @@ func SnmpCollectRoutes() chi.Router {
 					}
 
 					var (
-						community string
-						version   string
-						snmpPort  int
+						community                                          string
+						version                                            string
+						snmpPort                                           int
 						user, authProtocol, authKey, privProtocol, privKey string
 					)
 
@@ -933,9 +936,9 @@ func SnmpCollectRoutes() chi.Router {
 
 				// 从设备凭证读取连接参数
 				var (
-					community string
-					version   string
-					snmpPort  int
+					community                                          string
+					version                                            string
+					snmpPort                                           int
 					user, authProtocol, authKey, privProtocol, privKey string
 				)
 
@@ -1017,12 +1020,12 @@ func SnmpCollectRoutes() chi.Router {
 	// POST /dashboard-lists — 创建列表面板
 	r.With(middleware.RequireRole("admin")).Post("/dashboard-lists", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			Name            string                `json:"name"`
-			Description     string                `json:"description"`
-			DeviceIDs       []string              `json:"device_ids"`
-			Columns         []repos.ListColumn    `json:"columns"`
-			RefreshInterval int                   `json:"refresh_interval"`
-			ShowOnDashboard int                   `json:"show_on_dashboard"`
+			Name            string             `json:"name"`
+			Description     string             `json:"description"`
+			DeviceIDs       []string           `json:"device_ids"`
+			Columns         []repos.ListColumn `json:"columns"`
+			RefreshInterval int                `json:"refresh_interval"`
+			ShowOnDashboard int                `json:"show_on_dashboard"`
 		}
 		if !parseJSON(w, r, &req) {
 			return
@@ -1050,12 +1053,12 @@ func SnmpCollectRoutes() chi.Router {
 	// PUT /dashboard-lists/:id — 更新列表面板
 	r.With(middleware.RequireRole("admin")).Put("/dashboard-lists/{id}", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			Name            *string              `json:"name"`
-			Description     *string              `json:"description"`
-			DeviceIDs       *[]string            `json:"device_ids"`
-			Columns         *[]repos.ListColumn  `json:"columns"`
-			RefreshInterval *int                 `json:"refresh_interval"`
-			ShowOnDashboard *int                 `json:"show_on_dashboard"`
+			Name            *string             `json:"name"`
+			Description     *string             `json:"description"`
+			DeviceIDs       *[]string           `json:"device_ids"`
+			Columns         *[]repos.ListColumn `json:"columns"`
+			RefreshInterval *int                `json:"refresh_interval"`
+			ShowOnDashboard *int                `json:"show_on_dashboard"`
 		}
 		if !parseJSON(w, r, &req) {
 			return
@@ -1103,7 +1106,7 @@ func SnmpCollectRoutes() chi.Router {
 			DeviceName string               `json:"deviceName"`
 			DeviceIP   string               `json:"deviceIp"`
 			RowIndex   string               `json:"rowIndex"`
-			Cells      map[string]*cellData  `json:"cells"`
+			Cells      map[string]*cellData `json:"cells"`
 		}
 
 		var rows []rowData
@@ -1205,10 +1208,13 @@ func SnmpCollectRoutes() chi.Router {
 						device.IPAddress, cred.SnmpPort, cred.SnmpVersion, cred.Community,
 						cred.SnmpUser, cred.SnmpAuthProtocol, cred.SnmpAuthKey,
 						cred.SnmpPrivProtocol, cred.SnmpPrivKey, oids)
-					for i, oid := range oids {
-						if i < len(results) && results[i] != nil {
-							scalarResults[oid] = results[i].Value
+					// 按 OID 回填（不依赖返回顺序，避免批量 GET 乱序导致指标错位）
+					for _, res := range results {
+						if res == nil {
+							continue
 						}
+						scalarResults[res.OID] = res.Value
+						scalarResults[strings.TrimPrefix(res.OID, ".")] = res.Value
 					}
 				}
 

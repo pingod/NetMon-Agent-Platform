@@ -6,15 +6,18 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/cors"
 
+	"itops-backend/internal/config"
 	"itops-backend/internal/logger"
 	"itops-backend/internal/middleware"
 	authmod "itops-backend/internal/modules/auth"
+	"itops-backend/internal/modules/copilot"
 	dbroutes "itops-backend/internal/modules/database/routes"
 	dcroutes "itops-backend/internal/modules/dc/routes"
 	"itops-backend/internal/modules/inspection"
@@ -22,7 +25,6 @@ import (
 	"itops-backend/internal/modules/network/services"
 	"itops-backend/internal/modules/ops"
 	srvroutes "itops-backend/internal/modules/server/routes"
-	"itops-backend/internal/modules/copilot"
 )
 
 // NewRouter 构建完整的 HTTP 路由
@@ -31,20 +33,25 @@ func NewRouter() chi.Router {
 
 	// ── 全局中间件 ──
 	r.Use(chimw.RequestID)
-	r.Use(chimw.RealIP)
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.Compress(5))
-
-	// CORS
+	// CORS：仅允许配置的来源，不使用通配符，也不启用凭据
+	allowedOrigins := []string{"http://localhost:3000", "http://localhost:8088"}
+	if config.Env != nil && len(config.Env.AllowedOrigins) > 0 {
+		allowedOrigins = config.Env.AllowedOrigins
+	}
 	corsOpts := cors.Options{
-		AllowedOrigins:   []string{"*"},
+		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Refresh-Token"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true,
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Refresh-Token", "X-Agent-Token", "X-Trace-Id"},
+		ExposedHeaders:   []string{"Link", "X-Trace-Id", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"},
+		AllowCredentials: false,
 		MaxAge:           300,
 	}
 	r.Use(cors.New(corsOpts).Handler)
+	r.Use(middleware.Trace)
+	r.Use(middleware.RateLimiter)
+	r.Use(middleware.WebhookIPFilter)
 
 	// ── 健康检查（无需认证） ──
 	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +71,10 @@ func NewRouter() chi.Router {
 
 	// ── 认证中间件之后的受保护路由 ──
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.Authenticate)
+		// Agent 指标上报使用 X-Agent-Token 由处理器自行校验，其余请求强制 JWT
+		r.Use(middleware.AuthenticateOrAgentReport)
+		// 初始密码未修改时仅允许 auth 模块的豁免端点（这些端点不在本组内）
+		r.Use(middleware.RequirePasswordChange)
 
 		// ── 网络设备模块 ──
 		r.Mount("/api/v1/network-devices", routes.NetworkDeviceRoutes())
@@ -137,11 +147,11 @@ func NewRouter() chi.Router {
 	distDir := os.Getenv("STATIC_DIR")
 	if distDir != "" {
 		if fi, err := os.Stat(distDir); err == nil && fi.IsDir() {
-			r.HandleFunc("/*", makeSpaHandler(http.Dir(distDir), nil))
+			r.HandleFunc("/*", makeSpaHandler(http.Dir(distDir), nil, filepath.Join(distDir, "index.html")))
 			logger.Infof("Serving frontend from external dir: %s", distDir)
 		}
 	} else if embeddedFS := FrontendFS(); embeddedFS != nil {
-		r.HandleFunc("/*", makeSpaHandler(http.FS(embeddedFS), embeddedFS))
+		r.HandleFunc("/*", makeSpaHandler(http.FS(embeddedFS), embeddedFS, ""))
 		logger.Infof("Serving frontend from embedded FS")
 	}
 
@@ -149,18 +159,19 @@ func NewRouter() chi.Router {
 	return r
 }
 
-// makeSpaHandler 创建 SPA 回退处理器：精确匹配静态文件（带长期缓存），否则回退到 index.html（无缓存）
-func makeSpaHandler(fileSystem http.FileSystem, fallbackFS fs.FS) http.HandlerFunc {
+// makeSpaHandler 创建 SPA 回退处理器：精确匹配静态文件（带长期缓存），否则回退到 index.html（无缓存）。
+// indexFile 为空时从 fallbackFS 读取嵌入式 index.html；否则读取外部文件系统上的 index.html 绝对路径。
+func makeSpaHandler(fileSystem http.FileSystem, fallbackFS fs.FS, indexFile string) http.HandlerFunc {
 	fileServer := http.FileServer(fileSystem)
 	return func(w http.ResponseWriter, r *http.Request) {
-		path := r.URL.Path
+		reqPath := r.URL.Path
 
 		// 尝试作为静态文件提供
-		f, err := fileSystem.Open(path)
+		f, err := fileSystem.Open(reqPath)
 		if err == nil {
 			f.Close()
 			// 如果是 /assets/ 下的哈希产物，配置 1 年强缓存，实现 0ms 浏览器极速加载
-			if strings.HasPrefix(path, "/assets/") || strings.HasSuffix(path, ".woff2") || strings.HasSuffix(path, ".png") || strings.HasSuffix(path, ".svg") {
+			if strings.HasPrefix(reqPath, "/assets/") || strings.HasSuffix(reqPath, ".woff2") || strings.HasSuffix(reqPath, ".png") || strings.HasSuffix(reqPath, ".svg") {
 				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 			}
 			fileServer.ServeHTTP(w, r)
@@ -180,9 +191,11 @@ func makeSpaHandler(fileSystem http.FileSystem, fallbackFS fs.FS) http.HandlerFu
 				w.Write(data)
 				return
 			}
-		} else {
-			// 外部文件系统
-			http.ServeFile(w, r, "index.html")
+		} else if indexFile != "" {
+			// 外部文件系统：使用 STATIC_DIR 下的 index.html 绝对路径
+			http.ServeFile(w, r, indexFile)
+			return
 		}
+		http.NotFound(w, r)
 	}
 }

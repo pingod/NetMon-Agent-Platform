@@ -69,6 +69,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth();
   }, []);
 
+  // 刷新 token 后由 api 拦截器派发 auth:token，storage 事件覆盖其他标签页的轮换
+  useEffect(() => {
+    const syncToken = () => {
+      const savedToken = localStorage.getItem('token');
+      setToken(savedToken);
+      if (!savedToken) {
+        setUser(null);
+      }
+    };
+    const handleTokenRotated = (event: Event) => {
+      const detail = (event as CustomEvent<{ token?: string }>).detail;
+      setToken(detail?.token || localStorage.getItem('token'));
+    };
+
+    window.addEventListener('storage', syncToken);
+    window.addEventListener('auth:token', handleTokenRotated);
+    return () => {
+      window.removeEventListener('storage', syncToken);
+      window.removeEventListener('auth:token', handleTokenRotated);
+    };
+  }, []);
+
   const login = (newToken: string, newUser: User, newRefreshToken?: string) => {
     localStorage.setItem('token', newToken);
     localStorage.setItem('user', JSON.stringify(newUser));

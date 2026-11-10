@@ -161,7 +161,7 @@ func (p *SnmpPoller) pollDueDevices() {
 
 	logger.Debugf("开始 SNMP 调度轮询 %d 台到达采集间隔的设备...", len(toPollMap))
 
-	concurrency := 25
+	concurrency := 16
 	if len(toPollMap) < concurrency {
 		concurrency = len(toPollMap)
 	}

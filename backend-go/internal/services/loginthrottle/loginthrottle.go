@@ -52,30 +52,36 @@ func CheckLoginLockout(username string) LoginAttemptResult {
 	return LoginAttemptResult{Locked: false, RemainingAttempts: remaining}
 }
 
-// RecordFailedLogin 记录一次失败登录（等价 recordFailedLogin）
+// RecordFailedLogin 记录一次失败登录（等价 recordFailedLogin）。
+// 通过单条原子 UPDATE 递增计数，并发失败不会丢失次数。
 func RecordFailedLogin(username string) LoginAttemptResult {
-	user, err := repos.Users.GetFailedAttempts(username)
-	if err != nil || user == nil {
-		return LoginAttemptResult{Locked: false}
-	}
-
-	newAttempts := user.FailedLoginAttempt + 1
 	now := time.Now()
+	lockoutUntil := now.Add(LockoutDuration)
 
-	if newAttempts >= MaxFailedAttempts {
-		lockoutUntil := now.Add(LockoutDuration)
-		repos.Users.RecordFailedLoginWithLock(user.ID, newAttempts,
-			lockoutUntil.UTC().Format(time.RFC3339), now.UTC().Format(time.RFC3339))
+	st, err := repos.Users.IncrementFailedLogin(
+		username,
+		MaxFailedAttempts,
+		lockoutUntil.UTC().Format(time.RFC3339),
+		now.UTC().Format(time.RFC3339),
+	)
+	if err != nil || st == nil {
+		logger.Errorf("Failed to record failed login for %s: %v", username, err)
+		return LoginAttemptResult{Locked: false, RemainingAttempts: MaxFailedAttempts}
+	}
+	middleware.InvalidateUserCache(st.ID)
 
+	if st.FailedLoginAttempt >= MaxFailedAttempts {
+		until := lockoutUntil
+		if st.LockedUntil != nil {
+			if t, perr := parseStoredTime(*st.LockedUntil); perr == nil {
+				until = t
+			}
+		}
 		logger.Warnf("User %s has been locked out due to too many failed login attempts", username)
-		middleware.InvalidateUserCache(user.ID)
-
-		return LoginAttemptResult{Locked: true, LockoutUntil: lockoutUntil, RemainingAttempts: 0}
+		return LoginAttemptResult{Locked: true, LockoutUntil: until, RemainingAttempts: 0}
 	}
 
-	repos.Users.RecordFailedLogin(user.ID, newAttempts, now.UTC().Format(time.RFC3339))
-
-	return LoginAttemptResult{Locked: false, RemainingAttempts: MaxFailedAttempts - newAttempts}
+	return LoginAttemptResult{Locked: false, RemainingAttempts: MaxFailedAttempts - st.FailedLoginAttempt}
 }
 
 // ResetFailedLoginAttempts 登录成功后重置失败计数（等价 resetFailedLoginAttempts）

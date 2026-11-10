@@ -4,6 +4,7 @@ package copilot
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"regexp"
 	"sort"
@@ -91,33 +92,317 @@ func isDatabaseQuery(rawQuery string) (bool, string, string) {
 	return false, "", ""
 }
 
+// maxReadOnlyRows 单次只读查询允许返回的最大行数（超出强制截断）
+const maxReadOnlyRows = 200
+
+// forbiddenSQLTables 含凭据/密钥/连接配置的敏感表，禁止通过 AI 只读查询访问
+var forbiddenSQLTables = map[string]bool{
+	"users":                   true,
+	"ai_models":               true,
+	"snmp_credentials":        true,
+	"credentials":             true,
+	"ssh_keys":                true,
+	"network_devices":         true,
+	"servers":                 true,
+	"databases":               true,
+	"database_connections":    true,
+	"db_connections":          true,
+	"influxdb_write_settings": true,
+}
+
+// readOnlyPragmas 允许执行的只读 PRAGMA 名称
+var readOnlyPragmas = map[string]bool{
+	"table_info": true, "table_xinfo": true, "index_list": true, "index_info": true, "index_xinfo": true,
+	"foreign_key_list": true, "database_list": true, "compile_options": true, "encoding": true,
+	"page_count": true, "page_size": true, "schema_version": true, "user_version": true,
+	"freelist_count": true, "journal_mode": true, "integrity_check": true, "quick_check": true,
+	"collation_list": true, "function_list": true, "module_list": true, "pragma_list": true,
+}
+
+// pragmasRequiringTableArg 需要表名参数且不会写入的 PRAGMA
+var pragmasRequiringTableArg = map[string]bool{
+	"table_info": true, "table_xinfo": true, "index_list": true,
+	"index_info": true, "index_xinfo": true, "foreign_key_list": true,
+}
+
+// forbiddenSQLWords 写入/破坏/外联类 SQL 关键字
+var forbiddenSQLWords = []string{
+	"insert ", "update ", "delete ", "drop ", "alter ", "create ", "truncate ",
+	"replace ", "grant ", "revoke ", "execute ", "exec ", "attach ", "detach ",
+	"into ", "load_extension", "outfile", "dumpfile",
+}
+
+// reSQLTableRef 提取 FROM / JOIN 后引用的表名（含反引号、双引号、方括号与 schema 前缀）
+var reSQLTableRef = regexp.MustCompile("(?i)\\b(?:from|join)\\s+([`\"\\[\\]\\w.]+)")
+
+// isSQLWordChar 判断是否为 SQL 标识符字符
+func isSQLWordChar(b byte) bool {
+	return b == '_' || (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9')
+}
+
+// referencedTables 解析 SQL 中引用的物理表名（去重、小写、去 schema 前缀）
+func referencedTables(sqlQuery string) []string {
+	matches := reSQLTableRef.FindAllStringSubmatch(sqlQuery, -1)
+	seen := map[string]bool{}
+	var tables []string
+	for _, m := range matches {
+		name := strings.Trim(strings.TrimSpace(m[1]), "`\"[]")
+		if idx := strings.LastIndex(name, "."); idx != -1 {
+			name = strings.Trim(name[idx+1:], "`\"[]")
+		}
+		name = strings.ToLower(name)
+		if name == "" || seen[name] {
+			continue
+		}
+		seen[name] = true
+		tables = append(tables, name)
+	}
+	return tables
+}
+
+// isSensitiveColumnName 判断列名是否为凭据/密钥类敏感字段
+func isSensitiveColumnName(name string) bool {
+	n := strings.ToLower(strings.TrimSpace(name))
+	if n == "" {
+		return false
+	}
+	for _, marker := range []string{
+		"password", "passwd", "secret", "token", "api_key", "apikey",
+		"community", "auth_key", "priv_key", "private_key", "credential",
+	} {
+		if strings.Contains(n, marker) {
+			return true
+		}
+	}
+	return false
+}
+
 // validateReadOnlySQL 严格只读 SQL 安全审查
 func validateReadOnlySQL(sqlQuery string) (bool, string) {
 	trimmed := strings.TrimSpace(sqlQuery)
-	lower := strings.ToLower(trimmed)
+	if trimmed == "" {
+		return false, "SQL 语句不能为空"
+	}
 
-	// 必须以 SELECT / PRAGMA / EXPLAIN 开头
-	if !strings.HasPrefix(lower, "select") && !strings.HasPrefix(lower, "pragma") && !strings.HasPrefix(lower, "explain") {
-		return false, "仅允许执行只读 SELECT 查询，严禁执行非读操作语句！"
+	// 仅允许单个结尾分号，其余分号一律拒绝
+	if strings.HasSuffix(trimmed, ";") {
+		trimmed = strings.TrimSpace(strings.TrimSuffix(trimmed, ";"))
+	}
+	if strings.Contains(trimmed, ";") {
+		return false, "安全审计拦截：严禁使用分号拼接执行复合 SQL 语句！"
+	}
+
+	// 拒绝注释（可用于隐藏语句或截断审查）
+	if strings.Contains(trimmed, "--") || strings.Contains(trimmed, "/*") || strings.Contains(trimmed, "*/") {
+		return false, "安全审计拦截：严禁在只读查询中使用 SQL 注释（-- 或 /* */）"
+	}
+
+	lower := strings.ToLower(trimmed)
+	isSelect := strings.HasPrefix(lower, "select") && (len(lower) == 6 || !isSQLWordChar(lower[6]))
+	isPragma := strings.HasPrefix(lower, "pragma") && (len(lower) == 6 || !isSQLWordChar(lower[6]))
+	if !isSelect && !isPragma {
+		return false, "仅允许执行只读 SELECT 或只读 PRAGMA 查询，严禁执行非读操作语句！"
+	}
+
+	if isPragma {
+		if strings.Contains(trimmed, "=") {
+			return false, "安全审计拦截：严禁执行会修改配置的 PRAGMA 写入语句（含 = 赋值）"
+		}
+		rest := strings.TrimSpace(lower[6:])
+		namePart := rest
+		if idx := strings.IndexAny(namePart, " (.;\t\n"); idx != -1 {
+			namePart = namePart[:idx]
+		}
+		if idx := strings.LastIndex(namePart, "."); idx != -1 {
+			namePart = namePart[idx+1:]
+		}
+		if !readOnlyPragmas[namePart] {
+			return false, fmt.Sprintf("安全审计拦截：PRAGMA [%s] 不是允许的只读查询", namePart)
+		}
+		if strings.Contains(rest, "(") && !pragmasRequiringTableArg[namePart] {
+			return false, fmt.Sprintf("安全审计拦截：PRAGMA [%s] 带参数调用可能修改运行配置，禁止执行", namePart)
+		}
 	}
 
 	// 拦截破坏性及写入性 SQL 关键字
-	forbiddenWords := []string{
-		"insert ", "update ", "delete ", "drop ", "alter ", "create ", "truncate ",
-		"replace ", "grant ", "revoke ", "execute ", "exec ", "attach ", "detach ",
-	}
-	for _, word := range forbiddenWords {
+	for _, word := range forbiddenSQLWords {
 		if strings.Contains(lower, word) {
 			return false, fmt.Sprintf("安全审计拦截：检测到高危写入/破坏性指令 [%s]。NetMon 遵循只读最小权限原则，严禁变更数据！", strings.TrimSpace(word))
 		}
 	}
 
-	// 拦截分号多语句拼接执行
-	if strings.Count(trimmed, ";") > 1 || (strings.Contains(trimmed, ";") && !strings.HasSuffix(strings.TrimSpace(trimmed), ";")) {
-		return false, "安全审计拦截：严禁使用分号拼接执行复合 SQL 语句！"
+	// 拦截凭据/敏感配置表
+	for _, table := range referencedTables(trimmed) {
+		if forbiddenSQLTables[table] {
+			return false, fmt.Sprintf("安全审计拦截：表 [%s] 属于凭据/敏感配置表，禁止通过 AI 查询！", table)
+		}
 	}
 
 	return true, ""
+}
+
+// physicalSensitiveColumns 通过 PRAGMA table_info / information_schema 读取表的物理列，
+// 返回其中属于凭据/密钥类的物理列名集合（小写）。
+func physicalSensitiveColumns(ctx context.Context, db *sql.DB, table string) map[string]bool {
+	sensitive := map[string]bool{}
+	quoted := "`" + strings.ReplaceAll(table, "`", "") + "`"
+	mysqlMode := appdb.IsMySQLMode()
+
+	var (
+		rows *sql.Rows
+		err  error
+	)
+	if mysqlMode {
+		rows, err = db.QueryContext(ctx,
+			`SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?`, table)
+	} else {
+		rows, err = db.QueryContext(ctx, "PRAGMA table_info("+quoted+")")
+	}
+	if err != nil {
+		return sensitive
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var name string
+		if mysqlMode {
+			if err := rows.Scan(&name); err != nil {
+				continue
+			}
+		} else {
+			var (
+				cid       int
+				colType   string
+				notNull   int
+				dfltValue interface{}
+				pk        int
+			)
+			if err := rows.Scan(&cid, &name, &colType, &notNull, &dfltValue, &pk); err != nil {
+				continue
+			}
+		}
+		if isSensitiveColumnName(name) {
+			sensitive[strings.ToLower(name)] = true
+		}
+	}
+	return sensitive
+}
+
+// findTopLevelFrom 返回 SELECT 列表结束处（顶层 FROM 关键字）的位置，找不到返回 -1
+func findTopLevelFrom(sqlQuery string) int {
+	depth := 0
+	var quote byte
+	for i := range len(sqlQuery) {
+		ch := sqlQuery[i]
+		if quote != 0 {
+			if ch == quote {
+				quote = 0
+			}
+			continue
+		}
+		switch ch {
+		case '\'', '"', '`':
+			quote = ch
+		case '(':
+			depth++
+		case ')':
+			if depth > 0 {
+				depth--
+			}
+		default:
+			if depth == 0 && (ch == 'f' || ch == 'F') && i+4 <= len(sqlQuery) && strings.EqualFold(sqlQuery[i:i+4], "from") {
+				beforeOK := i == 0 || !isSQLWordChar(sqlQuery[i-1])
+				afterOK := i+4 >= len(sqlQuery) || !isSQLWordChar(sqlQuery[i+4])
+				if beforeOK && afterOK {
+					return i
+				}
+			}
+		}
+	}
+	return -1
+}
+
+// splitTopLevelCommas 按顶层逗号切分 SELECT 列表
+func splitTopLevelCommas(list string) []string {
+	var (
+		parts []string
+		start int
+		depth int
+		quote byte
+	)
+	for i := range len(list) {
+		ch := list[i]
+		if quote != 0 {
+			if ch == quote {
+				quote = 0
+			}
+			continue
+		}
+		switch ch {
+		case '\'', '"', '`':
+			quote = ch
+		case '(':
+			depth++
+		case ')':
+			if depth > 0 {
+				depth--
+			}
+		case ',':
+			if depth == 0 {
+				parts = append(parts, list[start:i])
+				start = i + 1
+			}
+		}
+	}
+	parts = append(parts, list[start:])
+	return parts
+}
+
+// reSelectAlias 匹配 SELECT 表达式与其别名（AS 别名或尾随别名）
+var reSelectAlias = regexp.MustCompile(`(?i)^(.+?)\s+(?:as\s+)?([A-Za-z_][A-Za-z0-9_]*)$`)
+
+// exprReferencesAny 判断表达式是否引用了给定列名集合中的任一物理列
+func exprReferencesAny(expr string, names map[string]bool) bool {
+	tokens := strings.FieldsFunc(strings.ToLower(expr), func(r rune) bool {
+		return !(r == '_' || (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9'))
+	})
+	for _, tok := range tokens {
+		if names[tok] {
+			return true
+		}
+	}
+	return false
+}
+
+// sensitiveSelectAliases 解析 SELECT 列表，将被别名的敏感物理列/敏感表达式映射为结果列名，
+// 使“api_key AS k”“substr(password,1,3) AS p”等别名无法绕过掩码。
+func sensitiveSelectAliases(sqlQuery string, sensitivePhysical map[string]bool) map[string]bool {
+	aliases := map[string]bool{}
+	lower := strings.ToLower(sqlQuery)
+	selIdx := strings.Index(lower, "select")
+	if selIdx == -1 {
+		return aliases
+	}
+	rest := sqlQuery[selIdx+len("select"):]
+	if fromIdx := findTopLevelFrom(rest); fromIdx != -1 {
+		rest = rest[:fromIdx]
+	}
+	for _, item := range splitTopLevelCommas(rest) {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		m := reSelectAlias.FindStringSubmatch(item)
+		if m == nil {
+			continue
+		}
+		expr := strings.TrimSpace(m[1])
+		alias := strings.ToLower(m[2])
+		if isSensitiveColumnName(alias) || isSensitiveColumnName(expr) || exprReferencesAny(expr, sensitivePhysical) {
+			aliases[alias] = true
+		}
+	}
+	return aliases
 }
 
 // ExecuteDatabaseQuery 执行数据库安全查询并生成 Markdown 表格呈现
@@ -136,18 +421,34 @@ func ExecuteDatabaseQuery(ctx context.Context, sqlStatement, queryType string) s
 		return GenerateSecurityBlockNotice(sqlStatement, blockReason)
 	}
 
-	// 2. 自动补充安全 LIMIT 保护（防止单次拉取海量数据爆内存）
-	finalSQL := strings.TrimRight(strings.TrimSpace(sqlStatement), ";")
-	lower := strings.ToLower(finalSQL)
-	if !strings.Contains(lower, "limit ") {
-		finalSQL += " LIMIT 20"
+	finalSQL := strings.TrimSpace(sqlStatement)
+	if strings.HasSuffix(finalSQL, ";") {
+		finalSQL = strings.TrimSpace(strings.TrimSuffix(finalSQL, ";"))
 	}
 
-	// 3. 执行查询
 	db := appdb.DB()
+	if db == nil {
+		return "### ❌ 数据库查询失败\n\n> 数据库未初始化，无法执行只读查询。"
+	}
+
+	// 2. 物理列级凭据防护：被引用表若含凭据/密钥字段，整表拒绝查询
+	tables := referencedTables(finalSQL)
+	physicalSensitive := map[string]bool{}
+	for _, table := range tables {
+		for col := range physicalSensitiveColumns(ctx, db, table) {
+			physicalSensitive[col] = true
+		}
+		if len(physicalSensitive) > 0 {
+			reason := fmt.Sprintf("安全审计拦截：表 [%s] 含凭据/密钥字段，禁止通过 AI 查询（请前往对应的设备/凭据管理页面查看）", table)
+			logger.Warnf("%s (SQL: %s)", reason, finalSQL)
+			return GenerateSecurityBlockNotice(finalSQL, reason)
+		}
+	}
+
+	// 3. 执行查询（行数由代码强制截断到 maxReadOnlyRows，不依赖追加 LIMIT）
 	rows, err := db.QueryContext(ctx, finalSQL)
 	if err != nil {
-		return fmt.Sprintf("### ❌ 数据库查询失败\n\n> **执行 SQL**：`%s`\n\n**错误详情**：\n```\n%v\n```\n\n请核对表名与列名是否正确。您可发送「**查一下数据库里有哪些表**」查看有效表名。", finalSQL, err)
+		return fmt.Sprintf("### ❌ 数据库查询失败\n\n> **执行 SQL**：`%s`\n\n**错误详情**：\n```\n%v\n```\n\n请核对表名与列名是否正确。您可发送「**查一下数据库里有哪些表**」查看有效表名。", strings.ReplaceAll(finalSQL, "`", "'"), err)
 	}
 	defer rows.Close()
 
@@ -156,9 +457,24 @@ func ExecuteDatabaseQuery(ctx context.Context, sqlStatement, queryType string) s
 		return fmt.Sprintf("❌ 解析数据列名失败: %v", err)
 	}
 
-	// 4. 动态读取所有结果行
+	// 4. 按物理列名确定掩码列：别名无法绕过
+	aliasSensitive := sensitiveSelectAliases(finalSQL, physicalSensitive)
+	maskCols := make([]bool, len(cols))
+	for i, col := range cols {
+		name := strings.ToLower(strings.TrimSpace(col))
+		maskCols[i] = isSensitiveColumnName(name) || aliasSensitive[name] || physicalSensitive[name]
+	}
+
+	// 5. 动态读取结果行，强制行数上限与扫描错误统计
 	var resultRows [][]string
+	scanErrors := 0
+	truncated := false
 	for rows.Next() {
+		if len(resultRows) >= maxReadOnlyRows {
+			truncated = true
+			break
+		}
+
 		colVals := make([]interface{}, len(cols))
 		colValPtrs := make([]interface{}, len(cols))
 		for i := range colVals {
@@ -166,23 +482,16 @@ func ExecuteDatabaseQuery(ctx context.Context, sqlStatement, queryType string) s
 		}
 
 		if err := rows.Scan(colValPtrs...); err != nil {
+			scanErrors++
 			continue
 		}
 
 		rowStr := make([]string, len(cols))
 		for i, val := range colVals {
-			colNameLower := strings.ToLower(cols[i])
-			// 敏感凭据脱敏处理
-			if strings.Contains(colNameLower, "password") ||
-				strings.Contains(colNameLower, "auth_key") ||
-				strings.Contains(colNameLower, "priv_key") ||
-				strings.Contains(colNameLower, "secret") ||
-				strings.Contains(colNameLower, "token") ||
-				strings.Contains(colNameLower, "private_key") {
+			if maskCols[i] {
 				rowStr[i] = "******"
 				continue
 			}
-
 			if val == nil {
 				rowStr[i] = "*NULL*"
 			} else {
@@ -196,20 +505,36 @@ func ExecuteDatabaseQuery(ctx context.Context, sqlStatement, queryType string) s
 		}
 		resultRows = append(resultRows, rowStr)
 	}
+	queryErr := rows.Err()
 
 	durationMs := time.Since(start).Milliseconds()
 
-	// 5. 渲染 Markdown 数据表格
+	// 6. 渲染 Markdown 数据表格
 	var sb strings.Builder
 	sb.WriteString("### 🗄️ NetMon 数据库安全只读查询结果\n\n")
-	sb.WriteString("> **只读控制策略**：`SELECT 访问已放行` | `密码/密钥/凭证: 已自动掩码脱敏 (Masked)`\n\n")
+	sb.WriteString("> **只读控制策略**：`SELECT 访问已放行` | `密码/密钥/凭证: 已按物理列名自动掩码脱敏 (Masked)`\n\n")
+
+	dataSource := "app.db (SQLite 核心运维库)"
+	if appdb.IsMySQLMode() {
+		dataSource = "MySQL 核心运维库"
+	}
 
 	sb.WriteString("| 查询指标 | 运行参数 |\n")
 	sb.WriteString("| :--- | :--- |\n")
-	sb.WriteString(fmt.Sprintf("| **执行 SQL** | `%s` |\n", finalSQL))
-	sb.WriteString(fmt.Sprintf("| **数据源** | `app.db (SQLite 核心运维库)` |\n"))
+	sb.WriteString(fmt.Sprintf("| **执行 SQL** | `%s` |\n", strings.ReplaceAll(finalSQL, "`", "'")))
+	sb.WriteString(fmt.Sprintf("| **数据源** | `%s` |\n", dataSource))
 	sb.WriteString(fmt.Sprintf("| **查询耗时** | `%d ms` |\n", durationMs))
-	sb.WriteString(fmt.Sprintf("| **命中数据行数** | `%d 条` |\n\n", len(resultRows)))
+	sb.WriteString(fmt.Sprintf("| **命中数据行数** | `%d 条` |\n", len(resultRows)))
+	if truncated {
+		sb.WriteString(fmt.Sprintf("| **结果截断** | `结果超过 %d 行，已强制截断` |\n", maxReadOnlyRows))
+	}
+	if scanErrors > 0 {
+		sb.WriteString(fmt.Sprintf("| **解析异常** | `%d 行数据解析失败，已跳过` |\n", scanErrors))
+	}
+	if queryErr != nil {
+		sb.WriteString(fmt.Sprintf("| **读取异常** | `%s` |\n", sanitizeTableText(queryErr.Error())))
+	}
+	sb.WriteString("\n")
 
 	if len(resultRows) == 0 {
 		sb.WriteString("ℹ️ *查询执行成功，但当前数据表中未检索到符合条件的记录。*\n\n")
@@ -219,7 +544,7 @@ func ExecuteDatabaseQuery(ctx context.Context, sqlStatement, queryType string) s
 		// 表头
 		sb.WriteString("| 序号 | ")
 		for _, col := range cols {
-			sb.WriteString(col + " | ")
+			sb.WriteString(sanitizeTableText(col) + " | ")
 		}
 		sb.WriteString("\n")
 
@@ -239,6 +564,10 @@ func ExecuteDatabaseQuery(ctx context.Context, sqlStatement, queryType string) s
 			sb.WriteString("\n")
 		}
 		sb.WriteString("\n")
+	}
+
+	if queryErr != nil {
+		sb.WriteString(fmt.Sprintf("> ⚠️ **读取异常**：结果集读取过程中断：`%v`。以上为已读取到的部分数据。\n\n", queryErr))
 	}
 
 	sb.WriteString("---\n\n")
@@ -317,6 +646,9 @@ func executeTablesListQuery() string {
 				desc:     desc,
 			})
 		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Sprintf("❌ 读取数据库表清单失败: %v", err)
 	}
 
 	durationMs := time.Since(start).Milliseconds()

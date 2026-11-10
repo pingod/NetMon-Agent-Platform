@@ -165,7 +165,7 @@ func executePing(ip string, timeout time.Duration) (bool, int) {
 func executeTCPProbe(ip string, timeout time.Duration) (bool, int) {
 	commonPorts := []int{80, 443, 22, 8080, 3389, 23, 161, 445, 8443}
 	for _, port := range commonPorts {
-		target := fmt.Sprintf("%s:%d", ip, port)
+		target := net.JoinHostPort(ip, strconv.Itoa(port))
 		start := time.Now()
 		conn, err := net.DialTimeout("tcp", target, timeout)
 		if err == nil {

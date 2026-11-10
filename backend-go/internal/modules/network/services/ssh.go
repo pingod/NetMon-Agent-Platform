@@ -10,12 +10,25 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/ssh"
 
 	"itops-backend/internal/logger"
 )
+
+// lockedWriter 互斥包装的 bytes.Buffer，避免 SSH 会话 goroutine 与读取方并发访问缓冲区
+type lockedWriter struct {
+	mu  *sync.Mutex
+	buf *bytes.Buffer
+}
+
+func (w *lockedWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.buf.Write(p)
+}
 
 // ───────────────────────────────────────────────
 // SSH 算法配置（兼容旧设备）
@@ -49,12 +62,12 @@ var sshCiphers = []string{
 	"aes128-cbc",
 	"aes192-cbc",
 	"aes256-cbc",
-	"3des-cbc",       // 极旧 Cisco / 旧 H3C
-	"arcfour128",     // 旧设备流密码
+	"3des-cbc",   // 极旧 Cisco / 旧 H3C
+	"arcfour128", // 旧设备流密码
 	"arcfour256",
-	"arcfour",        // 极旧设备
-	"blowfish-cbc",   // 部分旧 Juniper / Foundry / 旧 Linux sshd
-	"cast128-cbc",    // 部分旧设备
+	"arcfour",      // 极旧设备
+	"blowfish-cbc", // 部分旧 Juniper / Foundry / 旧 Linux sshd
+	"cast128-cbc",  // 部分旧设备
 }
 
 // sshMACs HMAC 算法（含 SHA1/MD5 旧设备兼容）
@@ -218,15 +231,15 @@ func SSHDialTimeout(device SSHDeviceConfig, timeout time.Duration) (*SSHClient, 
 	}
 
 	config := &ssh.ClientConfig{
-		User:            device.Username,
-		Auth:            authMethods,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		User:              device.Username,
+		Auth:              authMethods,
+		HostKeyCallback:   ssh.InsecureIgnoreHostKey(),
 		HostKeyAlgorithms: sshHostKeyAlgorithms,
 		Timeout:           timeout,
 		Config: ssh.Config{
-			Ciphers:       sshCiphers,
-			KeyExchanges:  sshKexAlgorithms,
-			MACs:          sshMACs,
+			Ciphers:      sshCiphers,
+			KeyExchanges: sshKexAlgorithms,
+			MACs:         sshMACs,
 		},
 	}
 
@@ -267,11 +280,12 @@ func (c *SSHClient) ExecCommand(cmd string, timeout time.Duration) (stdout, stde
 	if err != nil {
 		return "", "", fmt.Errorf("create session: %w", err)
 	}
-	defer session.Close()
 
 	var stdoutBuf, stderrBuf bytes.Buffer
-	session.Stdout = &stdoutBuf
-	session.Stderr = &stderrBuf
+	// 缓冲区的写入发生在 Run goroutine 内，必须等 goroutine 结束后才能读取
+	var bufMu sync.Mutex
+	session.Stdout = &lockedWriter{mu: &bufMu, buf: &stdoutBuf}
+	session.Stderr = &lockedWriter{mu: &bufMu, buf: &stderrBuf}
 
 	done := make(chan error, 1)
 	go func() {
@@ -279,9 +293,17 @@ func (c *SSHClient) ExecCommand(cmd string, timeout time.Duration) (stdout, stde
 	}()
 
 	select {
-	case err := <-done:
-		return stdoutBuf.String(), stderrBuf.String(), err
+	case runErr := <-done:
+		session.Close()
+		bufMu.Lock()
+		defer bufMu.Unlock()
+		return stdoutBuf.String(), stderrBuf.String(), runErr
 	case <-time.After(timeout):
+		// 超时：先关闭 session 让 Run 返回，再等待 goroutine 结束，最后读取缓冲区
+		session.Close()
+		<-done
+		bufMu.Lock()
+		defer bufMu.Unlock()
 		return stdoutBuf.String(), stderrBuf.String(), fmt.Errorf("command timeout after %s", timeout)
 	}
 }
@@ -373,16 +395,26 @@ func (c *SSHClient) RunShellCommandsWithTimeout(device SSHDeviceConfig, commands
 	}
 	chunkCh := make(chan chunkMsg, 100)
 	stdoutErrCh := make(chan error, 1)
+	// consumerDone 在函数返回（分页超限/会话超时等）时关闭，通知生产 goroutine 退出，避免泄漏
+	consumerDone := make(chan struct{})
+	defer close(consumerDone)
 
 	go func() {
 		buf := make([]byte, 8192)
 		for {
 			n, err := stdout.Read(buf)
 			if n > 0 {
-				chunkCh <- chunkMsg{data: string(buf[:n])}
+				select {
+				case chunkCh <- chunkMsg{data: string(buf[:n])}:
+				case <-consumerDone:
+					return
+				}
 			}
 			if err != nil {
-				stdoutErrCh <- err
+				select {
+				case stdoutErrCh <- err:
+				default:
+				}
 				return
 			}
 		}
@@ -702,18 +734,18 @@ func getShellInitCommand(vendor string) string {
 func getShellInitCommands(vendor string) []string {
 	// 覆盖所有常见厂商的分页禁用命令，不依赖 vendor 标记准确性
 	return []string{
-		"screen-length 0 temporary",      // 华为
-		"screen-length disable",          // H3C
-		"terminal length 0",              // Cisco（执行模式）
-		"terminal pager 0",               // Cisco ASA
-		"set cli screen-length 0",        // Juniper JunOS
-		"set cli screen-width 1024",      // Juniper JunOS（宽度也设宽）
-		"config system console",          // FortiGate（进入 console 配置视图）
-		"set output standard",            // FortiGate（标准输出不分页）
-		"end",                            // FortiGate（退出配置视图）
-		"no paging",                      // 部分旧设备 / D-Link / TP-Link CLI
-		"terminal datadump",              // Arista / 部分 Cisco（彻底禁用分页+格式化）
-		"skip-page-display",              // 锐捷 RGOS
+		"screen-length 0 temporary", // 华为
+		"screen-length disable",     // H3C
+		"terminal length 0",         // Cisco（执行模式）
+		"terminal pager 0",          // Cisco ASA
+		"set cli screen-length 0",   // Juniper JunOS
+		"set cli screen-width 1024", // Juniper JunOS（宽度也设宽）
+		"config system console",     // FortiGate（进入 console 配置视图）
+		"set output standard",       // FortiGate（标准输出不分页）
+		"end",                       // FortiGate（退出配置视图）
+		"no paging",                 // 部分旧设备 / D-Link / TP-Link CLI
+		"terminal datadump",         // Arista / 部分 Cisco（彻底禁用分页+格式化）
+		"skip-page-display",         // 锐捷 RGOS
 	}
 }
 

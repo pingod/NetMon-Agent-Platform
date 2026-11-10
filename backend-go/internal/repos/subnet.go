@@ -315,7 +315,11 @@ func (r *NetworkIPRepo) BulkInsertAvailable(subnetID string, ips []string) error
 		return err
 	}
 	defer tx.Rollback()
-	stmt, err := tx.Prepare(`INSERT OR IGNORE INTO network_ips (id, subnet_id, ip_address, status) VALUES (?, ?, ?, 'available')`)
+	insertSQL := `INSERT OR IGNORE INTO network_ips (id, subnet_id, ip_address, status) VALUES (?, ?, ?, 'available')`
+	if appdb.IsMySQLMode() {
+		insertSQL = `INSERT IGNORE INTO network_ips (id, subnet_id, ip_address, status) VALUES (?, ?, ?, 'available')`
+	}
+	stmt, err := tx.Prepare(insertSQL)
 	if err != nil {
 		return err
 	}

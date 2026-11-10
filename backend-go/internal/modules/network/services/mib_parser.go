@@ -304,28 +304,57 @@ func parseAndSaveExcel(filename string, content []byte, resp *UploadResponseData
 	return nil
 }
 
+// ZIP 解压安全上限，防止 ZIP 炸弹耗尽内存/磁盘
+const (
+	maxZipEntries    = 2000
+	maxZipEntryBytes = 20 * 1024 * 1024  // 单文件 20MB
+	maxZipTotalBytes = 200 * 1024 * 1024 // 总量 200MB
+)
+
 // parseAndSaveZip 解析 ZIP 压缩包中的 MIB 与 Excel
 func parseAndSaveZip(filename string, content []byte, resp *UploadResponseData) error {
 	r, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
 	if err != nil {
 		return fmt.Errorf("无法读取 ZIP 压缩包: %w", err)
 	}
+	if len(r.File) > maxZipEntries {
+		return fmt.Errorf("ZIP 包内文件数超过上限 (%d > %d)", len(r.File), maxZipEntries)
+	}
 
 	successCount := 0
+	var totalBytes int64
 
 	for _, f := range r.File {
 		if f.FileInfo().IsDir() {
 			continue
 		}
+		if f.UncompressedSize64 > maxZipEntryBytes {
+			resp.Errors = append(resp.Errors, fmt.Sprintf("%s: 单文件解压后超过 %dMB，已跳过", f.Name, maxZipEntryBytes/(1024*1024)))
+			continue
+		}
+		if totalBytes+int64(f.UncompressedSize64) > maxZipTotalBytes {
+			return fmt.Errorf("ZIP 包解压总量超过上限 %dMB，已中止", maxZipTotalBytes/(1024*1024))
+		}
 		rc, err := f.Open()
 		if err != nil {
 			continue
 		}
-		fContent, err := io.ReadAll(rc)
+		// 即使头部声明的尺寸被伪造，也用 LimitReader 限制实际读取量
+		remaining := maxZipTotalBytes - totalBytes
+		limit := int64(maxZipEntryBytes)
+		if remaining < limit {
+			limit = remaining
+		}
+		fContent, err := io.ReadAll(io.LimitReader(rc, limit+1))
 		rc.Close()
 		if err != nil {
 			continue
 		}
+		if int64(len(fContent)) > limit {
+			resp.Errors = append(resp.Errors, fmt.Sprintf("%s: 解压数据超过允许大小，已跳过", f.Name))
+			continue
+		}
+		totalBytes += int64(len(fContent))
 
 		subExt := strings.ToLower(filepath.Ext(f.Name))
 		subName := filepath.Base(f.Name)

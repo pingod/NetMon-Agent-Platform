@@ -1,6 +1,7 @@
 // 数据中心（DC）模块路由 — 等价于前端 modules/dc/api.ts
 // 覆盖：机房 / 机柜 / 机位 / PDU / 概览 / 设备分布 / 生命周期 / 导出导入 /
-//       制造商 / 设备型号 / 配电柜 / 供电线路 / 线缆
+//
+//	制造商 / 设备型号 / 配电柜 / 供电线路 / 线缆
 package dcroutes
 
 import (
@@ -9,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"itops-backend/internal/httpx"
+	"itops-backend/internal/middleware"
 )
 
 // Routes DC 模块路由入口
@@ -21,81 +23,81 @@ func Routes() chi.Router {
 	r.Get("/devices/unallocated", handleUnallocated)
 	r.Get("/lifecycle", handleLifecycleList)
 	r.Get("/export", handleExport)
-	r.Post("/import", handleImport)
+	r.With(middleware.RequireRole("admin", "operator")).Post("/import", handleImport)
 
 	// ── 机房 ──
 	r.Route("/rooms", func(r chi.Router) {
 		r.Get("/", handleRoomList)
-		r.Post("/", handleRoomCreate)
+		r.With(middleware.RequireRole("admin", "operator")).Post("/", handleRoomCreate)
 		r.Get("/{id}", handleRoomGet)
-		r.Put("/{id}", handleRoomUpdate)
-		r.Delete("/{id}", handleRoomDelete)
+		r.With(middleware.RequireRole("admin", "operator")).Put("/{id}", handleRoomUpdate)
+		r.With(middleware.RequireRole("admin", "operator")).Delete("/{id}", handleRoomDelete)
 	})
 
 	// ── 机柜 ──
 	r.Route("/racks", func(r chi.Router) {
 		r.Get("/", handleRackList)
-		r.Post("/", handleRackCreate)
+		r.With(middleware.RequireRole("admin", "operator")).Post("/", handleRackCreate)
 		r.Get("/{id}", handleRackGet)
-		r.Put("/{id}", handleRackUpdate)
-		r.Delete("/{id}", handleRackDelete)
+		r.With(middleware.RequireRole("admin", "operator")).Put("/{id}", handleRackUpdate)
+		r.With(middleware.RequireRole("admin", "operator")).Delete("/{id}", handleRackDelete)
 	})
 
 	// ── 机位 ──
 	r.Route("/slots", func(r chi.Router) {
-		r.Post("/", handleSlotCreate)
-		r.Put("/{id}", handleSlotUpdate)
-		r.Delete("/{id}", handleSlotDelete)
+		r.With(middleware.RequireRole("admin", "operator")).Post("/", handleSlotCreate)
+		r.With(middleware.RequireRole("admin", "operator")).Put("/{id}", handleSlotUpdate)
+		r.With(middleware.RequireRole("admin", "operator")).Delete("/{id}", handleSlotDelete)
 	})
 	r.Get("/slots/{rackId}", handleSlotListByRack)
 
 	// ── PDU ──
 	r.Route("/pdus", func(r chi.Router) {
 		r.Get("/", handlePduList)
-		r.Post("/", handlePduCreate)
+		r.With(middleware.RequireRole("admin", "operator")).Post("/", handlePduCreate)
 		r.Get("/{id}", handlePduGet)
-		r.Put("/{id}", handlePduUpdate)
-		r.Delete("/{id}", handlePduDelete)
+		r.With(middleware.RequireRole("admin", "operator")).Put("/{id}", handlePduUpdate)
+		r.With(middleware.RequireRole("admin", "operator")).Delete("/{id}", handlePduDelete)
 	})
 
 	// ── 制造商 ──
 	r.Route("/manufacturers", func(r chi.Router) {
 		r.Get("/", handleManufacturerList)
-		r.Post("/", handleManufacturerCreate)
-		r.Put("/{id}", handleManufacturerUpdate)
-		r.Delete("/{id}", handleManufacturerDelete)
+		r.With(middleware.RequireRole("admin", "operator")).Post("/", handleManufacturerCreate)
+		r.With(middleware.RequireRole("admin", "operator")).Put("/{id}", handleManufacturerUpdate)
+		r.With(middleware.RequireRole("admin", "operator")).Delete("/{id}", handleManufacturerDelete)
 	})
 
 	// ── 设备型号 ──
 	r.Route("/device-types", func(r chi.Router) {
 		r.Get("/", handleDeviceTypeList)
-		r.Post("/", handleDeviceTypeCreate)
-		r.Put("/{id}", handleDeviceTypeUpdate)
-		r.Delete("/{id}", handleDeviceTypeDelete)
+		r.With(middleware.RequireRole("admin", "operator")).Post("/", handleDeviceTypeCreate)
+		r.With(middleware.RequireRole("admin", "operator")).Put("/{id}", handleDeviceTypeUpdate)
+		r.With(middleware.RequireRole("admin", "operator")).Delete("/{id}", handleDeviceTypeDelete)
 	})
 
 	// ── 配电柜 ──
 	r.Route("/power-panels", func(r chi.Router) {
 		r.Get("/", handlePowerPanelList)
-		r.Post("/", handlePowerPanelCreate)
-		r.Put("/{id}", handlePowerPanelUpdate)
-		r.Delete("/{id}", handlePowerPanelDelete)
+		r.With(middleware.RequireRole("admin", "operator")).Post("/", handlePowerPanelCreate)
+		r.With(middleware.RequireRole("admin", "operator")).Put("/{id}", handlePowerPanelUpdate)
+		r.With(middleware.RequireRole("admin", "operator")).Delete("/{id}", handlePowerPanelDelete)
 	})
 
 	// ── 供电线路 ──
 	r.Route("/power-feeds", func(r chi.Router) {
 		r.Get("/", handlePowerFeedList)
-		r.Post("/", handlePowerFeedCreate)
-		r.Put("/{id}", handlePowerFeedUpdate)
-		r.Delete("/{id}", handlePowerFeedDelete)
+		r.With(middleware.RequireRole("admin", "operator")).Post("/", handlePowerFeedCreate)
+		r.With(middleware.RequireRole("admin", "operator")).Put("/{id}", handlePowerFeedUpdate)
+		r.With(middleware.RequireRole("admin", "operator")).Delete("/{id}", handlePowerFeedDelete)
 	})
 
 	// ── 线缆 ──
 	r.Route("/cables", func(r chi.Router) {
 		r.Get("/", handleCableList)
-		r.Post("/", handleCableCreate)
-		r.Put("/{id}", handleCableUpdate)
-		r.Delete("/{id}", handleCableDelete)
+		r.With(middleware.RequireRole("admin", "operator")).Post("/", handleCableCreate)
+		r.With(middleware.RequireRole("admin", "operator")).Put("/{id}", handleCableUpdate)
+		r.With(middleware.RequireRole("admin", "operator")).Delete("/{id}", handleCableDelete)
 	})
 
 	return r

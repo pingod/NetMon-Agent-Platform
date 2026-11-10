@@ -5,6 +5,7 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -12,8 +13,8 @@ import (
 	"github.com/google/uuid"
 
 	"itops-backend/internal/logger"
-	"itops-backend/internal/repos"
 	"itops-backend/internal/modules/network/vendoradapter"
+	"itops-backend/internal/repos"
 )
 
 // ───────────────────────────────────────────────
@@ -210,16 +211,17 @@ type BackupProgress struct {
 
 // backupProgressMap 记录每个任务的实时进度
 var (
-	backupProgressMu sync.Mutex
+	backupProgressMu  sync.Mutex
 	backupProgressMap = make(map[string]*BackupProgress)
 )
 
-// GetBackupProgress 获取备份执行进度
+// GetBackupProgress 获取备份执行进度（返回副本，避免调用方读到并发修改中的结构体）
 func GetBackupProgress(taskID string) *BackupProgress {
 	backupProgressMu.Lock()
 	defer backupProgressMu.Unlock()
 	if p, ok := backupProgressMap[taskID]; ok {
-		return p
+		snapshot := *p
+		return &snapshot
 	}
 	return &BackupProgress{TaskID: taskID, IsRunning: false}
 }
@@ -711,16 +713,20 @@ func (s *ConfigBackupService) scheduleTask(task *repos.ConfigBackupTask) {
 		next := time.Date(now.Year(), now.Month()+1, 1, 3, 0, 0, 0, now.Location())
 		duration = next.Sub(now)
 	case "cron":
-		// cron 表达式暂用 24h 最小间隔
-		if task.ScheduleCron == nil || *task.ScheduleCron == "" {
-			logger.Warnf("定时备份任务 %s 是 cron 类型但没有 cron 表达式，跳过", task.ID)
+		if task.ScheduleCron == nil || strings.TrimSpace(*task.ScheduleCron) == "" {
+			logger.Warnf("定时备份任务 %s 是 cron 类型但没有 cron 表达式，跳过调度", task.ID)
 			return
 		}
-		duration = 24 * time.Hour // 简化：cron 类型暂用 24h 间隔
+		d, err := nextCronDuration(*task.ScheduleCron, time.Now())
+		if err != nil {
+			// 无法解析的表达式不能静默按 24h 执行，记录告警并跳过
+			logger.Warnf("定时备份任务 %s 的 cron 表达式 %q 无法解析: %v，跳过调度", task.ID, *task.ScheduleCron, err)
+			return
+		}
+		duration = d
 	default:
 		return
 	}
-
 	s.mu.Lock()
 	timer := time.AfterFunc(duration, func() {
 		logger.Infof("定时备份任务触发: %s (%s)", task.Name, task.ID)
@@ -748,6 +754,70 @@ func (s *ConfigBackupService) unscheduleTask(taskID string) {
 		timer.Stop()
 		delete(s.scheduledJobs, taskID)
 	}
+}
+
+// nextCronDuration 计算 cron 表达式距下一次执行的时间。
+// 支持 @every <duration>、@hourly/@daily/@weekly 以及 "*/N * * * *" / "M * * * *" 这类分钟级表达式；
+// 其它无法可靠解析的表达式返回错误，由调用方记录告警并跳过（不再默认 24h）。
+func nextCronDuration(expr string, now time.Time) (time.Duration, error) {
+	expr = strings.TrimSpace(expr)
+	if expr == "" {
+		return 0, fmt.Errorf("empty cron expression")
+	}
+
+	if strings.HasPrefix(expr, "@") {
+		switch {
+		case strings.HasPrefix(expr, "@every "):
+			d, err := time.ParseDuration(strings.TrimSpace(strings.TrimPrefix(expr, "@every ")))
+			if err != nil || d <= 0 {
+				return 0, fmt.Errorf("invalid @every duration: %q", expr)
+			}
+			return d, nil
+		case expr == "@hourly":
+			return now.Truncate(time.Hour).Add(time.Hour).Sub(now), nil
+		case expr == "@daily" || expr == "@midnight":
+			next := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, 1)
+			return next.Sub(now), nil
+		case expr == "@weekly":
+			daysUntilMonday := (1 - int(now.Weekday()) + 7) % 7
+			if daysUntilMonday == 0 {
+				daysUntilMonday = 7
+			}
+			next := time.Date(now.Year(), now.Month(), now.Day()+daysUntilMonday, 0, 0, 0, 0, now.Location())
+			return next.Sub(now), nil
+		default:
+			return 0, fmt.Errorf("unsupported cron macro: %q", expr)
+		}
+	}
+
+	fields := strings.Fields(expr)
+	if len(fields) != 5 {
+		return 0, fmt.Errorf("unsupported cron expression (expect 5 fields): %q", expr)
+	}
+	for _, f := range fields[1:] {
+		if f != "*" {
+			return 0, fmt.Errorf("unsupported cron expression (only minute-level supported): %q", expr)
+		}
+	}
+
+	minuteField := fields[0]
+	if strings.HasPrefix(minuteField, "*/") {
+		step, err := strconv.Atoi(strings.TrimPrefix(minuteField, "*/"))
+		if err != nil || step <= 0 || step > 60 {
+			return 0, fmt.Errorf("invalid minute step in cron expression: %q", expr)
+		}
+		next := now.Truncate(time.Minute).Add(time.Duration(step) * time.Minute)
+		return next.Sub(now), nil
+	}
+	fixedMin, err := strconv.Atoi(minuteField)
+	if err != nil || fixedMin < 0 || fixedMin > 59 {
+		return 0, fmt.Errorf("invalid minute field in cron expression: %q", expr)
+	}
+	next := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), fixedMin, 0, 0, now.Location())
+	if !next.After(now) {
+		next = next.Add(time.Hour)
+	}
+	return next.Sub(now), nil
 }
 
 // commandsToString 工具函数

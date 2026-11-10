@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-sql-driver/mysql"
 
 	"itops-backend/internal/crypto"
 	"itops-backend/internal/httpx"
@@ -14,6 +15,18 @@ import (
 	"itops-backend/internal/modules/database/services"
 	"itops-backend/internal/repos"
 )
+
+// maskMySQLDSN 用 mysql.ParseDSN 重新序列化并抹掉密码，避免明文回传
+func maskMySQLDSN(dsn string) string {
+	cfg, err := mysql.ParseDSN(dsn)
+	if err != nil {
+		return ""
+	}
+	if cfg.Passwd != "" {
+		cfg.Passwd = "***"
+	}
+	return cfg.FormatDSN()
+}
 
 // DatabaseModeRoutes 数据库模式管理路由
 func DatabaseModeRoutes() chi.Router {
@@ -41,6 +54,11 @@ func DatabaseModeRoutes() chi.Router {
 
 		dsn := req.DSN
 		if dsn == "" && req.DBConnectionID != "" {
+			// 从已保存连接解析出的 DSN 含明文口令，仅 admin 可获取
+			if u := middleware.GetUser(r); u == nil || u.Role != "admin" {
+				httpx.RespondFailStatus(w, http.StatusForbidden, "仅管理员可通过数据库连接 ID 生成含口令的配置")
+				return
+			}
 			resolved, err := resolveDSNFromConnectionID(req.DBConnectionID)
 			if err != nil {
 				httpx.RespondError(w, err.Error(), http.StatusBadRequest)
@@ -57,7 +75,7 @@ func DatabaseModeRoutes() chi.Router {
 		envContent := services.GenerateDotEnvConfig(dsn)
 		httpx.Respond(w, map[string]interface{}{
 			"env_content": envContent,
-			"dsn":         dsn,
+			"dsn":         maskMySQLDSN(dsn),
 		})
 	})
 

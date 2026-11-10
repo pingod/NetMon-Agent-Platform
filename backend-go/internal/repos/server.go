@@ -328,6 +328,91 @@ func (ServerRepo) GetCredentialFields(id string) (username string, password stri
 	return username, password, privateKey, useKey, nil
 }
 
+// GetVncConfig 返回服务器 VNC 连接信息（密码已解密，用于 VNC 代理端点）
+func (ServerRepo) GetVncConfig(id string) (hostname string, port int, password string, err error) {
+	db := appdb.DB()
+	if db == nil {
+		return "", 0, "", fmt.Errorf("database not initialized")
+	}
+	var pwd sql.NullString
+	err = db.QueryRow(`SELECT hostname, COALESCE(vnc_port, 5900), vnc_password FROM servers WHERE id = ?`, id).
+		Scan(&hostname, &port, &pwd)
+	if err == sql.ErrNoRows {
+		return "", 0, "", fmt.Errorf("server not found")
+	}
+	if err != nil {
+		return "", 0, "", err
+	}
+	if pwd.Valid && pwd.String != "" {
+		if strings.HasPrefix(pwd.String, "2:") {
+			dec, derr := crypto.Decrypt(pwd.String)
+			if derr != nil {
+				return "", 0, "", fmt.Errorf("VNC 密码解密失败（服务端加密密钥已变更），请重新保存 VNC 密码")
+			}
+			password = dec
+		} else {
+			password = pwd.String
+		}
+	}
+	return hostname, port, password, nil
+}
+
+// GetByAgentToken 通过 agent 上报令牌定位服务器（不含敏感字段）
+func (ServerRepo) GetByAgentToken(token string) (*Server, error) {
+	if token == "" {
+		return nil, nil
+	}
+	db := appdb.DB()
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+	s, err := scanServerRow(db.QueryRow(serverColumns+` WHERE s.agent_token = ?`, token))
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+// EnsureAgentToken 返回服务器 agent 上报令牌，不存在时生成并持久化
+func (ServerRepo) EnsureAgentToken(id string) (string, error) {
+	db := appdb.DB()
+	if db == nil {
+		return "", fmt.Errorf("database not initialized")
+	}
+	var existing sql.NullString
+	err := db.QueryRow(`SELECT agent_token FROM servers WHERE id = ?`, id).Scan(&existing)
+	if err == sql.ErrNoRows {
+		return "", fmt.Errorf("server not found")
+	}
+	if err != nil {
+		return "", err
+	}
+	if existing.Valid && existing.String != "" {
+		return existing.String, nil
+	}
+
+	token := uuid.NewString()
+	res, err := db.Exec(`UPDATE servers SET agent_token = ?, updated_at = ? WHERE id = ? AND (agent_token IS NULL OR agent_token = '')`,
+		token, nowLocal(), id)
+	if err != nil {
+		return "", err
+	}
+	if n, _ := res.RowsAffected(); n > 0 {
+		return token, nil
+	}
+	// 并发场景下其他请求已生成令牌，读取最终值
+	if err := db.QueryRow(`SELECT agent_token FROM servers WHERE id = ?`, id).Scan(&existing); err != nil {
+		return "", err
+	}
+	if existing.Valid && existing.String != "" {
+		return existing.String, nil
+	}
+	return "", fmt.Errorf("生成 agent 令牌失败")
+}
+
 // GetServerGroups 获取服务器所属分组
 func (ServerRepo) GetServerGroups(serverID string) ([]ServerGroupRef, error) {
 	db := appdb.DB()
@@ -363,12 +448,27 @@ func (ServerRepo) Create(req ServerCreateInput) (*Server, error) {
 	id := uuid.New().String()
 	now := nowLocal()
 
-	var pwd, priv interface{}
+	var pwd, priv, vncPwd interface{}
 	if req.Password != "" {
-		pwd = crypto.Encrypt(req.Password)
+		enc, err := crypto.Encrypt(req.Password)
+		if err != nil {
+			return nil, fmt.Errorf("加密 SSH 密码失败: %w", err)
+		}
+		pwd = enc
 	}
 	if req.PrivateKey != "" {
-		priv = crypto.Encrypt(req.PrivateKey)
+		enc, err := crypto.Encrypt(req.PrivateKey)
+		if err != nil {
+			return nil, fmt.Errorf("加密 SSH 私钥失败: %w", err)
+		}
+		priv = enc
+	}
+	if req.VncPassword != "" {
+		enc, err := crypto.Encrypt(req.VncPassword)
+		if err != nil {
+			return nil, fmt.Errorf("加密 VNC 密码失败: %w", err)
+		}
+		vncPwd = enc
 	}
 
 	tagsStr := strings.Join(req.Tags, ",")
@@ -384,7 +484,7 @@ func (ServerRepo) Create(req ServerCreateInput) (*Server, error) {
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		id, req.Name, req.Hostname, req.Port, req.Username, pwd, priv, boolToInt(req.UseSSHKey),
 		emptyToNull(req.Description), emptyToNull(tagsStr), 1, req.OSType,
-		req.VncPort, emptyToNull(req.VncPassword), emptyToNull(req.SSHKeyID),
+		req.VncPort, vncPwd, emptyToNull(req.SSHKeyID),
 		vendorStr, emptyToNull(req.Model), now, now)
 	if err != nil {
 		return nil, err
@@ -438,10 +538,18 @@ func (ServerRepo) Update(id string, req ServerUpdateInput) (*Server, error) {
 		current.Username = *req.Username
 	}
 	if req.Password != nil && *req.Password != "" {
-		pwd = sql.NullString{String: crypto.Encrypt(*req.Password), Valid: true}
+		enc, err := crypto.Encrypt(*req.Password)
+		if err != nil {
+			return nil, fmt.Errorf("加密 SSH 密码失败: %w", err)
+		}
+		pwd = sql.NullString{String: enc, Valid: true}
 	}
 	if req.PrivateKey != nil && *req.PrivateKey != "" {
-		priv = sql.NullString{String: crypto.Encrypt(*req.PrivateKey), Valid: true}
+		enc, err := crypto.Encrypt(*req.PrivateKey)
+		if err != nil {
+			return nil, fmt.Errorf("加密 SSH 私钥失败: %w", err)
+		}
+		priv = sql.NullString{String: enc, Valid: true}
 	}
 	if req.UseSSHKey != nil {
 		useKey = boolToInt(*req.UseSSHKey)
@@ -460,7 +568,15 @@ func (ServerRepo) Update(id string, req ServerUpdateInput) (*Server, error) {
 		vncPort = sql.NullInt64{Int64: int64(*req.VncPort), Valid: true}
 	}
 	if req.VncPassword != nil {
-		vncPwd = sql.NullString{String: *req.VncPassword, Valid: *req.VncPassword != ""}
+		if *req.VncPassword == "" {
+			vncPwd = sql.NullString{}
+		} else {
+			enc, err := crypto.Encrypt(*req.VncPassword)
+			if err != nil {
+				return nil, fmt.Errorf("加密 VNC 密码失败: %w", err)
+			}
+			vncPwd = sql.NullString{String: enc, Valid: true}
+		}
 	}
 	if req.SSHKeyID != nil {
 		sshKeyID = sql.NullString{String: *req.SSHKeyID, Valid: *req.SSHKeyID != ""}
@@ -670,7 +786,7 @@ func (ServerRepo) GetComplianceHistory(serverID string) ([]ComplianceCheck, erro
 
 // InsertMetric 保存服务器性能指标
 func (ServerRepo) InsertMetric(serverID string, metrics map[string]interface{}) error {
-	db := appdb.DB()
+	db := appdb.DBForTable("server_metrics")
 	id := uuid.New().String()
 	now := nowLocal()
 
@@ -742,11 +858,11 @@ type ServerUpdateInput struct {
 	Model            *string   `json:"model"`
 	IsVirtualMachine *int      `json:"is_virtual_machine"`
 	// 采集信息回填
-	OS               *string   `json:"os"`
-	CPUCores         *int      `json:"cpu_cores"`
-	MemoryGB         *float64  `json:"memory_gb"`
-	DiskGB           *float64  `json:"disk_gb"`
-	OSDetail         *string   `json:"os_detail"`
+	OS       *string  `json:"os"`
+	CPUCores *int     `json:"cpu_cores"`
+	MemoryGB *float64 `json:"memory_gb"`
+	DiskGB   *float64 `json:"disk_gb"`
+	OSDetail *string  `json:"os_detail"`
 }
 
 // nullToAny 将 sql.NullX 转为 SQL 参数

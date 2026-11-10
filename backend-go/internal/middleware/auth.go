@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -151,9 +152,30 @@ func StartUserCacheCleanup() {
 // Token 验证与认证中间件
 // ───────────────────────────────────────────────
 
+// claimInt64 将 JWT 数字 claim（float64/json.Number/string）转为 int64
+func claimInt64(v interface{}) (int64, bool) {
+	switch n := v.(type) {
+	case float64:
+		return int64(n), true
+	case int64:
+		return n, true
+	case int64Alias:
+		i, err := n.Int64()
+		return i, err == nil
+	case string:
+		i, err := strconv.ParseInt(n, 10, 64)
+		return i, err == nil
+	}
+	return 0, false
+}
+
+// int64Alias 兼容 encoding/json 的 Number 类型（避免直接依赖）
+type int64Alias interface{ Int64() (int64, error) }
+
 // VerifyToken 验证 token 并返回用户（等价 verifyToken）
+// 仅接受 type=access 的 token；refresh token、已吊销 token、修改密码前签发的 token 一律拒绝。
 func VerifyToken(token string) *AuthUser {
-	if token == "" || tokenblacklist.IsBlacklisted(token) {
+	if token == "" || config.Env == nil || tokenblacklist.IsBlacklisted(token) {
 		return nil
 	}
 
@@ -167,8 +189,19 @@ func VerifyToken(token string) *AuthUser {
 	if err != nil || !tk.Valid {
 		return nil
 	}
+	if typ, _ := claims["type"].(string); typ != "access" {
+		return nil
+	}
 	id, _ := claims["id"].(string)
 	if id == "" {
+		return nil
+	}
+	iat, ok := claimInt64(claims["iat"])
+	if !ok {
+		return nil
+	}
+	// 修改密码后签发时间早于 token_invalid_before 的 token 全部失效
+	if invalidBefore := repos.Users.GetTokenInvalidBefore(id); invalidBefore > 0 && iat < invalidBefore {
 		return nil
 	}
 
@@ -194,26 +227,47 @@ func VerifyToken(token string) *AuthUser {
 	return user
 }
 
+// devBypassEnabled 仅当显式开启 AUTH_DEV_BYPASS 且非生产环境时才允许认证旁路
+func devBypassEnabled() bool {
+	return config.Env != nil && config.Env.AuthDevBypass && !config.Env.IsProduction()
+}
+
 // Authenticate JWT 认证中间件（等价 authenticateToken）
+// token 缺失/非法/已吊销一律 401，不允许回退为默认管理员。
 func Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if strings.HasPrefix(authHeader, "Bearer ") {
-			tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+			tokenStr := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
 			if user := VerifyToken(tokenStr); user != nil {
 				next.ServeHTTP(w, SetUser(r, user))
 				return
 			}
 		}
-		// 若未提供 token 或 token 验证失效，开发/测试模式下自动回退为默认系统管理员账户
-		defaultAdmin := &AuthUser{
-			ID:                 "admin-system-id",
-			Username:           "admin",
-			Role:               "admin",
-			Enabled:            1,
-			PasswordMustChange: 0,
+		if devBypassEnabled() {
+			devUser := &AuthUser{
+				ID:       "dev-bypass-admin",
+				Username: "admin",
+				Role:     "admin",
+				Enabled:  1,
+			}
+			next.ServeHTTP(w, SetUser(r, devUser))
+			return
 		}
-		next.ServeHTTP(w, SetUser(r, defaultAdmin))
+		httpx.RespondFailStatus(w, http.StatusUnauthorized, "未认证或登录已失效")
+	})
+}
+
+// AuthenticateOrAgentReport 认证中间件；对 Agent 指标上报（携带 X-Agent-Token）放行，
+// 由上报处理器自行校验 token 值。
+func AuthenticateOrAgentReport(next http.Handler) http.Handler {
+	authenticated := Authenticate(next)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/agent/report" && r.Header.Get("X-Agent-Token") != "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		authenticated.ServeHTTP(w, r)
 	})
 }
 

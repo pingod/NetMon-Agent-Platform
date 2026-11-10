@@ -14,6 +14,27 @@ import (
 	"itops-backend/internal/repos"
 )
 
+// currentUser 读取当前登录用户；未认证时返回 nil。
+// 会话归属校验一律以该用户 ID 为准，绝不使用固定 "admin" 兜底。
+func currentUser(r *http.Request) *middleware.AuthUser {
+	return middleware.GetUser(r)
+}
+
+// ensureConversationOwnership 校验会话存在且属于当前用户。
+// 会话不存在或归属他人时统一返回 (nil, false)，调用方应返回 404，避免泄露他人会话是否存在。
+// 说明：repos.CopilotConversationRepo 的 GetForUser(id, userID) 尚未提供，
+// 这里用 GetByID + user_id 比对实现等价校验，后续可替换为 repo 层方法。
+func ensureConversationOwnership(id, userID string) (*repos.CopilotConversation, bool, error) {
+	conv, err := repos.CopilotConversations.GetByID(id)
+	if err != nil {
+		return nil, false, err
+	}
+	if conv == nil || conv.UserID != userID {
+		return nil, false, nil
+	}
+	return conv, true, nil
+}
+
 // Routes 返回 Copilot 路由
 func Routes() chi.Router {
 	r := chi.NewRouter()
@@ -39,12 +60,13 @@ func Routes() chi.Router {
 
 	// GET /conversations — 会话历史列表
 	r.Get("/conversations", func(w http.ResponseWriter, r *http.Request) {
-		userID := "admin"
-		if u := middleware.GetUser(r); u != nil && u.ID != "" {
-			userID = u.ID
+		u := currentUser(r)
+		if u == nil || u.ID == "" {
+			httpx.RespondError(w, "未认证或会话已失效", http.StatusUnauthorized)
+			return
 		}
 
-		list, err := repos.CopilotConversations.List(userID)
+		list, err := repos.CopilotConversations.List(u.ID)
 		if err != nil {
 			httpx.RespondError(w, "获取对话列表失败: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -54,12 +76,13 @@ func Routes() chi.Router {
 
 	// POST /conversations — 创建新会话
 	r.Post("/conversations", func(w http.ResponseWriter, r *http.Request) {
-		userID := "admin"
-		if u := middleware.GetUser(r); u != nil && u.ID != "" {
-			userID = u.ID
+		u := currentUser(r)
+		if u == nil || u.ID == "" {
+			httpx.RespondError(w, "未认证或会话已失效", http.StatusUnauthorized)
+			return
 		}
 
-		conv, err := repos.CopilotConversations.Create(userID)
+		conv, err := repos.CopilotConversations.Create(u.ID)
 		if err != nil {
 			httpx.RespondError(w, "创建会话失败: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -67,11 +90,25 @@ func Routes() chi.Router {
 		httpx.Respond(w, conv)
 	})
 
-	// DELETE /conversations/{id} — 删除指定会话
+	// DELETE /conversations/{id} — 删除指定会话（仅限本人）
 	r.Delete("/conversations/{id}", func(w http.ResponseWriter, r *http.Request) {
+		u := currentUser(r)
+		if u == nil || u.ID == "" {
+			httpx.RespondError(w, "未认证或会话已失效", http.StatusUnauthorized)
+			return
+		}
+
 		id := chi.URLParam(r, "id")
 		if id == "" {
 			httpx.RespondError(w, "会话ID不能为空", http.StatusBadRequest)
+			return
+		}
+
+		if _, ok, err := ensureConversationOwnership(id, u.ID); err != nil {
+			httpx.RespondError(w, "删除会话失败: "+err.Error(), http.StatusInternalServerError)
+			return
+		} else if !ok {
+			httpx.RespondError(w, "会话不存在", http.StatusNotFound)
 			return
 		}
 
@@ -97,15 +134,28 @@ func Routes() chi.Router {
 			return
 		}
 
-		userID := "admin"
-		if u := middleware.GetUser(r); u != nil && u.ID != "" {
-			userID = u.ID
+		u := currentUser(r)
+		if u == nil || u.ID == "" {
+			httpx.RespondError(w, "未认证或会话已失效", http.StatusUnauthorized)
+			return
+		}
+		role := u.Role
+		if role == "" {
+			role = "admin"
 		}
 
-		// 确保会话存在
+		// 会话归属校验：不存在或属于他人时一律 404
 		convID := req.ConversationID
-		if convID == "" {
-			newConv, err := repos.CopilotConversations.Create(userID)
+		if convID != "" {
+			if _, ok, err := ensureConversationOwnership(convID, u.ID); err != nil {
+				httpx.RespondError(w, "读取会话失败: "+err.Error(), http.StatusInternalServerError)
+				return
+			} else if !ok {
+				httpx.RespondError(w, "会话不存在", http.StatusNotFound)
+				return
+			}
+		} else {
+			newConv, err := repos.CopilotConversations.Create(u.ID)
 			if err != nil {
 				httpx.RespondError(w, "创建会话失败: "+err.Error(), http.StatusInternalServerError)
 				return
@@ -120,8 +170,8 @@ func Routes() chi.Router {
 			Timestamp: now,
 		}
 
-		// 1. 调用 Copilot 对话驱动引擎
-		assistantReply := ProcessMessage(r.Context(), req.Message)
+		// 1. 调用 Copilot 对话驱动引擎（携带当前角色用于执行前安全策略校验）
+		assistantReply := ProcessMessage(r.Context(), req.Message, role)
 
 		replyTime := time.Now().Format("2006-01-02 15:04:05")
 		assistantMsg := repos.CopilotMessage{

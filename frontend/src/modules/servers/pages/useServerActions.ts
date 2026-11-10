@@ -163,11 +163,16 @@ export function useServerActions() {
 
   const removeTag = useCallback(
     (tagToRemove: string) => {
-      const current = parseCurrentTags();
-      const filtered = current.filter((t: string) => t !== tagToRemove);
-      setFormData({ ...formData, tags: filtered.join(', ') });
+      // 函数式更新，避免快速连续删除时读到旧的 formData.tags
+      setFormData((prev) => {
+        const current = prev.tags
+          ? prev.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
+          : [];
+        const filtered = current.filter((t: string) => t !== tagToRemove);
+        return { ...prev, tags: filtered.join(', ') };
+      });
     },
-    [formData.tags],
+    [],
   );
 
   // ---------- Queries ----------
@@ -239,19 +244,23 @@ export function useServerActions() {
   }, [allTags, parseCurrentTags, getLastTagFragment]);
 
   // 根据选中的标签、分组或品牌筛选服务器
-  const safeServers = Array.isArray(servers) ? servers : [];
-  const filteredServers = safeServers.filter((server: Server) => {
-    if (selectedGroupId && !(server.groups || []).some((g: { id: string; name: string }) => g.id === selectedGroupId)) {
-      return false;
-    }
-    if (selectedTag && !(Array.isArray(server.tags) ? server.tags : []).includes(selectedTag)) {
-      return false;
-    }
-    if (selectedVendor && (server.vendor || 'other').toLowerCase() !== selectedVendor.toLowerCase()) {
-      return false;
-    }
-    return true;
-  });
+  const safeServers = useMemo(() => (Array.isArray(servers) ? servers : []), [servers]);
+  const filteredServers = useMemo(
+    () =>
+      safeServers.filter((server: Server) => {
+        if (selectedGroupId && !(server.groups || []).some((g: { id: string; name: string }) => g.id === selectedGroupId)) {
+          return false;
+        }
+        if (selectedTag && !(Array.isArray(server.tags) ? server.tags : []).includes(selectedTag)) {
+          return false;
+        }
+        if (selectedVendor && (server.vendor || 'other').toLowerCase() !== selectedVendor.toLowerCase()) {
+          return false;
+        }
+        return true;
+      }),
+    [safeServers, selectedGroupId, selectedTag, selectedVendor],
+  );
 
   const { data: commandHistory, refetch: refetchCommandHistory } = useQuery({
     queryKey: ['commandHistory', selectedServer?.id],

@@ -280,6 +280,7 @@ CREATE TABLE alerts (
         related_task_id TEXT,
         status TEXT DEFAULT 'new',
         alert_fingerprint TEXT,
+        device_id TEXT DEFAULT '',
         created_at DATETIME DEFAULT (datetime('now','localtime')),
         updated_at DATETIME DEFAULT (datetime('now','localtime'))
       );
@@ -1381,6 +1382,17 @@ CREATE TABLE server_metrics (
         load_5min REAL,
         load_15min REAL,
         uptime_seconds INTEGER,
+        disk_read_kbps REAL DEFAULT 0,
+        disk_write_kbps REAL DEFAULT 0,
+        net_rx_kbps REAL DEFAULT 0,
+        net_tx_kbps REAL DEFAULT 0,
+        cpu_user REAL DEFAULT 0,
+        cpu_system REAL DEFAULT 0,
+        cpu_iowait REAL DEFAULT 0,
+        memory_cached_gb REAL DEFAULT 0,
+        memory_buffers_gb REAL DEFAULT 0,
+        swap_used_gb REAL DEFAULT 0,
+        raw_metrics TEXT DEFAULT '{}',
         collected_at DATETIME,
         created_at DATETIME DEFAULT (datetime('now','localtime')),
         FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
@@ -1418,7 +1430,16 @@ CREATE TABLE servers (
         gpu_model TEXT,
         os_detail TEXT,
         vendor TEXT DEFAULT 'other',
-        model TEXT DEFAULT ''
+        model TEXT DEFAULT '',
+        is_virtual_machine INTEGER DEFAULT 0,
+        agent_installed INTEGER DEFAULT 0,
+        agent_version TEXT DEFAULT '',
+        agent_status TEXT DEFAULT 'uninstalled',
+        agent_last_heartbeat DATETIME,
+        agent_cpu_usage REAL DEFAULT 0,
+        agent_mem_mb REAL DEFAULT 0,
+        agent_uptime_seconds INTEGER DEFAULT 0,
+        agent_token TEXT DEFAULT ''
 );
 
 -- [table] service_topologies
@@ -1673,7 +1694,8 @@ CREATE TABLE "users" (
         locked_until DATETIME,
         last_failed_login DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        token_invalid_before INTEGER NOT NULL DEFAULT 0
       );
 
 -- [table] virtual_machines

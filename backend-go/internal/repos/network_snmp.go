@@ -483,6 +483,15 @@ func (r *InspectionRepo) UpdateResult(id, status string, commandsExecuted, comma
 	return err
 }
 
+// MarkFailed 将仍在 running 的巡检记录标记为失败（用于执行前校验失败等提前返回路径）
+func (r *InspectionRepo) MarkFailed(id, reason string) error {
+	_, err := appdb.DB().Exec(`
+		UPDATE network_inspection_history SET status = 'failed', summary = ?
+		WHERE id = ? AND status = 'running'`,
+		sqlNullStr(reason), id)
+	return err
+}
+
 func scanInspections(rows *sql.Rows) ([]InspectionHistory, error) {
 	var out []InspectionHistory
 	for rows.Next() {

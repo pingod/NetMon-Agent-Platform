@@ -31,7 +31,7 @@ type CreateDeviceRequest struct {
 	EnablePassword   string `json:"enable_password"`
 	Location         string `json:"location"`
 	Role             string `json:"role"`
-	SnmpEnabled      int    `json:"snmp_enabled"`
+	SnmpEnabled      *int   `json:"snmp_enabled"`
 	SnmpCredentialID string `json:"snmp_credential_id"`
 	SnmpPort         int    `json:"snmp_port"`
 	SnmpCommunity    string `json:"snmp_community"`
@@ -66,7 +66,7 @@ type TestConnectionResult struct {
 
 // BatchImportResult 批量导入结果
 type BatchImportResult struct {
-	Success []BatchImportItem `json:"success"`
+	Success []BatchImportItem  `json:"success"`
 	Failed  []BatchImportError `json:"failed"`
 	Skipped []BatchImportSkip  `json:"skipped"`
 }
@@ -98,12 +98,23 @@ type NetworkDeviceService struct{}
 
 // GetAllDevices 获取所有设备（清除敏感字段）
 func (s *NetworkDeviceService) GetAllDevices() ([]*repos.NetworkDevice, error) {
-	return repos.NetworkDevices.List()
+	return repos.NetworkDevices.ListSafe()
 }
 
-// GetDeviceByID 获取单个设备
+// sanitizeDevice 清除返回给前端的凭据字段（Password / EnablePassword 仅服务端内部使用）
+func sanitizeDevice(device *repos.NetworkDevice) *repos.NetworkDevice {
+	if device == nil {
+		return nil
+	}
+	device.Password = nil
+	device.EnablePassword = nil
+	return device
+}
+
+// GetDeviceByID 获取单个设备（清除敏感字段）
 func (s *NetworkDeviceService) GetDeviceByID(id string) (*repos.NetworkDevice, error) {
-	return repos.NetworkDevices.GetByID(id)
+	device, err := repos.NetworkDevices.GetByID(id)
+	return sanitizeDevice(device), err
 }
 
 // CreateDevice 创建设备
@@ -114,19 +125,27 @@ func (s *NetworkDeviceService) CreateDevice(req CreateDeviceRequest) (*repos.Net
 	if sshPort == 0 {
 		sshPort = 22
 	}
-	snmpEnabled := req.SnmpEnabled
-	if snmpEnabled == 0 {
-		snmpEnabled = 1 // 默认启用
+	snmpEnabled := 1
+	if req.SnmpEnabled != nil {
+		if *req.SnmpEnabled == 0 {
+			snmpEnabled = 0
+		}
 	}
 	snmpPort := req.SnmpPort
 	if snmpPort == 0 {
 		snmpPort = 161
 	}
 
-	encryptedPassword := crypto.Encrypt(req.Password)
+	encryptedPassword, encErr := crypto.Encrypt(req.Password)
+	if encErr != nil {
+		return nil, fmt.Errorf("密码加密失败: %w", encErr)
+	}
 	encryptedEnablePassword := ""
 	if req.EnablePassword != "" {
-		encryptedEnablePassword = crypto.Encrypt(req.EnablePassword)
+		encryptedEnablePassword, encErr = crypto.Encrypt(req.EnablePassword)
+		if encErr != nil {
+			return nil, fmt.Errorf("Enable 密码加密失败: %w", encErr)
+		}
 	}
 
 	input := repos.NetworkDeviceCreateInput{
@@ -185,7 +204,11 @@ func (s *NetworkDeviceService) CreateDevice(req CreateDeviceRequest) (*repos.Net
 	}
 
 	logger.Infof("Network device created: %s (%s)", req.Name, req.IPAddress)
-	return repos.NetworkDevices.GetByID(id)
+	device, err := repos.NetworkDevices.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	return sanitizeDevice(device), nil
 }
 
 // BatchCreateDevices 批量创建设备
@@ -275,12 +298,18 @@ func (s *NetworkDeviceService) UpdateDevice(id string, req UpdateDeviceRequest) 
 		input.Username = req.Username
 	}
 	if req.Password != nil && *req.Password != "" {
-		enc := crypto.Encrypt(*req.Password)
+		enc, encErr := crypto.Encrypt(*req.Password)
+		if encErr != nil {
+			return nil, fmt.Errorf("密码加密失败: %w", encErr)
+		}
 		input.Password = &enc
 	}
 	if req.EnablePassword != nil {
 		if *req.EnablePassword != "" {
-			enc := crypto.Encrypt(*req.EnablePassword)
+			enc, encErr := crypto.Encrypt(*req.EnablePassword)
+			if encErr != nil {
+				return nil, fmt.Errorf("Enable 密码加密失败: %w", encErr)
+			}
 			input.EnablePassword = &enc
 		} else {
 			empty := ""
@@ -318,7 +347,11 @@ func (s *NetworkDeviceService) UpdateDevice(id string, req UpdateDeviceRequest) 
 	}
 
 	logger.Infof("Network device updated: %s", id)
-	return repos.NetworkDevices.GetByID(id)
+	device, err := repos.NetworkDevices.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	return sanitizeDevice(device), nil
 }
 
 // DeleteDevice 删除设备
@@ -481,7 +514,7 @@ func (s *NetworkDeviceService) GetInspectionDetail(inspectionID string) (*repos.
 	return repos.Inspections.GetByID(inspectionID)
 }
 
-	// GetFullCredentials 获取设备完整凭证（含解密后密码和密钥），供巡检/备份服务使用
+// GetFullCredentials 获取设备完整凭证（含解密后密码和密钥），供巡检/备份服务使用
 func (s *NetworkDeviceService) GetFullCredentials(deviceID string) (*DeviceInfo, error) {
 	device, err := repos.NetworkDevices.GetByID(deviceID)
 	if err != nil || device == nil {
@@ -577,6 +610,6 @@ type DeviceInfo struct {
 	Username       string `json:"username"`
 	Password       string `json:"-"`
 	EnablePassword string `json:"-"`
-	PrivateKey     string `json:"-"`   // PEM 格式私钥（已解密）
-	AuthType       string `json:"-"`   // "password" 或 "key"
+	PrivateKey     string `json:"-"` // PEM 格式私钥（已解密）
+	AuthType       string `json:"-"` // "password" 或 "key"
 }

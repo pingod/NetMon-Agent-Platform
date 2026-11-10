@@ -77,6 +77,7 @@
     "smartOps": "Smart Ops",
     "kubernetes": "K8s Management",
     "costAnalysis": "Cost Analysis",
+    "autoScale": "Auto Scaling",
     "mcpTester": "MCP Tester",
     "alertProviders": "Alert Providers",
     "metricTags": "Metric Tags"

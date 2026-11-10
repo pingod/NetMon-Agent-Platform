@@ -318,7 +318,8 @@ docker compose down -v
 
 访问 `http://localhost:8088`（可用 `ITOP_PORT` 覆盖宿主机端口）。
 数据库、上传文件与日志分别持久化在 `itops-data`、`itops-logs` 命名卷中。
-生产部署请通过环境变量覆盖 `JWT_SECRET`（≥32 字符），并保持 `WEBHOOK_VERIFY_ENABLED=true` 且配置 `WEBHOOK_SECRET`。
+生产部署必须显式设置 `JWT_SECRET`（≥32 字符，`openssl rand -hex 32`）；建议同时设置 `ENCRYPTION_KEY` 用于凭据加密。
+首次启动（users 表为空）会生成随机 admin 口令并写入 `<数据库目录>/initial-admin-password.txt`（0600），日志只打印该路径，登录后需立即修改。
 
 
 ---
@@ -330,16 +331,20 @@ docker compose down -v
 ```ini
 # 基础服务配置
 PORT=8088                         # 服务监听端口 (默认: 8088)
-DATA_DIR=./data                   # SQLite 数据库存储目录 (默认: ./data)
+DATABASE_PATH=./data/app.db       # SQLite 数据库文件 (默认: backend/data/app.db)
 LOG_LEVEL=info                    # 日志级别: debug / info / warn / error
 
 # 安全与认证配置
-JWT_SECRET=your-secret-key        # JWT 签名密钥 (建议生产环境修改)
-JWT_EXPIRE_HOURS=24               # Token 有效时长 (小时)
+JWT_SECRET=                       # 生产必填，>=32 字符；开发留空则自动生成
+JWT_EXPIRES_IN=24h                # Access Token 有效期
+ENCRYPTION_KEY=                   # 凭据加密密钥，>=32 字符；留空回退 JWT_SECRET
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8088  # CORS 白名单
+TRUSTED_PROXIES=                  # 可信反代 IP/CIDR，命中后才信任 X-Forwarded-For
+AUTH_DEV_BYPASS=false             # 仅开发环境：跳过认证（生产强制忽略）
 
 # AI 模型配置 (也可在登录后在前端 "设置 → AI 配置" 界面可视化设置)
 DOUBAO_API_KEY=your-api-key       # 火山引擎豆包 API Key
-DEEPSEEK_API_KEY=your-api-key     # DeepSeek API Key
+OPENAI_API_KEY=your-api-key       # OpenAI 兼容 API Key
 OPENAI_API_BASE=https://api.openai.com/v1
 ```
 

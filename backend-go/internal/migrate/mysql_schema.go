@@ -4,6 +4,7 @@ package migrate
 
 import (
 	"database/sql"
+	"fmt"
 
 	"itops-backend/internal/logger"
 )
@@ -14,17 +15,17 @@ var MySQLTables = []string{
 	`CREATE TABLE IF NOT EXISTS users (
 		id VARCHAR(36) PRIMARY KEY,
 		username VARCHAR(255) NOT NULL UNIQUE,
+		password VARCHAR(255) NOT NULL,
 		email VARCHAR(255) DEFAULT '',
 		role VARCHAR(50) DEFAULT 'user',
-		password VARCHAR(255) NOT NULL,
 		enabled TINYINT DEFAULT 1,
 		password_must_change TINYINT DEFAULT 0,
 		failed_login_attempts INT DEFAULT 0,
 		locked_until DATETIME NULL,
 		last_failed_login DATETIME NULL,
-		last_login DATETIME NULL,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		token_invalid_before BIGINT NOT NULL DEFAULT 0
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 
 	// 2. 网络设备与凭证
@@ -90,10 +91,13 @@ var MySQLTables = []string{
 	`CREATE TABLE IF NOT EXISTS servers (
 		id VARCHAR(36) PRIMARY KEY,
 		name VARCHAR(255) NOT NULL,
+		hostname VARCHAR(255) NOT NULL DEFAULT '',
 		host VARCHAR(255) DEFAULT '',
 		port INT DEFAULT 22,
 		username VARCHAR(255) DEFAULT '',
 		password TEXT,
+		private_key TEXT,
+		use_ssh_key TINYINT DEFAULT 0,
 		ssh_key_id VARCHAR(36) DEFAULT '',
 		os_type VARCHAR(50) DEFAULT 'linux',
 		os VARCHAR(100) DEFAULT '',
@@ -104,12 +108,24 @@ var MySQLTables = []string{
 		ip_address VARCHAR(45) DEFAULT '',
 		private_ip VARCHAR(45) DEFAULT '',
 		cloud_provider VARCHAR(50) DEFAULT '',
+		cloud_instance_id VARCHAR(255) DEFAULT '',
+		vnc_port INT DEFAULT 5900,
+		vnc_password TEXT,
 		status VARCHAR(20) DEFAULT 'unknown',
 		group_id VARCHAR(36) DEFAULT '',
 		description TEXT,
 		tags TEXT,
 		enabled TINYINT DEFAULT 1,
+		last_connected DATETIME NULL,
 		agent_version VARCHAR(50) DEFAULT '',
+		agent_installed TINYINT DEFAULT 0,
+		agent_status VARCHAR(50) DEFAULT 'uninstalled',
+		agent_last_heartbeat DATETIME NULL,
+		agent_cpu_usage DOUBLE DEFAULT 0,
+		agent_mem_mb DOUBLE DEFAULT 0,
+		agent_uptime_seconds BIGINT DEFAULT 0,
+		agent_token VARCHAR(255) DEFAULT '',
+		is_virtual_machine TINYINT DEFAULT 0,
 		vendor VARCHAR(100) DEFAULT 'other',
 		model VARCHAR(100) DEFAULT '',
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -414,6 +430,11 @@ var MySQLTables = []string{
 		level VARCHAR(50) DEFAULT 'warning',
 		status VARCHAR(50) DEFAULT 'active',
 		source VARCHAR(100) DEFAULT 'snmp',
+		severity VARCHAR(50) DEFAULT 'warning',
+		content TEXT,
+		metadata TEXT,
+		related_task_id VARCHAR(36) DEFAULT '',
+		alert_fingerprint VARCHAR(255) DEFAULT '',
 		device_id VARCHAR(36) DEFAULT '',
 		device_name VARCHAR(255) DEFAULT '',
 		message TEXT,
@@ -687,6 +708,12 @@ var MySQLTables = []string{
 		description TEXT,
 		is_table TINYINT DEFAULT 0,
 		table_oid VARCHAR(255) DEFAULT '',
+		index_oid VARCHAR(255) DEFAULT '',
+		index_tag VARCHAR(255) DEFAULT '',
+		label_oids TEXT,
+		label_names TEXT,
+		unit VARCHAR(50) DEFAULT '',
+		generator_module VARCHAR(255) DEFAULT '',
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
@@ -713,16 +740,33 @@ func RunMigrationsMySQL(db *sql.DB) error {
 		}
 	}
 
-	// 补丁修复列差异兼容
+	// 保证 network_devices.ip_address 有值（非列结构变更，失败仅告警）
+	_, _ = db.Exec("UPDATE network_devices SET ip_address = ip WHERE (ip_address = '' OR ip_address IS NULL) AND ip IS NOT NULL")
+
+	// 补丁修复列差异兼容：仅忽略“列已存在”，其他错误必须返回（避免首启缺列静默运行）
 	alterPatches := []string{
 		"ALTER TABLE network_devices ADD COLUMN ip_address VARCHAR(45) NOT NULL DEFAULT ''",
-		"UPDATE network_devices SET ip_address = ip WHERE (ip_address = '' OR ip_address IS NULL) AND ip IS NOT NULL",
 		"ALTER TABLE network_devices ADD COLUMN device_role VARCHAR(50) DEFAULT ''",
 		"ALTER TABLE network_devices ADD COLUMN last_inspection_result TEXT",
 		"ALTER TABLE network_devices ADD COLUMN snmp_credential_id VARCHAR(36) DEFAULT ''",
 		"ALTER TABLE network_devices ADD COLUMN system_poll_interval INT DEFAULT 300",
 		"ALTER TABLE network_devices ADD COLUMN interface_poll_interval INT DEFAULT 60",
 		"ALTER TABLE servers ADD COLUMN host VARCHAR(255) DEFAULT ''",
+		"ALTER TABLE servers ADD COLUMN hostname VARCHAR(255) NOT NULL DEFAULT ''",
+		"ALTER TABLE servers ADD COLUMN private_key TEXT",
+		"ALTER TABLE servers ADD COLUMN use_ssh_key TINYINT DEFAULT 0",
+		"ALTER TABLE servers ADD COLUMN last_connected DATETIME NULL",
+		"ALTER TABLE servers ADD COLUMN cloud_instance_id VARCHAR(255) DEFAULT ''",
+		"ALTER TABLE servers ADD COLUMN vnc_port INT DEFAULT 5900",
+		"ALTER TABLE servers ADD COLUMN vnc_password TEXT",
+		"ALTER TABLE servers ADD COLUMN is_virtual_machine TINYINT DEFAULT 0",
+		"ALTER TABLE servers ADD COLUMN agent_installed TINYINT DEFAULT 0",
+		"ALTER TABLE servers ADD COLUMN agent_status VARCHAR(50) DEFAULT 'uninstalled'",
+		"ALTER TABLE servers ADD COLUMN agent_last_heartbeat DATETIME NULL",
+		"ALTER TABLE servers ADD COLUMN agent_cpu_usage DOUBLE DEFAULT 0",
+		"ALTER TABLE servers ADD COLUMN agent_mem_mb DOUBLE DEFAULT 0",
+		"ALTER TABLE servers ADD COLUMN agent_uptime_seconds BIGINT DEFAULT 0",
+		"ALTER TABLE servers ADD COLUMN agent_token VARCHAR(255) DEFAULT ''",
 		"ALTER TABLE servers ADD COLUMN ip_address VARCHAR(45) DEFAULT ''",
 		"ALTER TABLE servers ADD COLUMN private_ip VARCHAR(45) DEFAULT ''",
 		"ALTER TABLE servers ADD COLUMN cloud_provider VARCHAR(50) DEFAULT ''",
@@ -730,6 +774,10 @@ func RunMigrationsMySQL(db *sql.DB) error {
 		"ALTER TABLE servers ADD COLUMN cpu_cores INT DEFAULT 0",
 		"ALTER TABLE servers ADD COLUMN memory_gb DOUBLE DEFAULT 0",
 		"ALTER TABLE servers ADD COLUMN disk_gb DOUBLE DEFAULT 0",
+		"ALTER TABLE users ADD COLUMN token_invalid_before BIGINT NOT NULL DEFAULT 0",
+		"ALTER TABLE alerts ADD COLUMN severity VARCHAR(50) DEFAULT 'warning'",
+		"ALTER TABLE alerts ADD COLUMN content TEXT",
+		"ALTER TABLE alerts ADD COLUMN device_id VARCHAR(36) DEFAULT ''",
 		"ALTER TABLE config_backup_tasks ADD COLUMN template_id VARCHAR(36) DEFAULT ''",
 		"ALTER TABLE config_backup_tasks ADD COLUMN schedule_type VARCHAR(50) DEFAULT 'cron'",
 		"ALTER TABLE config_backup_tasks ADD COLUMN schedule_cron VARCHAR(100) DEFAULT '0 2 * * *'",
@@ -739,7 +787,9 @@ func RunMigrationsMySQL(db *sql.DB) error {
 		"ALTER TABLE config_backup_tasks ADD COLUMN created_by VARCHAR(255) DEFAULT ''",
 	}
 	for _, patch := range alterPatches {
-		_, _ = db.Exec(patch)
+		if _, err := db.Exec(patch); err != nil && !isDuplicateColumnErr(err) {
+			return fmt.Errorf("mysql schema patch failed: %s: %w", patch, err)
+		}
 	}
 
 	// 确保默认管理员账号存在

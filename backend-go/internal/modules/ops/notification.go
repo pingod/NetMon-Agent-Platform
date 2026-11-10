@@ -7,8 +7,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime"
+	"net"
 	"net/http"
+	"net/mail"
 	"net/smtp"
+	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -27,10 +32,11 @@ import (
 // ============================================================
 
 type EmailConfig struct {
-	SmtpHost string `json:"smtp_host"`
-	SmtpPort int    `json:"smtp_port"`
-	User     string `json:"user"`
-	Password string `json:"password"`
+	SmtpHost    string `json:"smtp_host"`
+	SmtpPort    int    `json:"smtp_port"`
+	User        string `json:"user"`
+	Password    string `json:"password,omitempty"`
+	HasPassword bool   `json:"has_password"`
 }
 
 type WechatConfig struct {
@@ -185,6 +191,7 @@ func GetNotificationConfig() (*NotificationConfig, error) {
 	if emCfg.Valid && emCfg.String != "" {
 		_ = json.Unmarshal([]byte(emCfg.String), &cfg.EmailConfig)
 	}
+	cfg.EmailConfig.HasPassword = cfg.EmailConfig.Password != ""
 	if wxCfg.Valid && wxCfg.String != "" {
 		_ = json.Unmarshal([]byte(wxCfg.String), &cfg.WechatConfig)
 	}
@@ -235,6 +242,12 @@ func SaveNotificationConfig(cfg *NotificationConfig) error {
 	dtBytes, _ := json.Marshal(cfg.DingtalkConfig)
 	altBytes, _ := json.Marshal(cfg.AlertNotification)
 	tskBytes, _ := json.Marshal(cfg.TaskNotification)
+	// 未提交新密码时保留已保存的密码，避免前端脱敏回显把密码清空
+	if cfg.EmailConfig.Password == "" {
+		if current, err := GetNotificationConfig(); err == nil && current != nil && current.EmailConfig.Password != "" {
+			cfg.EmailConfig.Password = current.EmailConfig.Password
+		}
+	}
 	now := time.Now().Format("2006-01-02 15:04:05")
 
 	var count int
@@ -385,6 +398,27 @@ func SendDingtalkRobot(webhookURL, title, markdownContent string) error {
 	return nil
 }
 
+// sanitizeMailHeader 过滤 CR/LF，防止邮件头注入
+func sanitizeMailHeader(v string) string {
+	v = strings.ReplaceAll(v, "\r", "")
+	return strings.ReplaceAll(v, "\n", "")
+}
+
+// validateMailAddress 校验收件人地址，禁止换行与逗号分隔的多地址注入
+func validateMailAddress(addr string) error {
+	addr = strings.TrimSpace(addr)
+	if addr == "" {
+		return fmt.Errorf("收件人为空")
+	}
+	if strings.ContainsAny(addr, "\r\n,;") {
+		return fmt.Errorf("收件人地址包含非法字符")
+	}
+	if _, err := mail.ParseAddress(addr); err != nil {
+		return fmt.Errorf("收件人地址不合法: %w", err)
+	}
+	return nil
+}
+
 // SendSmtpEmail 发送 SMTP 邮件
 func SendSmtpEmail(cfg EmailConfig, to, subject, body string) error {
 	if cfg.SmtpHost == "" || cfg.User == "" {
@@ -393,32 +427,29 @@ func SendSmtpEmail(cfg EmailConfig, to, subject, body string) error {
 	if to == "" {
 		to = cfg.User
 	}
+	if err := validateMailAddress(to); err != nil {
+		return err
+	}
 	port := cfg.SmtpPort
 	if port <= 0 {
 		port = 465
 	}
 
-	addr := fmt.Sprintf("%s:%d", cfg.SmtpHost, port)
+	addr := net.JoinHostPort(cfg.SmtpHost, strconv.Itoa(port))
 	auth := smtp.PlainAuth("", cfg.User, cfg.Password, cfg.SmtpHost)
 
-	header := make(map[string]string)
-	header["From"] = cfg.User
-	header["To"] = to
-	header["Subject"] = subject
-	header["MIME-Version"] = "1.0"
-	header["Content-Type"] = "text/html; charset=UTF-8"
-
-	message := ""
-	for k, v := range header {
-		message += fmt.Sprintf("%s: %s\r\n", k, v)
-	}
-	message += "\r\n" + body
+	// 主题与地址均过滤 CR/LF，主题按 RFC 2047 编码中文
+	cleanSubject := mime.QEncoding.Encode("UTF-8", sanitizeMailHeader(subject))
+	cleanTo := sanitizeMailHeader(to)
+	cleanFrom := sanitizeMailHeader(cfg.User)
+	message := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n%s",
+		cleanFrom, cleanTo, cleanSubject, body)
 
 	if port == 465 {
-		// SSL 直连
+		// SSL 直连；证书校验默认开启，仅当显式设置 SMTP_INSECURE_SKIP_VERIFY=true 时跳过
 		tlsconfig := &tls.Config{
-			InsecureSkipVerify: true,
 			ServerName:         cfg.SmtpHost,
+			InsecureSkipVerify: os.Getenv("SMTP_INSECURE_SKIP_VERIFY") == "true",
 		}
 		conn, err := tls.Dial("tcp", addr, tlsconfig)
 		if err != nil {
@@ -433,29 +464,52 @@ func SendSmtpEmail(cfg EmailConfig, to, subject, body string) error {
 		if err = c.Auth(auth); err != nil {
 			return fmt.Errorf("SMTP 认证失败: %w", err)
 		}
-		if err = c.Mail(cfg.User); err != nil {
+		if err = c.Mail(cleanFrom); err != nil {
 			return err
 		}
-		if err = c.Rcpt(to); err != nil {
+		if err = c.Rcpt(cleanTo); err != nil {
 			return err
 		}
 		w, err := c.Data()
 		if err != nil {
 			return err
 		}
-		_, err = w.Write([]byte(message))
-		if err != nil {
+		if _, err = w.Write([]byte(message)); err != nil {
 			return err
 		}
-		err = w.Close()
-		if err != nil {
+		if err = w.Close(); err != nil {
 			return err
 		}
 		return c.Quit()
 	}
 
 	// 普通端口/STARTTLS
-	return smtp.SendMail(addr, auth, cfg.User, []string{to}, []byte(message))
+	return smtp.SendMail(addr, auth, cleanFrom, []string{cleanTo}, []byte(message))
+}
+
+// validateOutboundURL 校验外部通知地址：仅允许 http/https，禁止回环与私网地址（SSRF 防护）
+func validateOutboundURL(raw string) error {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return fmt.Errorf("URL 解析失败: %w", err)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("仅支持 http/https 协议的地址")
+	}
+	host := u.Hostname()
+	if host == "" {
+		return fmt.Errorf("URL 缺少主机名")
+	}
+	ips, err := net.LookupIP(host)
+	if err != nil || len(ips) == 0 {
+		return fmt.Errorf("无法解析目标主机: %s", host)
+	}
+	for _, ip := range ips {
+		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
+			return fmt.Errorf("禁止访问回环/私网地址: %s", ip.String())
+		}
+	}
+	return nil
 }
 
 // LogNotificationRecord 记录通知发送审计日志
@@ -649,6 +703,9 @@ func NotificationConfigRoutes() chi.Router {
 			httpx.RespondError(w, "获取通知配置失败: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+		// 永不回传 SMTP 明文口令，仅告知是否已配置
+		cfg.EmailConfig.HasPassword = cfg.EmailConfig.Password != ""
+		cfg.EmailConfig.Password = ""
 		httpx.Respond(w, cfg)
 	})
 
@@ -667,9 +724,9 @@ func NotificationConfigRoutes() chi.Router {
 	})
 
 	// POST /api/v1/notification-config/test/{channel}
-	r.Post("/test/{channel}", handleTestNotificationChannel)
+	r.With(middleware.RequireRole("admin")).Post("/test/{channel}", handleTestNotificationChannel)
 	// 兼容可能传入的前缀
-	r.Post("/api/notification-config/test/{channel}", handleTestNotificationChannel)
+	r.With(middleware.RequireRole("admin")).Post("/api/notification-config/test/{channel}", handleTestNotificationChannel)
 
 	return r
 }
@@ -697,6 +754,10 @@ func handleTestNotificationChannel(w http.ResponseWriter, r *http.Request) {
 		}
 		if targetUrl == "" {
 			httpx.Respond(w, map[string]interface{}{"success": false, "error": "请先填写 Webhook URL"})
+			return
+		}
+		if err := validateOutboundURL(targetUrl); err != nil {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "目标地址不合法: "+err.Error())
 			return
 		}
 
@@ -729,6 +790,10 @@ func handleTestNotificationChannel(w http.ResponseWriter, r *http.Request) {
 			httpx.Respond(w, map[string]interface{}{"success": false, "error": "请先填写企业微信机器人 Webhook URL"})
 			return
 		}
+		if err := validateOutboundURL(targetUrl); err != nil {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "目标地址不合法: "+err.Error())
+			return
+		}
 
 		content := fmt.Sprintf("### 🔔 NetMon 监控系统测试消息\n> **通知类型**: 企业微信机器人连通性测试\n> **测试状态**: <font color=\"info\">通信正常</font>\n> **发送时间**: %s", nowStr)
 		if err := SendWechatRobot(targetUrl, "NetMon 测试消息", content); err != nil {
@@ -752,6 +817,10 @@ func handleTestNotificationChannel(w http.ResponseWriter, r *http.Request) {
 		}
 		if targetUrl == "" {
 			httpx.Respond(w, map[string]interface{}{"success": false, "error": "请先填写钉钉机器人 Webhook URL"})
+			return
+		}
+		if err := validateOutboundURL(targetUrl); err != nil {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "目标地址不合法: "+err.Error())
 			return
 		}
 
@@ -780,6 +849,12 @@ func handleTestNotificationChannel(w http.ResponseWriter, r *http.Request) {
 			}
 			if t, ok := body["to"].(string); ok {
 				to = t
+			}
+		}
+		// 未提交新口令时沿用已保存的口令
+		if emailCfg.Password == "" {
+			if saved, _ := GetNotificationConfig(); saved != nil {
+				emailCfg.Password = saved.EmailConfig.Password
 			}
 		}
 		if emailCfg.SmtpHost == "" || emailCfg.User == "" {
@@ -931,16 +1006,104 @@ func NotificationRoutes() chi.Router {
 		})
 	})
 
-	// PUT /api/v1/notifications/{id}/send
-	r.Put("/{id}/send", func(w http.ResponseWriter, r *http.Request) {
+	// PUT /api/v1/notifications/{id}/send — 真实投递一条待发送通知
+	r.With(middleware.RequireRole("admin")).Put("/{id}/send", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
+		EnsureNotificationTables()
+		db := appdb.DB()
+		if db == nil {
+			httpx.RespondError(w, "数据库不可用", http.StatusInternalServerError)
+			return
+		}
+
+		var ntfType, title string
+		var content, recipient sql.NullString
+		err := db.QueryRow("SELECT type, title, content, recipient FROM notifications WHERE id = ?", id).
+			Scan(&ntfType, &title, &content, &recipient)
+		if err == sql.ErrNoRows {
+			httpx.RespondFailStatus(w, http.StatusNotFound, "通知记录不存在")
+			return
+		}
+		if err != nil {
+			httpx.RespondError(w, "读取通知记录失败: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		cfg, cfgErr := GetNotificationConfig()
+		if cfgErr != nil || cfg == nil {
+			httpx.RespondFailStatus(w, http.StatusBadGateway, "读取通知配置失败")
+			return
+		}
+
+		body := ""
+		if content.Valid {
+			body = content.String
+		}
+
+		var sendErr error
+		switch strings.ToLower(ntfType) {
+		case "webhook":
+			target := recipient.String
+			if target == "" {
+				target = cfg.WebhookURL
+			}
+			if target == "" {
+				sendErr = fmt.Errorf("未配置 Webhook 地址")
+				break
+			}
+			sendErr = SendWebhookPost(target, map[string]interface{}{
+				"event":     "notification",
+				"title":     title,
+				"message":   body,
+				"timestamp": time.Now().Format(time.RFC3339),
+			})
+		case "wechat":
+			target := recipient.String
+			if target == "" {
+				target = cfg.WechatConfig.WebhookURL
+			}
+			if target == "" {
+				sendErr = fmt.Errorf("未配置企业微信机器人地址")
+				break
+			}
+			sendErr = SendWechatRobot(target, title, body)
+		case "dingtalk":
+			target := recipient.String
+			if target == "" {
+				target = cfg.DingtalkConfig.WebhookURL
+			}
+			if target == "" {
+				sendErr = fmt.Errorf("未配置钉钉机器人地址")
+				break
+			}
+			sendErr = SendDingtalkRobot(target, title, body)
+		case "email":
+			target := recipient.String
+			if target == "" {
+				target = cfg.EmailConfig.User
+			}
+			sendErr = SendSmtpEmail(cfg.EmailConfig, target, title, body)
+		default:
+			httpx.RespondFailStatus(w, http.StatusNotImplemented, "该通知类型暂不支持重发: "+ntfType)
+			return
+		}
+
 		now := time.Now().Format("2006-01-02 15:04:05")
-		_, err := appdb.DB().Exec("UPDATE notifications SET status = 'sent', sent_at = ? WHERE id = ?", now, id)
+		if sendErr != nil {
+			_, _ = db.Exec("UPDATE notifications SET status = 'failed', error_message = ? WHERE id = ?", sendErr.Error(), id)
+			httpx.RespondFailStatus(w, http.StatusBadGateway, "通知发送失败: "+sendErr.Error())
+			return
+		}
+		res, err := db.Exec("UPDATE notifications SET status = 'sent', sent_at = ?, error_message = '' WHERE id = ?", now, id)
 		if err != nil {
 			httpx.RespondError(w, "更新通知状态失败: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
-		httpx.Respond(w, map[string]interface{}{"success": true})
+		if n, _ := res.RowsAffected(); n == 0 {
+			httpx.RespondFailStatus(w, http.StatusNotFound, "通知记录不存在")
+			return
+		}
+		httpx.Respond(w, map[string]interface{}{"success": true, "status": "sent"})
 	})
 
 	// DELETE /api/v1/notifications/{id}

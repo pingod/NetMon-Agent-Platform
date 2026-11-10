@@ -116,10 +116,15 @@ func (p *DeviceStatusProber) probeAll() (total int, online int, offline int) {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
+	// 并发上限：避免设备数量大时无限创建 goroutine
+	sem := make(chan struct{}, 16)
+
 	for _, d := range devices {
 		wg.Add(1)
 		go func(device dev) {
 			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
 			reachable := probeDeviceIsOnline(device.id, device.ip, device.snmpEnabled)
 			newStatus := "offline"
 			if reachable {
@@ -169,20 +174,28 @@ func (p *DeviceStatusProber) ProbeSingleDevice(deviceID string) {
 	}
 }
 
-// hasDeviceMetricsHistory 检查设备是否具备真实历史采集指标或巡检记录（用于系统预置基线/已连通演示设备的保活）
-func hasDeviceMetricsHistory(deviceID string) bool {
+// metricFreshnessWindow 指标/心跳新鲜度窗口：只有在该窗口内仍持续产生真实采集数据的设备才视为"新鲜"
+const metricFreshnessWindow = 5 * time.Minute
+
+// hasRecentMetrics 检查设备最近是否仍有真实采集数据（按时间阈值判定）
+// 注意：不能再以"历史上产生过指标"作为在线依据，否则设备断连后会永远显示在线。
+func hasRecentMetrics(deviceID string) bool {
 	if deviceID == "" {
 		return false
 	}
-	db := appdb.DB()
-	var count int
-	err := db.QueryRow(`SELECT COUNT(*) FROM snmp_interface_metrics WHERE device_id = ?`, deviceID).Scan(&count)
-	if err == nil && count > 0 {
+	threshold := time.Now().Add(-metricFreshnessWindow).Format("2006-01-02 15:04:05")
+
+	var ifCount int
+	if err := appdb.DBForTable("snmp_interface_metrics").QueryRow(
+		`SELECT COUNT(*) FROM snmp_interface_metrics WHERE device_id = ? AND sampled_at >= ?`,
+		deviceID, threshold).Scan(&ifCount); err == nil && ifCount > 0 {
 		return true
 	}
-	var inspCount int
-	err = db.QueryRow(`SELECT COUNT(*) FROM inspection_results WHERE device_id = ?`, deviceID).Scan(&inspCount)
-	if err == nil && inspCount > 0 {
+
+	var sampleCount int
+	if err := appdb.DBForTable("snmp_metric_samples").QueryRow(
+		`SELECT COUNT(*) FROM snmp_metric_samples WHERE device_id = ? AND created_at >= ?`,
+		deviceID, threshold).Scan(&sampleCount); err == nil && sampleCount > 0 {
 		return true
 	}
 	return false
@@ -288,8 +301,8 @@ func probeDeviceIsOnline(deviceID, ip string, snmpEnabled int) bool {
 		return true
 	}
 
-	// 4. 对具备真实历史采集与巡检记录的系统预置演示设备，在未挂载专网时保活展示；但新创建的无指标设备不可达时坚决判定为离线
-	if hasDeviceMetricsHistory(deviceID) {
+	// 4. 仅当设备在最近采集窗口内仍有真实指标上报时保活展示；超过阈值未上报则判定离线
+	if hasRecentMetrics(deviceID) {
 		return true
 	}
 

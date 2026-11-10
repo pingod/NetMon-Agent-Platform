@@ -13,8 +13,8 @@ services:
       PORT: "8088"
       DATABASE_PATH: /app/data/app.db
       LOG_LEVEL: ${LOG_LEVEL:-info}
-      # 生产模式要求 >=32 字符；请在自己的 .env 中覆盖
-      JWT_SECRET: ${JWT_SECRET:-itops-docker-default-jwt-secret-change-me-0123456789}
+      # 必须显式提供：JWT_SECRET=... docker compose up -d（openssl rand -hex 32）
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 必须在 .env 或环境中设置（openssl rand -hex 32）}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
       # 告警 webhook：warn 模式可在未配置签名时放行并记录警告
       WEBHOOK_VERIFY_ENABLED: ${WEBHOOK_VERIFY_ENABLED:-warn}

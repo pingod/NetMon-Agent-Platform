@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useMemo, Fragment } from 'react';
+import { useState, useMemo, Fragment, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus, Trash2, RefreshCw, Play, Clock, FileText,
@@ -470,6 +470,20 @@ function TasksTab() {
   const [backupProgress, setBackupProgress] = useState<{ total: number; completed: number; success: number; failed: number; is_running: boolean } | null>(null);
   const [showQuickBackup, setShowQuickBackup] = useState(false);
 
+
+  // 进度轮询定时器与挂载标记，卸载后不再 setState
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (pollTimerRef.current) {
+        clearTimeout(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
+  }, []);
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['config-backup-tasks'],
     queryFn: () => api.get('/config-backup/tasks').then(res => res.data.data || []),
@@ -516,36 +530,43 @@ function TasksTab() {
   });
 
   const pollProgress = (taskId: string) => {
+    if (pollTimerRef.current) {
+      clearTimeout(pollTimerRef.current);
+    }
     const poll = async () => {
       try {
         const res = await api.get(`/config-backup/progress/${taskId}`);
+        if (!mountedRef.current) return;
         const progress = res.data?.data;
-        if (progress) {
+        // progress 为空说明后端已无该任务进度记录，按结束处理
+        if (progress && progress.is_running) {
           setBackupProgress(progress);
-          if (progress.is_running) {
-            setTimeout(poll, 1500);
+          pollTimerRef.current = setTimeout(poll, 1500);
+          return;
+        }
+        pollTimerRef.current = null;
+        setExecutingId(null);
+        setBackupProgress(null);
+        queryClient.invalidateQueries({ queryKey: ['config-backup-tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['config-backup-records'] });
+        if (progress) {
+          if (progress.failed === 0) {
+            toast.success(`备份完成: ${progress.success} 台设备成功`);
+          } else if (progress.success === 0) {
+            toast.error(`备份失败: ${progress.failed} 台设备失败`);
           } else {
-            // 执行完成
-            setExecutingId(null);
-            setBackupProgress(null);
-            queryClient.invalidateQueries({ queryKey: ['config-backup-tasks'] });
-            queryClient.invalidateQueries({ queryKey: ['config-backup-records'] });
-            if (progress.failed === 0) {
-              toast.success(`备份完成: ${progress.success} 台设备成功`);
-            } else if (progress.success === 0) {
-              toast.error(`备份失败: ${progress.failed} 台设备失败`);
-            } else {
-              toast.success(`备份完成: ${progress.success} 成功, ${progress.failed} 失败`);
-            }
+            toast.success(`备份完成: ${progress.success} 成功, ${progress.failed} 失败`);
           }
         }
       } catch {
         // 轮询出错时停止
+        if (!mountedRef.current) return;
+        pollTimerRef.current = null;
         setExecutingId(null);
         setBackupProgress(null);
       }
     };
-    setTimeout(poll, 1000);
+    pollTimerRef.current = setTimeout(poll, 1000);
   };
 
   const scheduleLabel = (type: string) => SCHEDULE_OPTIONS.find(s => s.value === type)?.label || type;
@@ -1245,6 +1266,20 @@ function QuickBackupModal({ templates, onClose, onDone }: {
 
   useEscapeKey({ onEscape: onClose });
 
+  // 轮询定时器随弹窗卸载清理
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (pollTimerRef.current !== null) {
+        clearTimeout(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
+  }, []);
+
   const filteredDevices = useMemo(() => {
     if (!deviceSearch) return devices;
     const q = deviceSearch.toLowerCase();
@@ -1283,28 +1318,35 @@ function QuickBackupModal({ templates, onClose, onDone }: {
         const poll = async () => {
           try {
             const res = await api.get(`/config-backup/progress/${batchId}`);
+            if (!mountedRef.current) return;
             const p = res.data?.data;
-            if (p) {
+            if (p && p.is_running) {
               setBatchProgress(p);
-              if (p.is_running) {
-                setTimeout(poll, 1500);
-              } else {
-                setExecuting(false);
-                setBatchProgress(null);
-                if (p.failed === 0) {
-                  toast.success(`备份完成：全部 ${p.success} 台设备成功`);
-                } else {
-                  toast.warning(`备份完成：${p.success} 台成功，${p.failed} 台失败`);
-                }
-                onDone();
-              }
+              pollTimerRef.current = setTimeout(poll, 1500);
+              return;
             }
+            pollTimerRef.current = null;
+            setExecuting(false);
+            setBatchProgress(null);
+            if (!p) {
+              // progress 为空视为任务已结束（后端记录被清理）
+              onDone();
+              return;
+            }
+            if (p.failed === 0) {
+              toast.success(`备份完成：全部 ${p.success} 台设备成功`);
+            } else {
+              toast.warning(`备份完成：${p.success} 台成功，${p.failed} 台失败`);
+            }
+            onDone();
           } catch {
+            if (!mountedRef.current) return;
+            pollTimerRef.current = null;
             setExecuting(false);
             setBatchProgress(null);
           }
         };
-        setTimeout(poll, 1000);
+        pollTimerRef.current = setTimeout(poll, 1000);
         toast.success('批量备份已开始执行');
       } else {
         // 兼容旧版同步返回

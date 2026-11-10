@@ -125,12 +125,15 @@ func (r *UserRepo) List() ([]UserListItem, error) {
 	return out, nil
 }
 
+// userFullColumns 显式列清单（避免 users 表新增列后 SELECT * 与扫描字段错位）
+const userFullColumns = `id, username, password, email, role, enabled, password_must_change, failed_login_attempts, locked_until, last_failed_login, created_at, updated_at`
+
 func (r *UserRepo) GetByID(id string) (*UserRecord, error) {
-	return r.scanFull(appdb.DB().QueryRow(`SELECT * FROM users WHERE id = ?`, id))
+	return r.scanFull(appdb.DB().QueryRow(`SELECT `+userFullColumns+` FROM users WHERE id = ?`, id))
 }
 
 func (r *UserRepo) GetByUsername(username string) (*UserRecord, error) {
-	return r.scanFull(appdb.DB().QueryRow(`SELECT * FROM users WHERE username = ?`, username))
+	return r.scanFull(appdb.DB().QueryRow(`SELECT `+userFullColumns+` FROM users WHERE username = ?`, username))
 }
 
 // GetForAuth 等价 getForAuth（登录验证用）
@@ -345,6 +348,60 @@ func (r *UserRepo) RecordFailedLogin(id string, attempts int, nowIso string) {
 	now := nowLocal()
 	_, _ = appdb.DB().Exec(`UPDATE users SET failed_login_attempts = ?, last_failed_login = ?, updated_at = ? WHERE id = ?`,
 		attempts, nowIso, now, id)
+}
+
+// FailedLoginState 原子递增后的登录失败状态
+type FailedLoginState struct {
+	ID                 string
+	FailedLoginAttempt int
+	LockedUntil        *string
+}
+
+// IncrementFailedLogin 以单条原子 UPDATE 递增失败次数，并在达到阈值时写入锁定时间。
+// 并发登录失败不会因读-改-写竞争而丢失计数。
+func (r *UserRepo) IncrementFailedLogin(username string, threshold int, lockedUntilIso, nowIso string) (*FailedLoginState, error) {
+	now := nowLocal()
+	_, err := appdb.DB().Exec(`UPDATE users SET
+		failed_login_attempts = failed_login_attempts + 1,
+		locked_until = CASE WHEN failed_login_attempts + 1 >= ? THEN ? ELSE locked_until END,
+		last_failed_login = ?,
+		updated_at = ?
+		WHERE username = ?`, threshold, lockedUntilIso, nowIso, now, username)
+	if err != nil {
+		return nil, err
+	}
+
+	row := appdb.DB().QueryRow(`SELECT id, failed_login_attempts, locked_until FROM users WHERE username = ?`, username)
+	var st FailedLoginState
+	var locked sql.NullString
+	if err := row.Scan(&st.ID, &st.FailedLoginAttempt, &locked); err != nil {
+		return nil, err
+	}
+	st.LockedUntil = ns(locked)
+	return &st, nil
+}
+
+// GetTokenInvalidBefore 返回用户 token 失效时间戳（unix 秒）；列缺失或出错时返回 0
+func (r *UserRepo) GetTokenInvalidBefore(id string) int64 {
+	var v sql.NullInt64
+	if err := appdb.DB().QueryRow(`SELECT token_invalid_before FROM users WHERE id = ?`, id).Scan(&v); err != nil {
+		return 0
+	}
+	if v.Valid {
+		return v.Int64
+	}
+	return 0
+}
+
+// UpdatePasswordAndRevokeTokens 更新密码并让该用户此前签发的所有 token 失效
+func (r *UserRepo) UpdatePasswordAndRevokeTokens(id, hashedPassword string, invalidBefore int64) (int, error) {
+	res, err := appdb.DB().Exec(`UPDATE users SET password = ?, password_must_change = 0, token_invalid_before = ?, updated_at = ? WHERE id = ?`,
+		hashedPassword, invalidBefore, nowLocal(), id)
+	if err != nil {
+		return 0, err
+	}
+	n, _ := res.RowsAffected()
+	return int(n), nil
 }
 
 func (r *UserRepo) Delete(id string) (bool, error) {

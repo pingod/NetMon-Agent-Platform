@@ -145,7 +145,7 @@ func handleDashboardLinkage(w http.ResponseWriter, r *http.Request) {
 	db.QueryRow("SELECT COUNT(*) FROM alerts").Scan(&alertTotal)
 
 	openAlerts := 0
-	db.QueryRow("SELECT COUNT(*) FROM alerts WHERE status NOT IN ('resolved','resolved_auto')").Scan(&openAlerts)
+	db.QueryRow("SELECT COUNT(*) FROM alerts WHERE status != 'resolved'").Scan(&openAlerts)
 
 	analysisTotal := 0
 	db.QueryRow("SELECT COUNT(*) FROM alert_auto_analysis").Scan(&analysisTotal)
@@ -174,6 +174,7 @@ func handleDashboardLinkage(w http.ResponseWriter, r *http.Request) {
 // handleNetworkDeviceStats 网络设备仪表盘 (严格使用真实设备及真实采集指标)
 func handleNetworkDeviceStats(w http.ResponseWriter, r *http.Request) {
 	db := appdb.DB()
+	metricsDB := appdb.DBForTable("snmp_interface_metrics")
 
 	// 1. 设备统计 (真实设备)
 	var total, online, offline, snmpEnabled int
@@ -187,7 +188,7 @@ func handleNetworkDeviceStats(w http.ResponseWriter, r *http.Request) {
 	// 2. 接口统计 (使用窗口函数提取各个设备最新接口状态)
 	var totalUp, totalDown, totalErrors int
 	var totalUpNull, totalDownNull, totalErrorsNull sql.NullInt64
-	_ = db.QueryRow(`
+	_ = metricsDB.QueryRow(`
 		SELECT
 			SUM(CASE WHEN if_oper_status = 1 THEN 1 ELSE 0 END),
 			SUM(CASE WHEN if_oper_status = 2 THEN 1 ELSE 0 END),
@@ -211,7 +212,7 @@ func handleNetworkDeviceStats(w http.ResponseWriter, r *http.Request) {
 	topDevices := make([]TopDevice, 0)
 	var totalInMbps, totalOutMbps float64
 
-	rows, err := db.Query(`
+	rows, err := metricsDB.Query(`
 		WITH Ranked AS (
 			SELECT 
 				device_id, if_index, if_in_octets, if_out_octets, sampled_at,
@@ -219,26 +220,29 @@ func handleNetworkDeviceStats(w http.ResponseWriter, r *http.Request) {
 			FROM snmp_interface_metrics
 		)
 		SELECT 
-			d.id, d.name, COALESCE(d.vendor, 'other'),
+			cur.device_id,
 			COALESCE(SUM(cur.if_in_octets - prev.if_in_octets), 0) as delta_in,
 			COALESCE(SUM(cur.if_out_octets - prev.if_out_octets), 0) as delta_out,
 			COALESCE(MAX((julianday(cur.sampled_at) - julianday(prev.sampled_at)) * 86400), 0) as sec,
 			COUNT(DISTINCT cur.if_index) as if_count
-		FROM network_devices d
-		LEFT JOIN Ranked cur ON d.id = cur.device_id AND cur.rn = 1
-		LEFT JOIN Ranked prev ON cur.device_id = prev.device_id AND cur.if_index = prev.if_index AND prev.rn = 2
-		WHERE cur.if_in_octets >= prev.if_in_octets AND cur.if_out_octets >= prev.if_out_octets
-		GROUP BY d.id
+		FROM Ranked cur
+		JOIN Ranked prev ON cur.device_id = prev.device_id AND cur.if_index = prev.if_index AND prev.rn = 2
+		WHERE cur.rn = 1
+		  AND cur.if_in_octets >= prev.if_in_octets AND cur.if_out_octets >= prev.if_out_octets
+		GROUP BY cur.device_id
 		ORDER BY (delta_in + delta_out) DESC
 		LIMIT 8`)
 
 	if err == nil {
 		defer rows.Close()
 		for rows.Next() {
-			var id, name, vendor string
+			var id string
 			var deltaIn, deltaOut, sec float64
 			var ifCount int
-			if err := rows.Scan(&id, &name, &vendor, &deltaIn, &deltaOut, &sec, &ifCount); err == nil {
+			if err := rows.Scan(&id, &deltaIn, &deltaOut, &sec, &ifCount); err == nil {
+				// 设备名称/厂商在 app 库中查询（指标库与 app 库不跨库 JOIN）
+				var name, vendor string
+				_ = db.QueryRow(`SELECT COALESCE(name, ''), COALESCE(vendor, 'other') FROM network_devices WHERE id = ?`, id).Scan(&name, &vendor)
 				inMbps := 0.0
 				outMbps := 0.0
 				if sec >= 1 {
@@ -268,12 +272,12 @@ func handleNetworkDeviceStats(w http.ResponseWriter, r *http.Request) {
 
 	// 4. 最近真实巡检记录
 	type RecentInspection struct {
-		ID             string  `json:"id"`
-		DeviceName     string  `json:"device_name"`
-		InspectionType string  `json:"inspection_type"`
-		Status         string  `json:"status"`
-		DurationMs     *int64  `json:"duration_ms"`
-		CreatedAt      string  `json:"created_at"`
+		ID             string `json:"id"`
+		DeviceName     string `json:"device_name"`
+		InspectionType string `json:"inspection_type"`
+		Status         string `json:"status"`
+		DurationMs     *int64 `json:"duration_ms"`
+		CreatedAt      string `json:"created_at"`
 	}
 	recentInspections := make([]RecentInspection, 0)
 	iRows, err := db.Query(`
@@ -459,10 +463,10 @@ func handleInspectionHistoryTrend(w http.ResponseWriter, r *http.Request) {
 	db := appdb.DB()
 
 	type TrendPoint struct {
-		Date      string `json:"date"`
-		Total     int    `json:"total"`
-		Success   int    `json:"success"`
-		Failed    int    `json:"failed"`
+		Date    string `json:"date"`
+		Total   int    `json:"total"`
+		Success int    `json:"success"`
+		Failed  int    `json:"failed"`
 	}
 
 	rows, err := db.Query(`
@@ -584,11 +588,11 @@ func handleResolveAlert(w http.ResponseWriter, r *http.Request) {
 func handleProcessAlert(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "alertId")
 	httpx.Respond(w, map[string]interface{}{
-		"alertId":        id,
+		"alertId":         id,
 		"matchedPolicies": []interface{}{},
-		"mappingTasks":   []interface{}{},
-		"executionIds":   []string{},
-		"error":          nil,
+		"mappingTasks":    []interface{}{},
+		"executionIds":    []string{},
+		"error":           nil,
 	})
 }
 
@@ -768,9 +772,9 @@ func handleDeleteCorrelationGroup(w http.ResponseWriter, r *http.Request) {
 
 func handleAutoCorrelate(w http.ResponseWriter, r *http.Request) {
 	httpx.Respond(w, map[string]interface{}{
-		"groupsCreated":  0,
+		"groupsCreated":   0,
 		"alertsProcessed": 0,
-		"message":        "Auto correlation completed (placeholder)",
+		"message":         "Auto correlation completed (placeholder)",
 	})
 }
 
@@ -805,7 +809,7 @@ func handleCreateMapping(w http.ResponseWriter, r *http.Request) {
 	m := repos.AlertMapping{
 		ID:                uuid.New().String(),
 		AlertSource:       nilSafeStrPtr(req.AlertSource),
-		AlertSeverity:    nilSafeStrPtr(req.AlertSeverity),
+		AlertSeverity:     nilSafeStrPtr(req.AlertSeverity),
 		AlertTitlePattern: nilSafeStrPtr(req.AlertTitlePattern),
 		WorkflowID:        req.WorkflowID,
 		Enabled:           enabled,
@@ -835,7 +839,7 @@ func handleUpdateMapping(w http.ResponseWriter, r *http.Request) {
 	}
 	m := repos.AlertMapping{
 		AlertSource:       nilSafeStrPtr(req.AlertSource),
-		AlertSeverity:    nilSafeStrPtr(req.AlertSeverity),
+		AlertSeverity:     nilSafeStrPtr(req.AlertSeverity),
 		AlertTitlePattern: nilSafeStrPtr(req.AlertTitlePattern),
 		WorkflowID:        req.WorkflowID,
 		Enabled:           enabled,

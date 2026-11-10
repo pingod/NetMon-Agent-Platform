@@ -3,6 +3,9 @@ package main
 
 import (
 	"context"
+	crand "crypto/rand"
+	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -10,15 +13,69 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"itops-backend/internal/appdb"
 	"itops-backend/internal/config"
+	appcrypto "itops-backend/internal/crypto"
 	"itops-backend/internal/logger"
+	"itops-backend/internal/middleware"
 	"itops-backend/internal/migrate"
 	"itops-backend/internal/modules"
 	"itops-backend/internal/modules/inspection"
 	"itops-backend/internal/modules/network/services"
 	"itops-backend/internal/repos"
+	"itops-backend/internal/services/tokenblacklist"
 )
+
+const initialAdminPasswordCharset = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"
+
+// generateInitialPassword 生成随机初始管理员口令
+func generateInitialPassword(length int) (string, error) {
+	raw := make([]byte, length)
+	if _, err := crand.Read(raw); err != nil {
+		return "", err
+	}
+	out := make([]byte, length)
+	for i, b := range raw {
+		out[i] = initialAdminPasswordCharset[int(b)%len(initialAdminPasswordCharset)]
+	}
+	return string(out), nil
+}
+
+// seedDefaultAdmin 在 users 表为空时创建随机口令的 admin，并将口令写入受限文件（仅日志输出路径）
+func seedDefaultAdmin(databasePath string) {
+	if repos.Users.CountAll() != 0 {
+		return
+	}
+	logger.Infof("No users found, seeding default admin account...")
+
+	password, err := generateInitialPassword(24)
+	if err != nil {
+		logger.Errorf("Failed to generate initial admin password: %v", err)
+		return
+	}
+	hashed, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	if err != nil {
+		logger.Errorf("Failed to hash initial admin password: %v", err)
+		return
+	}
+
+	if err := repos.Users.CreateDefaultAdmin(
+		"1", "admin", string(hashed), "admin@netmon.local", "admin", 1, 1,
+	); err != nil {
+		logger.Errorf("Failed to seed admin user: %v", err)
+		return
+	}
+
+	passwordFile := filepath.Join(filepath.Dir(databasePath), "initial-admin-password.txt")
+	content := fmt.Sprintf("# NetMon 初始管理员账户，请登录后立即修改密码并删除本文件\nusername: admin\npassword: %s\n", password)
+	if err := os.WriteFile(passwordFile, []byte(content), 0o600); err != nil {
+		logger.Errorf("Default admin created but failed to write initial password file: %v", err)
+		return
+	}
+	logger.Infof("Default admin user created (username: admin); initial password written to %s", passwordFile)
+}
 
 func main() {
 	// ── 加载 .env（从当前目录向上遍历查找项目根） ──
@@ -51,8 +108,15 @@ func main() {
 	}
 	config.Env = cfg
 
-	// ── 初始化日志 ──
+	// ── 初始化日志（配置就绪后才能确定级别与日志目录） ──
+	logger.Init(cfg)
 	logger.Infof("Starting itops-backend (Go)...")
+
+	// ── 初始化加密密钥（ENCRYPTION_KEY 优先，回退 JWT_SECRET） ──
+	if err := appcrypto.Init(); err != nil {
+		logger.Errorf("Encryption init failed: %v", err)
+		os.Exit(1)
+	}
 
 	// ── 数据库初始化 ──
 	// app.db — 设备信息、密码、机房、agent、数据库连接等元数据
@@ -101,19 +165,8 @@ func main() {
 		logger.Infof("Config backup templates seeded")
 	}
 
-	// ── 种子：确保 admin 用户存在（全新数据库迁移后 users 表为空） ──
-	if repos.Users.CountAll() == 0 {
-		logger.Infof("No users found, seeding default admin account...")
-		if err := repos.Users.CreateDefaultAdmin(
-			"1", "admin",
-			"$2a$12$oqDXIaNfzuOoXS5MqfkDNu8THvL6Ng4ojgKv29DvD1vJWZv15i9de",
-			"admin@netmon.local", "admin", 1, 1,
-		); err != nil {
-			logger.Warnf("Failed to seed admin user: %v", err)
-		} else {
-			logger.Infof("Default admin user created (admin / Admin@2026)")
-		}
-	}
+	// ── 种子：确保 admin 用户存在（随机初始口令写入受限文件，日志不打印口令） ──
+	seedDefaultAdmin(cfg.DatabasePath)
 
 	// 指标数据库迁移
 	if err := migrate.RunMetricsMigrations(appdb.MetricsDB()); err != nil {
@@ -122,8 +175,8 @@ func main() {
 	}
 	logger.Infof("Database migrations applied (metrics)")
 
-	// 修正 mib_objects 中 COLUMNAR 语法的表列标识
-	if _, err := db.Exec(`UPDATE mib_objects SET is_table = 1, is_scalar = 0 WHERE (LOWER(syntax) LIKE '%column%' OR LOWER(syntax) LIKE '%table%' OR LOWER(name) LIKE '%table%') AND is_table = 0`); err != nil {
+	// 修正 mib_objects 中 COLUMNAR 语法的表列标识（mib_objects 位于 oid.db）
+	if _, err := appdb.OidDB().Exec(`UPDATE mib_objects SET is_table = 1, is_scalar = 0 WHERE (LOWER(syntax) LIKE '%column%' OR LOWER(syntax) LIKE '%table%' OR LOWER(name) LIKE '%table%') AND is_table = 0`); err != nil {
 		logger.Warnf("Failed to sync COLUMNAR is_table flags: %v", err)
 	}
 
@@ -152,6 +205,10 @@ func main() {
 	}
 
 	// ── 初始化服务 ──
+	tokenblacklist.Init()
+	middleware.StartRateLimiterCleanup()
+	middleware.StartUserCacheCleanup()
+
 	services.ConfigBackupServiceInstance.Init()
 	services.DeviceStatusProberInstance.Start()
 	services.SnmpPollerInstance.Start()
@@ -175,7 +232,7 @@ func main() {
 	if bind == "" {
 		bind = "0.0.0.0"
 	}
-	addr := bind + ":" + port
+	addr := net.JoinHostPort(bind, port)
 
 	server := &http.Server{
 		Addr:         addr,
@@ -185,29 +242,28 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
-	// 优雅关停
+	// 优雅关停：先停止接收新请求并 drain 在途请求，再停业务服务，最后关闭数据库
 	go func() {
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 		sig := <-sigCh
 		logger.Infof("Received signal %v, shutting down...", sig)
 
-		// 关闭配置备份服务定时器
-		services.ConfigBackupServiceInstance.Shutdown()
-
-		// 关闭设备状态探测服务
-		services.DeviceStatusProberInstance.Shutdown()
-
-		// 关闭 SNMP 轮询服务
-		services.SnmpPollerInstance.Shutdown()
-
-		// 关闭数据库连接
-		appdb.Close()
-
-		// 关闭 HTTP 服务
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		_ = server.Shutdown(shutdownCtx)
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			logger.Warnf("HTTP server shutdown error: %v", err)
+		}
+
+		tokenblacklist.Shutdown()
+		services.ConfigBackupServiceInstance.Shutdown()
+		services.DeviceStatusProberInstance.Shutdown()
+		services.SnmpPollerInstance.Shutdown()
+		services.StopAlertRuleEvaluator()
+
+		if err := appdb.Close(); err != nil {
+			logger.Warnf("Database close error: %v", err)
+		}
 	}()
 
 	logger.Infof("Server listening on %s", addr)

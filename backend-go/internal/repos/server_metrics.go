@@ -4,6 +4,7 @@ package repos
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	"itops-backend/internal/appdb"
 )
@@ -31,9 +32,9 @@ type ServerMetric struct {
 // ServerMetricWithInfo 带服务器名称的指标
 type ServerMetricWithInfo struct {
 	ServerMetric
-	ServerName  string  `json:"server_name"`
-	Hostname    string  `json:"hostname"`
-	OSType      string  `json:"os_type"`
+	ServerName string `json:"server_name"`
+	Hostname   string `json:"hostname"`
+	OSType     string `json:"os_type"`
 }
 
 var ServerMetrics = &ServerMetricRepo{}
@@ -42,9 +43,9 @@ type ServerMetricRepo struct{}
 
 // GetAllLatest 获取所有服务器的最新指标
 func (ServerMetricRepo) GetAllLatest() ([]ServerMetricWithInfo, error) {
-	db := appdb.DB()
+	db := appdb.DBForTable("server_metrics")
 	if db == nil {
-		return nil, fmt.Errorf("database not initialized")
+		return nil, fmt.Errorf("metrics database not initialized")
 	}
 
 	rows, err := db.Query(`
@@ -53,15 +54,13 @@ func (ServerMetricRepo) GetAllLatest() ([]ServerMetricWithInfo, error) {
 		       sm.disk_usage, sm.disk_total_gb, sm.disk_used_gb,
 		       sm.network_in_mbps, sm.network_out_mbps,
 		       sm.load_1min, sm.load_5min, sm.load_15min, sm.uptime_seconds,
-		       sm.collected_at,
-		       COALESCE(s.name, ''), COALESCE(s.hostname, ''), COALESCE(s.os_type, 'linux')
+		       sm.collected_at
 		FROM server_metrics sm
 		INNER JOIN (
 			SELECT server_id, MAX(collected_at) AS max_time
 			FROM server_metrics
 			GROUP BY server_id
 		) latest ON sm.server_id = latest.server_id AND sm.collected_at = latest.max_time
-		LEFT JOIN servers s ON sm.server_id = s.id
 		ORDER BY sm.collected_at DESC`)
 	if err != nil {
 		return nil, err
@@ -76,9 +75,10 @@ func (ServerMetricRepo) GetAllLatest() ([]ServerMetricWithInfo, error) {
 		if err := rows.Scan(&m.ID, &m.ServerID, &cpuU, &memU,
 			&memT, &memUsd, &dU, &dT, &dUsd,
 			&netIn, &netOut, &l1, &l5, &l15, &uptime,
-			&m.CollectedAt, &m.ServerName, &m.Hostname, &m.OSType); err != nil {
+			&m.CollectedAt); err != nil {
 			continue
 		}
+		m.OSType = "linux"
 		m.CPUUsage = floatPtrFromNull(cpuU)
 		m.MemoryUsage = floatPtrFromNull(memU)
 		m.MemoryTotalGB = floatPtrFromNull(memT)
@@ -97,15 +97,41 @@ func (ServerMetricRepo) GetAllLatest() ([]ServerMetricWithInfo, error) {
 	if items == nil {
 		items = []ServerMetricWithInfo{}
 	}
+
+	// 服务器元数据在 app.db（metrics.db 不含 servers 表），分批补齐名称等信息
+	info := map[string]ServerMetricWithInfo{}
+	if sdb := appdb.DB(); sdb != nil {
+		if srows, serr := sdb.Query(`SELECT id, COALESCE(name,''), COALESCE(hostname,''), COALESCE(os_type,'linux') FROM servers`); serr == nil {
+			for srows.Next() {
+				var id, name, hostname, osType string
+				if err := srows.Scan(&id, &name, &hostname, &osType); err != nil {
+					continue
+				}
+				info[id] = ServerMetricWithInfo{ServerName: name, Hostname: hostname, OSType: osType}
+			}
+			srows.Close()
+		}
+	}
+	for i := range items {
+		if meta, ok := info[items[i].ServerID]; ok {
+			items[i].ServerName = meta.ServerName
+			items[i].Hostname = meta.Hostname
+			items[i].OSType = meta.OSType
+		}
+	}
 	return items, nil
 }
 
 // GetHistoryByServer 获取指定服务器的指标历史（最近 N 小时）
 func (ServerMetricRepo) GetHistoryByServer(serverID string, hours int) ([]ServerMetric, error) {
-	db := appdb.DB()
+	db := appdb.DBForTable("server_metrics")
 	if db == nil {
-		return nil, fmt.Errorf("database not initialized")
+		return nil, fmt.Errorf("metrics database not initialized")
 	}
+	if hours <= 0 {
+		hours = 24
+	}
+	cutoff := time.Now().Add(-time.Duration(hours) * time.Hour).Format("2006-01-02 15:04:05")
 
 	rows, err := db.Query(`
 		SELECT id, server_id, cpu_usage, memory_usage,
@@ -115,8 +141,8 @@ func (ServerMetricRepo) GetHistoryByServer(serverID string, hours int) ([]Server
 		       load_1min, load_5min, load_15min, uptime_seconds,
 		       collected_at
 		FROM server_metrics
-		WHERE server_id = ? AND collected_at >= datetime('now', 'localtime', ?||' hours')
-		ORDER BY collected_at ASC`, serverID, fmt.Sprintf("-%d", hours))
+		WHERE server_id = ? AND collected_at >= ?
+		ORDER BY collected_at ASC`, serverID, cutoff)
 	if err != nil {
 		return nil, err
 	}
@@ -156,9 +182,9 @@ func (ServerMetricRepo) GetHistoryByServer(serverID string, hours int) ([]Server
 
 // GetAggregated 获取所有服务器的聚合指标（平均值）
 func (ServerMetricRepo) GetAggregated() (*AggregatedMetrics, error) {
-	db := appdb.DB()
+	db := appdb.DBForTable("server_metrics")
 	if db == nil {
-		return nil, fmt.Errorf("database not initialized")
+		return nil, fmt.Errorf("metrics database not initialized")
 	}
 
 	agg := &AggregatedMetrics{}
@@ -197,23 +223,31 @@ type AggregatedMetrics struct {
 
 // GetTrendData 获取聚合趋势数据（按小时分组，最近24小时）
 func (ServerMetricRepo) GetTrendData(hours int) ([]TrendPoint, error) {
-	db := appdb.DB()
+	db := appdb.DBForTable("server_metrics")
 	if db == nil {
-		return nil, fmt.Errorf("database not initialized")
+		return nil, fmt.Errorf("metrics database not initialized")
+	}
+	if hours <= 0 {
+		hours = 24
+	}
+	cutoff := time.Now().Add(-time.Duration(hours) * time.Hour).Format("2006-01-02 15:04:05")
+	hourExpr := "strftime('%Y-%m-%d %H:00', collected_at)"
+	if appdb.NowExprFor(db) == "NOW()" {
+		hourExpr = "DATE_FORMAT(collected_at, '%Y-%m-%d %H:00')"
 	}
 
 	rows, err := db.Query(`
 		SELECT
-			strftime('%Y-%m-%d %H:00', collected_at) AS hour,
+			`+hourExpr+` AS hour,
 			AVG(cpu_usage) AS avg_cpu,
 			AVG(memory_usage) AS avg_memory,
 			AVG(disk_usage) AS avg_disk,
 			AVG(COALESCE(network_in_mbps, 0)) AS avg_net_in,
 			AVG(COALESCE(network_out_mbps, 0)) AS avg_net_out
 		FROM server_metrics
-		WHERE collected_at >= datetime('now', 'localtime', ?||' hours')
+		WHERE collected_at >= ?
 		GROUP BY hour
-		ORDER BY hour ASC`, fmt.Sprintf("-%d", hours))
+		ORDER BY hour ASC`, cutoff)
 	if err != nil {
 		return nil, err
 	}

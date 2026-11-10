@@ -265,12 +265,12 @@ func createTemplate(w http.ResponseWriter, r *http.Request) {
 func updateTemplate(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var req struct {
-		Name        string          `json:"name"`
-		Vendor      string          `json:"vendor"`
-		Category    string          `json:"category"`
-		DeviceType  string          `json:"deviceType"`
-		OSType      string          `json:"osType"`
-		Description string          `json:"description"`
+		Name        *string         `json:"name"`
+		Vendor      *string         `json:"vendor"`
+		Category    *string         `json:"category"`
+		DeviceType  *string         `json:"deviceType"`
+		OSType      *string         `json:"osType"`
+		Description *string         `json:"description"`
 		Commands    json.RawMessage `json:"commands"`
 		Variables   json.RawMessage `json:"variables"`
 		Tags        json.RawMessage `json:"tags"`
@@ -281,32 +281,36 @@ func updateTemplate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 构建动态 SET
+	// 构建动态 SET：字段为 nil 表示未传，空串是合法更新值
 	updates := ""
 	args := []interface{}{}
-	if req.Name != "" {
+	if req.Name != nil {
+		if *req.Name == "" {
+			httpx.RespondError(w, "名称不能为空", http.StatusBadRequest)
+			return
+		}
 		updates += "name = ?, "
-		args = append(args, req.Name)
+		args = append(args, *req.Name)
 	}
-	if req.Vendor != "" {
+	if req.Vendor != nil {
 		updates += "vendor = ?, "
-		args = append(args, req.Vendor)
+		args = append(args, *req.Vendor)
 	}
-	if req.Category != "" {
+	if req.Category != nil {
 		updates += "category = ?, "
-		args = append(args, req.Category)
+		args = append(args, *req.Category)
 	}
-	if req.DeviceType != "" {
+	if req.DeviceType != nil {
 		updates += "device_type = ?, "
-		args = append(args, req.DeviceType)
+		args = append(args, *req.DeviceType)
 	}
-	if req.OSType != "" {
+	if req.OSType != nil {
 		updates += "os_type = ?, "
-		args = append(args, req.OSType)
+		args = append(args, *req.OSType)
 	}
-	if req.Description != "" || true {
+	if req.Description != nil {
 		updates += "description = ?, "
-		args = append(args, req.Description)
+		args = append(args, *req.Description)
 	}
 	if len(req.Commands) > 0 {
 		updates += "commands = ?, "

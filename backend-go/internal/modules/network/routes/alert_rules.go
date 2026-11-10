@@ -233,14 +233,13 @@ func handleGetAvailableMetrics(w http.ResponseWriter, r *http.Request) {
 		{MetricName: "ping_loss_percent", Label: "Ping 丢包率 (%)", Category: "网络大屏核心", Unit: "%", Description: "ICMP 探测丢失包比例"},
 	}
 
-	// 2. 从 metrics.db (snmp_metric_definitions) 提取自定义 OID 指标
-	db := appdb.DB()
-	rows, err := db.Query(`SELECT metric_name, description, unit, metric_type FROM snmp_metric_definitions LIMIT 200`)
+	// 2. 从指标库 (snmp_metric_definitions) 提取自定义 OID 指标
+	defRows, err := appdb.DBForTable("snmp_metric_definitions").Query(`SELECT metric_name, description, unit, metric_type FROM snmp_metric_definitions LIMIT 200`)
 	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
+		defer defRows.Close()
+		for defRows.Next() {
 			var mName, desc, unit, mType sql.NullString
-			if err := rows.Scan(&mName, &desc, &unit, &mType); err == nil && mName.String != "" {
+			if err := defRows.Scan(&mName, &desc, &unit, &mType); err == nil && mName.String != "" {
 				baseMetrics = append(baseMetrics, MetricItemInfo{
 					MetricName:  mName.String,
 					Label:       mName.String + " (" + desc.String + ")",
@@ -295,8 +294,8 @@ func handleGetAvailableTags(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 从 custom_dashboard_metrics 提取所有用户自定义的 Tag 键值
-	custRows, err := db.Query(`SELECT COALESCE(tags, ''), COALESCE(custom_name, '') FROM custom_dashboard_metrics WHERE tags != '' OR custom_name != ''`)
+	// 从指标库 custom_dashboard_metrics 提取所有用户自定义的 Tag 键值
+	custRows, err := appdb.DBForTable("custom_dashboard_metrics").Query(`SELECT COALESCE(tags, ''), COALESCE(custom_name, '') FROM custom_dashboard_metrics WHERE tags != '' OR custom_name != ''`)
 	if err == nil {
 		defer custRows.Close()
 		for custRows.Next() {
@@ -322,7 +321,7 @@ func handleGetAvailableTags(w http.ResponseWriter, r *http.Request) {
 
 	// 从采样点中提取常用的接口名称
 	if metricName != "" {
-		sampleRows, err := db.Query(`SELECT tag_name FROM snmp_metric_samples WHERE metric_name = ? AND tag_name != '' LIMIT 50`, metricName)
+		sampleRows, err := appdb.DBForTable("snmp_metric_samples").Query(`SELECT tag_name FROM snmp_metric_samples WHERE metric_name = ? AND tag_name != '' LIMIT 50`, metricName)
 		if err == nil {
 			defer sampleRows.Close()
 			for sampleRows.Next() {
@@ -360,11 +359,11 @@ type PreviewMatchRequest struct {
 }
 
 type PreviewMatchResponse struct {
-	MatchedCount int                            `json:"matchedCount"`
-	TotalSamples int                            `json:"totalSamples"`
-	MetricName   string                         `json:"metricName"`
-	Operator     string                         `json:"operator"`
-	Threshold    float64                        `json:"threshold"`
+	MatchedCount int                             `json:"matchedCount"`
+	TotalSamples int                             `json:"totalSamples"`
+	MetricName   string                          `json:"metricName"`
+	Operator     string                          `json:"operator"`
+	Threshold    float64                         `json:"threshold"`
 	Items        []services.SampleEvaluationItem `json:"items"`
 }
 
@@ -442,8 +441,7 @@ func handlePreviewAlertMatch(w http.ResponseWriter, r *http.Request) {
 		operator = ">"
 	}
 
-	db := appdb.DB()
-	allSamples := services.CollectMetricCurrentSamples(db, metricName)
+	allSamples := services.CollectMetricCurrentSamples(metricName)
 
 	var matchedItems []services.SampleEvaluationItem
 	for _, sample := range allSamples {

@@ -250,13 +250,10 @@ export function ImportExport({ resourceType, onImportSuccess }: ImportExportProp
               </div>
 
               {importResult.errors.length > 0 && (
-                <div className="max-h-32 overflow-y-auto bg-slate-700/50 rounded p-2">
-                  {importResult.errors.slice(0, 10).map((error, idx) => (
+                <div className="max-h-40 overflow-y-auto bg-slate-700/50 rounded p-2">
+                  {importResult.errors.map((error, idx) => (
                     <p key={idx} className="text-xs text-red-400 mb-1">{error}</p>
                   ))}
-                  {importResult.errors.length > 10 && (
-                    <p className="text-xs text-slate-500">... 还有 {importResult.errors.length - 10} 条错误</p>
-                  )}
                 </div>
               )}
             </div>

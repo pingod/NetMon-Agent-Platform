@@ -84,16 +84,23 @@ export function useWorkflowEditor() {
     saveHistoryRef.current = saveHistory;
   }, [saveHistory]);
 
-  useEffect(() => {
-    if (nodes.length > 0 || edges.length > 0) {
-      const timer = setTimeout(() => {
-        saveHistoryRef.current();
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [nodes.length, edges.length]);
+  // 撤销/重做恢复状态时暂停自动快照，避免把恢复后的状态重新入栈截断 redo
+  const pauseAutoSnapshotRef = useRef(false);
 
-  const validateWorkflow = useCallback(() => {
+  useEffect(() => {
+    if (pauseAutoSnapshotRef.current) {
+      pauseAutoSnapshotRef.current = false;
+      return;
+    }
+    if (nodes.length === 0 && edges.length === 0) return;
+    const timer = setTimeout(() => {
+      saveHistoryRef.current();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [nodes, edges]);
+
+  // 返回本次校验的错误列表（空数组表示通过），供调用方展示最新错误
+  const validateWorkflow = useCallback((): string[] => {
     const errors: string[] = [];
 
     if (!name.trim()) {
@@ -118,13 +125,14 @@ export function useWorkflowEditor() {
     }
 
     setValidationErrors(errors);
-    return errors.length === 0;
+    return errors;
   }, [name, nodes, edges]);
 
   const saveMutation = useMutation({
     mutationFn: async (data: WorkflowData) => {
-      if (!validateWorkflow()) {
-        throw new Error('工作流验证失败');
+      const errors = validateWorkflow();
+      if (errors.length > 0) {
+        throw new Error('工作流验证失败: ' + errors.join('；'));
       }
 
       if (id && id !== 'new') {
@@ -279,6 +287,7 @@ export function useWorkflowEditor() {
     if (historyIndex > 0) {
       const newIndex = historyIndex - 1;
       const state = history[newIndex];
+      pauseAutoSnapshotRef.current = true;
       setNodes(state.nodes);
       setEdges(state.edges);
       setHistoryIndex(newIndex);
@@ -289,6 +298,7 @@ export function useWorkflowEditor() {
     if (historyIndex < history.length - 1) {
       const newIndex = historyIndex + 1;
       const state = history[newIndex];
+      pauseAutoSnapshotRef.current = true;
       setNodes(state.nodes);
       setEdges(state.edges);
       setHistoryIndex(newIndex);
@@ -296,8 +306,9 @@ export function useWorkflowEditor() {
   }, [history, historyIndex, setNodes, setEdges]);
 
   const handleSave = useCallback(() => {
-    if (!validateWorkflow()) {
-      toast.error('工作流验证失败:\n' + validationErrors.join('\n'));
+    const errors = validateWorkflow();
+    if (errors.length > 0) {
+      toast.error('工作流验证失败:\n' + errors.join('\n'));
       return;
     }
 
@@ -308,7 +319,7 @@ export function useWorkflowEditor() {
       edges,
       is_template: isTemplate ? 1 : 0,
     });
-  }, [name, description, nodes, edges, isTemplate, saveMutation, validateWorkflow, validationErrors, toast]);
+  }, [name, description, nodes, edges, isTemplate, saveMutation, validateWorkflow, toast]);
 
   const handleExecute = useCallback(() => {
     if (!id || id === 'new') {

@@ -15,7 +15,7 @@ import (
 func handleInterfaceSummary(w http.ResponseWriter, r *http.Request) {
 	deviceID := chi.URLParam(r, "id")
 
-	db := appdb.DB()
+	db := appdb.DBForTable("snmp_interface_metrics")
 
 	// 查询该设备最近的接口指标（if_speed/if_*_octets/if_*_errors 均为 REAL 类型，需用 NullFloat64 扫描）
 	rows, err := db.Query(`
@@ -205,7 +205,7 @@ func handleInterfaceSummary(w http.ResponseWriter, r *http.Request) {
 // handleInterfaceStatsSummary 返回网络设备接口统计概览（对应大屏顶部6个卡片：吞吐量、总流量、丢包错包率）
 func handleInterfaceStatsSummary(w http.ResponseWriter, r *http.Request) {
 	deviceID := r.URL.Query().Get("device_id")
-	db := appdb.DB()
+	db := appdb.DBForTable("snmp_interface_metrics")
 
 	var whereClause string
 	var args []interface{}
@@ -234,7 +234,7 @@ func handleInterfaceStatsSummary(w http.ResponseWriter, r *http.Request) {
 	var tpWhere string
 	var tpArgs []interface{}
 	if deviceID != "" && deviceID != "all" {
-		tpWhere = "WHERE cur.device_id = ?"
+		tpWhere = " AND cur.device_id = ?"
 		tpArgs = append(tpArgs, deviceID)
 	}
 
@@ -311,11 +311,9 @@ func handleInterfaceStatsSummary(w http.ResponseWriter, r *http.Request) {
 	inGb := roundTo2(inBytes / (1024 * 1024 * 1024))
 	outGb := roundTo2(outBytes / (1024 * 1024 * 1024))
 
-	// 丢包率 & 错包率 (基于真实接口错误包统计)
+	// 丢包率 & 错包率：snmp_interface_metrics 未采集 packet 计数（仅有 octets/errors），
+	// 无法得到真实的 errors/packets 比值，因此这里显式返回 0，不做任何推算/伪造。
 	errorRate := 0.00
-	if totalInOctets.Valid && totalInOctets.Float64 > 0 && totalInErrors.Valid && totalInErrors.Float64 > 0 {
-		errorRate = roundTo2((totalInErrors.Float64 / totalInOctets.Float64) * 100)
-	}
 
 	httpx.Respond(w, map[string]interface{}{
 		"inMbps":           inMbps,

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { createContext, useContext, useCallback, useState } from 'react';
+import { createContext, useContext, useCallback, useRef, useState } from 'react';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -44,13 +44,15 @@ const TYPE_CONFIG: Record<ToastType, { gradient: string; icon: string; borderCol
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  // 递增计数器保证同毫秒内的多条 toast id 唯一
+  const nextIdRef = useRef(0);
 
   const removeToast = useCallback((id: number) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
   const toast = useCallback((message: string, type: ToastType = 'info') => {
-    const id = Date.now();
+    const id = ++nextIdRef.current;
     setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => removeToast(id), 4000);
   }, [removeToast]);

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -90,28 +91,42 @@ func parseJSON(w http.ResponseWriter, r *http.Request, v interface{}) bool {
 	return true
 }
 
+// dbConnectionResponse 脱敏后的数据库连接响应：不回传密码/令牌，仅给出是否已配置
+type dbConnectionResponse struct {
+	*repos.DbConnection
+	HasPassword bool `json:"has_password"`
+	HasToken    bool `json:"has_token"`
+}
+
+func toDbConnectionResponse(conn *repos.DbConnection) dbConnectionResponse {
+	hasPassword := conn.Password != ""
+	hasToken := conn.Token != nil && *conn.Token != ""
+	conn.Password = ""
+	if conn.Token != nil {
+		conn.Token = strPtr("")
+	}
+	return dbConnectionResponse{DbConnection: conn, HasPassword: hasPassword, HasToken: hasToken}
+}
+
 // DbConnectionRoutes 数据库连接管理路由
 func DbConnectionRoutes() chi.Router {
 	r := chi.NewRouter()
 
-	// GET / — 列出所有连接（抹去敏感字段）
+	// GET / — 列出所有连接（脱敏，仅返回是否已配置密码/令牌）
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		conns, err := repos.DbConnections.ListAll()
 		if err != nil {
 			httpx.RespondError(w, "Failed to get database connections", http.StatusInternalServerError)
 			return
 		}
-		// 抹去密码和 token
+		out := make([]dbConnectionResponse, 0, len(conns))
 		for i := range conns {
-			conns[i].Password = ""
-			if conns[i].Token != nil {
-				conns[i].Token = strPtr("")
-			}
+			out = append(out, toDbConnectionResponse(&conns[i]))
 		}
-		httpx.Respond(w, conns)
+		httpx.Respond(w, out)
 	})
 
-	// GET /{id} — 获取单个连接（抹去敏感字段）
+	// GET /{id} — 获取单个连接（脱敏）
 	r.With(middleware.RequireRole("admin", "operator")).Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		conn, err := repos.DbConnections.GetByID(id)
@@ -123,11 +138,7 @@ func DbConnectionRoutes() chi.Router {
 			httpx.RespondError(w, "Database connection not found", http.StatusNotFound)
 			return
 		}
-		conn.Password = ""
-		if conn.Token != nil {
-			conn.Token = strPtr("")
-		}
-		httpx.Respond(w, conn)
+		httpx.Respond(w, toDbConnectionResponse(conn))
 	})
 
 	// POST / — 创建数据库连接
@@ -166,13 +177,22 @@ func DbConnectionRoutes() chi.Router {
 		// 加密密码
 		encryptedPassword := ""
 		if req.Password != "" {
-			encryptedPassword = crypto.Encrypt(req.Password)
+			enc, encErr := crypto.Encrypt(req.Password)
+			if encErr != nil {
+				httpx.RespondError(w, "密码加密失败: "+encErr.Error(), http.StatusInternalServerError)
+				return
+			}
+			encryptedPassword = enc
 		}
 
 		// 加密 token（仅 InfluxDB v2/v3）
 		var encryptedToken *string
 		if req.Token != nil && *req.Token != "" {
-			et := crypto.Encrypt(*req.Token)
+			et, encErr := crypto.Encrypt(*req.Token)
+			if encErr != nil {
+				httpx.RespondError(w, "Token 加密失败: "+encErr.Error(), http.StatusInternalServerError)
+				return
+			}
 			encryptedToken = &et
 		}
 
@@ -255,13 +275,22 @@ func DbConnectionRoutes() chi.Router {
 		// 密码：有新值则加密，否则保留旧值
 		encryptedPassword := existing.Password
 		if req.Password != "" {
-			encryptedPassword = crypto.Encrypt(req.Password)
+			enc, encErr := crypto.Encrypt(req.Password)
+			if encErr != nil {
+				httpx.RespondError(w, "密码加密失败: "+encErr.Error(), http.StatusInternalServerError)
+				return
+			}
+			encryptedPassword = enc
 		}
 
 		// Token：有新值则加密，否则保留旧值
 		encryptedToken := existing.Token
 		if req.Token != nil && *req.Token != "" {
-			et := crypto.Encrypt(*req.Token)
+			et, encErr := crypto.Encrypt(*req.Token)
+			if encErr != nil {
+				httpx.RespondError(w, "Token 加密失败: "+encErr.Error(), http.StatusInternalServerError)
+				return
+			}
 			encryptedToken = &et
 		}
 
@@ -538,7 +567,7 @@ func testRelationalDBConnection(dbType, host string, port int, username, passwor
 	if port == 0 {
 		port = defaultPort(dbType)
 	}
-	addr := fmt.Sprintf("%s:%d", host, port)
+	addr := net.JoinHostPort(host, strconv.Itoa(port))
 	conn, err := net.DialTimeout("tcp", addr, 5*time.Second)
 	if err != nil {
 		return false, fmt.Sprintf("%s 端口 (%s) 无法连接", dbType, addr), err.Error()

@@ -153,7 +153,7 @@ export default function Notifications() {
                 <Search className="w-5 h-5 text-text-secondary" />
                 <input
                   type="text"
-                  placeholder="搜索通知..."
+                  placeholder="搜索当前页通知（仅过滤当前页）"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary"
@@ -192,7 +192,7 @@ export default function Notifications() {
               </div>
             ) : filteredNotifications.length === 0 ? (
               <div className="p-8 text-center text-text-secondary">
-                暂无通知
+                {searchQuery ? '当前页无匹配通知（搜索仅作用于当前页）' : '暂无通知'}
               </div>
             ) : (
               filteredNotifications.map((notification: Notification) => (

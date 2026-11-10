@@ -26,12 +26,12 @@ import (
 
 // WSMessage 客户端→服务端消息格式
 type WSMessage struct {
-	Type       string `json:"type"`                // open, data, resize, close
-	DeviceID   string `json:"deviceId,omitempty"`  // open 时必填
-	Cols       int    `json:"cols,omitempty"`      // open/resize 时必填
-	Rows       int    `json:"rows,omitempty"`      // open/resize 时必填
-	Data       string `json:"data,omitempty"`      // data 时必填
-	SessionID  string `json:"sessionId,omitempty"` // data/resize/close 时必填
+	Type       string `json:"type"`                 // open, data, resize, close
+	DeviceID   string `json:"deviceId,omitempty"`   // open 时必填
+	Cols       int    `json:"cols,omitempty"`       // open/resize 时必填
+	Rows       int    `json:"rows,omitempty"`       // open/resize 时必填
+	Data       string `json:"data,omitempty"`       // data 时必填
+	SessionID  string `json:"sessionId,omitempty"`  // data/resize/close 时必填
 	DeviceType string `json:"deviceType,omitempty"` // "server" | "network-device"
 }
 
@@ -74,6 +74,40 @@ var TerminalUpgrader = websocket.Upgrader{
 	},
 }
 
+// connWriteLocks 为每个 WebSocket 连接维护写锁，保证同一连接上的 WriteMessage 串行执行
+// （gorilla/websocket 不允许并发写，否则会触发 panic 并可能导致进程退出）
+var (
+	connWriteLocksMu sync.Mutex
+	connWriteLocks   = make(map[*websocket.Conn]*sync.Mutex)
+)
+
+// wsWriteMutex 获取（或创建）某连接的写锁
+func wsWriteMutex(conn *websocket.Conn) *sync.Mutex {
+	connWriteLocksMu.Lock()
+	defer connWriteLocksMu.Unlock()
+	mu, ok := connWriteLocks[conn]
+	if !ok {
+		mu = &sync.Mutex{}
+		connWriteLocks[conn] = mu
+	}
+	return mu
+}
+
+// releaseWSWriteMutex 连接关闭后清理写锁
+func releaseWSWriteMutex(conn *websocket.Conn) {
+	connWriteLocksMu.Lock()
+	delete(connWriteLocks, conn)
+	connWriteLocksMu.Unlock()
+}
+
+// wsWrite 串行写入一条 WebSocket 消息
+func wsWrite(conn *websocket.Conn, messageType int, data []byte) error {
+	mu := wsWriteMutex(conn)
+	mu.Lock()
+	defer mu.Unlock()
+	return conn.WriteMessage(messageType, data)
+}
+
 // HandleTerminalWebSocket 处理 WebSocket 终端连接
 func HandleTerminalWebSocket(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
@@ -85,6 +119,11 @@ func HandleTerminalWebSocket(w http.ResponseWriter, r *http.Request) {
 	authUser := middleware.VerifyToken(token)
 	if authUser == nil {
 		http.Error(w, "invalid token", http.StatusUnauthorized)
+		return
+	}
+	// 终端具备设备/服务器命令执行能力，仅允许管理员与运维角色
+	if authUser.Role != "admin" && authUser.Role != "operator" {
+		http.Error(w, "forbidden: terminal requires admin or operator role", http.StatusForbidden)
 		return
 	}
 
@@ -103,6 +142,7 @@ func handleTerminalMessages(conn *websocket.Conn) {
 	defer func() {
 		conn.Close()
 		cleanupSessionsByConn(conn)
+		releaseWSWriteMutex(conn)
 	}()
 
 	for {
@@ -614,7 +654,7 @@ func sendWSMessage(conn *websocket.Conn, resp WSResponse) error {
 	if err != nil {
 		return err
 	}
-	return conn.WriteMessage(websocket.TextMessage, data)
+	return wsWrite(conn, websocket.TextMessage, data)
 }
 
 func sendWSError(conn *websocket.Conn, errMsg string) {

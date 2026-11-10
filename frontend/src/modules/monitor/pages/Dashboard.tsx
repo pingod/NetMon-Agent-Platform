@@ -160,7 +160,20 @@ export default function Dashboard() {
     staleTime: 30000,
   });
 
-  const isLoading = agentsLoading || serversLoading || workflowsLoading || knowledgeLoading || tasksLoading || alertsLoading;
+  // 统计卡片用后端聚合总数，避免只看最近 5 条造成的低估
+  const { data: dashboardStats, isLoading: dashboardStatsLoading } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      const res = await api.get('/dashboard/full');
+      return res.data.data?.stats as {
+        tasks?: { running?: number };
+        alerts?: { active?: number };
+      } | undefined;
+    },
+    staleTime: 30000,
+  });
+
+  const isLoading = agentsLoading || serversLoading || workflowsLoading || knowledgeLoading || tasksLoading || alertsLoading || dashboardStatsLoading;
 
   const stats = [
     {
@@ -186,14 +199,14 @@ export default function Dashboard() {
     },
     {
       id: 'runningTasks',
-      value: tasks?.filter((t) => t.status === 'running').length || 0,
+      value: dashboardStats?.tasks?.running ?? 0,
       icon: Play,
       color: 'text-yellow-500',
       bg: 'bg-yellow-500/10',
     },
     {
       id: 'activeAlerts',
-      value: alerts?.filter((a) => a.status === 'new').length || 0,
+      value: dashboardStats?.alerts?.active ?? 0,
       icon: Bell,
       color: 'text-red-500',
       bg: 'bg-red-500/10',

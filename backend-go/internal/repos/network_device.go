@@ -269,6 +269,22 @@ func (r *NetworkDeviceRepo) List() ([]*NetworkDevice, error) {
 	return out, nil
 }
 
+// ListSafe 获取所有网络设备并清除凭据字段（供 API 列表返回，避免密文外泄）
+func (r *NetworkDeviceRepo) ListSafe() ([]*NetworkDevice, error) {
+	devices, err := r.List()
+	if err != nil {
+		return nil, err
+	}
+	for _, d := range devices {
+		if d == nil {
+			continue
+		}
+		d.Password = nil
+		d.EnablePassword = nil
+	}
+	return devices, nil
+}
+
 // ListSnmpEnabledBasic 列出 SNMP 启用的设备（仅 id/name/ip）
 func (r *NetworkDeviceRepo) ListSnmpEnabledBasic() ([]struct {
 	ID, Name, IPAddress string
@@ -302,7 +318,7 @@ func (r *NetworkDeviceRepo) GetByID(id string) (*NetworkDevice, error) {
 	ensureNetworkDevicesSchema(db)
 
 	rows, err := db.Query(`
-		SELECT ` + deviceSelectFields + `
+		SELECT `+deviceSelectFields+`
 		FROM network_devices nd
 		LEFT JOIN snmp_credentials sc ON nd.snmp_credential_id = sc.id
 		WHERE nd.id = ?`, id)

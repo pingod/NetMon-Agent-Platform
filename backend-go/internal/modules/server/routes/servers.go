@@ -24,8 +24,8 @@ func ServerRoutes() chi.Router {
 	// ── Agent 采集与性能时序接口 ──
 	r.Mount("/agent", AgentCollectorRoutes())
 	r.Get("/{id}/metrics/history", handleGetServerMetricsHistory)
-	r.Post("/{id}/agent/install", handleSingleInstallAgent)
-	r.Post("/agent/batch-install", handleBatchInstallAgent)
+	r.With(middleware.RequireRole("admin", "operator")).Post("/{id}/agent/install", handleSingleInstallAgent)
+	r.With(middleware.RequireRole("admin", "operator")).Post("/agent/batch-install", handleBatchInstallAgent)
 
 	// GET / — 服务器列表
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
@@ -34,6 +34,7 @@ func ServerRoutes() chi.Router {
 			httpx.RespondError(w, "获取服务器列表失败: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+		sanitizeServerList(list)
 		httpx.Respond(w, list)
 	})
 
@@ -58,6 +59,7 @@ func ServerRoutes() chi.Router {
 			httpx.RespondError(w, "创建服务器失败: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+		sanitizeServer(s)
 		httpx.RespondStatus(w, http.StatusCreated, s)
 	})
 
@@ -112,6 +114,7 @@ func ServerRoutes() chi.Router {
 			httpx.RespondError(w, "更新服务器失败: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+		sanitizeServer(s)
 		httpx.Respond(w, s)
 	})
 
@@ -365,6 +368,22 @@ func exportJSON(w http.ResponseWriter, data interface{}, baseName string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Disposition", "attachment; filename="+baseName+".json")
 	w.Write(buf)
+}
+
+// sanitizeServer 移除响应中的敏感凭据（SSH 口令/私钥、VNC 口令）
+func sanitizeServer(s *repos.Server) {
+	if s == nil {
+		return
+	}
+	s.Password = nil
+	s.PrivateKey = nil
+	s.VncPassword = nil
+}
+
+func sanitizeServerList(list []repos.Server) {
+	for i := range list {
+		sanitizeServer(&list[i])
+	}
 }
 
 // buildServerSSHConfig 构建服务器 SSH 连接配置（含 ssh_key 凭证解析）

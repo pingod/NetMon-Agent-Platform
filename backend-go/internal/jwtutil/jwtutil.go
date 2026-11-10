@@ -9,7 +9,7 @@ import (
 	"itops-backend/internal/config"
 )
 
-// SignAccessToken 签发访问 token（claims: id/username/role/email，与 TS 一致）
+// SignAccessToken 签发访问 token（claims: id/username/role/email/type=access，与 TS 一致）
 func SignAccessToken(id, username, role string, email *string) (string, error) {
 	expSec, err := config.ParseDuration(config.Env.JWTExpiresIn)
 	if err != nil || expSec <= 0 {
@@ -21,6 +21,7 @@ func SignAccessToken(id, username, role string, email *string) (string, error) {
 		"username": username,
 		"role":     role,
 		"email":    email,
+		"type":     "access",
 		"iat":      now.Unix(),
 		"exp":      now.Add(time.Duration(expSec) * time.Second).Unix(),
 	}

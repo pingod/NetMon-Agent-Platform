@@ -16,29 +16,25 @@ import (
 func VncRoutes() chi.Router {
 	r := chi.NewRouter()
 
-	// GET /config/{serverId} — 获取服务器 VNC 配置
-	r.Get("/config/{serverId}", func(w http.ResponseWriter, r *http.Request) {
+	// GET /config/{serverId} — 获取服务器 VNC 配置（密码由仓库层解密，限制 admin/operator 访问）
+	r.With(middleware.RequireRole("admin", "operator")).Get("/config/{serverId}", func(w http.ResponseWriter, r *http.Request) {
 		serverID := chi.URLParam(r, "serverId")
-		s, err := repos.Servers.GetByID(serverID)
+		hostname, port, password, err := repos.Servers.GetVncConfig(serverID)
 		if err != nil {
-			httpx.RespondError(w, "查询失败", http.StatusInternalServerError)
+			if contains(err.Error(), "not found") {
+				httpx.RespondError(w, "服务器不存在", http.StatusNotFound)
+				return
+			}
+			httpx.RespondError(w, "查询失败: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if s == nil {
-			httpx.RespondError(w, "服务器不存在", http.StatusNotFound)
-			return
+		if port <= 0 {
+			port = 5900
 		}
-
 		cfg := map[string]interface{}{
-			"hostname": s.Hostname,
-		}
-		if s.VncPort != nil && *s.VncPort > 0 {
-			cfg["vnc_port"] = *s.VncPort
-		} else {
-			cfg["vnc_port"] = 5900
-		}
-		if s.VncPassword != nil && *s.VncPassword != "" {
-			cfg["vnc_password"] = *s.VncPassword
+			"hostname":     hostname,
+			"vnc_port":     port,
+			"has_password": password != "",
 		}
 		httpx.Respond(w, cfg)
 	})

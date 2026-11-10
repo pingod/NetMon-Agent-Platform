@@ -3,6 +3,7 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -23,13 +24,13 @@ import (
 // ───────────────────────────────────────────────
 
 const (
-	snmpSessionTimeout   = 30 * time.Second // session watchdog 超时
-	snmpGetBatchSize     = 50               // 标量 OID 批量 GET 每批最大数量
-	snmpWalkConcurrency  = 10               // 表列 OID 并行 WALK 最大并发数
-	snmpHealthTimeout    = 15 * time.Second // 健康检查整体超时
-	snmpTempTimeout      = 3 * time.Second  // 温度采集超时
-	snmpDefaultTimeout   = 10 * time.Second // 单次 SNMP 操作超时
-	snmpDefaultRetries   = 2                // SNMP 重试次数
+	snmpSessionTimeout  = 30 * time.Second // session watchdog 超时
+	snmpGetBatchSize    = 50               // 标量 OID 批量 GET 每批最大数量
+	snmpWalkConcurrency = 10               // 表列 OID 并行 WALK 最大并发数
+	snmpHealthTimeout   = 15 * time.Second // 健康检查整体超时
+	snmpTempTimeout     = 3 * time.Second  // 温度采集超时
+	snmpDefaultTimeout  = 10 * time.Second // 单次 SNMP 操作超时
+	snmpDefaultRetries  = 2                // SNMP 重试次数
 )
 
 // ───────────────────────────────────────────────
@@ -149,11 +150,11 @@ func (s *SnmpService) CreateSession(host string, port int, version SnmpVersion, 
 		port = 161
 	}
 	params := &gosnmp.GoSNMP{
-		Target:    host,
-		Port:      uint16(port),
-		Timeout:   snmpDefaultTimeout,
-		Retries:   snmpDefaultRetries,
-		MaxOids:   snmpGetBatchSize,
+		Target:  host,
+		Port:    uint16(port),
+		Timeout: snmpDefaultTimeout,
+		Retries: snmpDefaultRetries,
+		MaxOids: snmpGetBatchSize,
 	}
 
 	switch version {
@@ -315,15 +316,39 @@ func (s *SnmpService) SnmpGetMultiple(host string, port int, version SnmpVersion
 			if err != nil {
 				continue
 			}
+			// 按 OID 建映射，再按请求顺序回填，避免响应乱序导致指标错位
+			valueMap := make(map[string]*SnmpResult, len(resp.Variables))
 			for _, pdu := range resp.Variables {
 				if pdu.Type == gosnmp.NoSuchObject || pdu.Type == gosnmp.NoSuchInstance {
 					continue
 				}
-				output = append(output, &SnmpResult{
+				res := &SnmpResult{
 					OID:      pdu.Name,
 					Value:    NormalizeSnmpValue(int(pdu.Type), pdu.Value),
 					Type:     int(pdu.Type),
 					TypeName: SnmpTypeName(int(pdu.Type)),
+				}
+				name := strings.TrimPrefix(pdu.Name, ".")
+				valueMap[name] = res
+				valueMap["."+name] = res
+			}
+			for _, oid := range batch {
+				cleanOid := strings.TrimPrefix(oid, ".")
+				res := valueMap[cleanOid]
+				if res == nil {
+					res = valueMap["."+cleanOid]
+				}
+				if res == nil {
+					res = valueMap[cleanOid+".0"]
+				}
+				if res == nil {
+					continue
+				}
+				output = append(output, &SnmpResult{
+					OID:      oid,
+					Value:    res.Value,
+					Type:     res.Type,
+					TypeName: res.TypeName,
 				})
 			}
 		}
@@ -341,25 +366,29 @@ func (s *SnmpService) SnmpGetMultiple(host string, port int, version SnmpVersion
 	}
 }
 
-// walkWithContext 使用已有会话执行 WALK（由调用者管理连接生命周期）
-func (s *SnmpService) walkWithContext(session *gosnmp.GoSNMP, oid string, walkFn gosnmp.WalkFunc) error {
-	// 判断 SNMP 版本：v1 用 Walk，v2c/v3 用 BulkWalk
-	if session.Version == gosnmp.Version1 {
-		return session.Walk(oid, walkFn)
-	}
-	return session.BulkWalk(oid, walkFn)
-}
-
 // ───────────────────────────────────────────────
 // SNMP WALK
 // ───────────────────────────────────────────────
 
-// SnmpWalk subtree walk，返回所有匹配的 PDU
+// SnmpWalk subtree walk，返回所有匹配的 PDU（受 snmpSessionTimeout 约束）
 func (s *SnmpService) SnmpWalk(host string, port int, version SnmpVersion, community string,
+	user, authProtocol, authKey, privProtocol, privKey string, oid string, maxRepetitions int) []*SnmpResult {
+
+	ctx, cancel := context.WithTimeout(context.Background(), snmpSessionTimeout)
+	defer cancel()
+	return s.SnmpWalkCtx(ctx, host, port, version, community,
+		user, authProtocol, authKey, privProtocol, privKey, oid, maxRepetitions)
+}
+
+// SnmpWalkCtx 带 context 的 WALK：ctx 取消时关闭连接以中断阻塞的 walk，避免协程泄漏
+func (s *SnmpService) SnmpWalkCtx(ctx context.Context, host string, port int, version SnmpVersion, community string,
 	user, authProtocol, authKey, privProtocol, privKey string, oid string, maxRepetitions int) []*SnmpResult {
 
 	if maxRepetitions <= 0 {
 		maxRepetitions = 25
+	}
+	if ctx.Err() != nil {
+		return []*SnmpResult{}
 	}
 
 	resultCh := make(chan []*SnmpResult, 1)
@@ -371,6 +400,16 @@ func (s *SnmpService) SnmpWalk(host string, port int, version SnmpVersion, commu
 			return
 		}
 		defer session.Conn.Close()
+
+		walkDone := make(chan struct{})
+		defer close(walkDone)
+		go func() {
+			select {
+			case <-ctx.Done():
+				session.Conn.Close()
+			case <-walkDone:
+			}
+		}()
 
 		var output []*SnmpResult
 		walkFn := func(pdu gosnmp.SnmpPDU) error {
@@ -405,7 +444,7 @@ func (s *SnmpService) SnmpWalk(host string, port int, version SnmpVersion, commu
 			return []*SnmpResult{}
 		}
 		return r
-	case <-time.After(snmpSessionTimeout):
+	case <-ctx.Done():
 		return []*SnmpResult{}
 	}
 }
@@ -464,12 +503,31 @@ func (s *SnmpService) GetSystemInfoSimple(host string, port int, version SnmpVer
 	return s.GetSystemInfo(host, port, version, community, "", "", "", "", "")
 }
 
+// walkWithContext 使用已有会话执行 WALK（由调用者管理连接生命周期）
+func (s *SnmpService) walkWithContext(session *gosnmp.GoSNMP, oid string, walkFn gosnmp.WalkFunc) error {
+	// 判断 SNMP 版本：v1 用 Walk，v2c/v3 用 BulkWalk
+	if session.Version == gosnmp.Version1 {
+		return session.Walk(oid, walkFn)
+	}
+	return session.BulkWalk(oid, walkFn)
+}
+
 // ───────────────────────────────────────────────
 // 接口采集
 // ───────────────────────────────────────────────
 
-// GetInterfaces 获取设备全部接口信息（并行 WALK 16 个 OID 维度）
+// GetInterfaces 获取设备全部接口信息（复用单个 SNMP 会话顺序 WALK，避免为每个 OID 重复建连）
 func (s *SnmpService) GetInterfaces(host string, port int, version SnmpVersion, community string,
+	user, authProtocol, authKey, privProtocol, privKey string) []InterfaceInfo {
+
+	ctx, cancel := context.WithTimeout(context.Background(), snmpSessionTimeout)
+	defer cancel()
+	return s.GetInterfacesCtx(ctx, host, port, version, community,
+		user, authProtocol, authKey, privProtocol, privKey)
+}
+
+// GetInterfacesCtx 带 context 的接口采集：共享一个会话顺序 WALK，ctx 取消时立即中断
+func (s *SnmpService) GetInterfacesCtx(ctx context.Context, host string, port int, version SnmpVersion, community string,
 	user, authProtocol, authKey, privProtocol, privKey string) []InterfaceInfo {
 
 	walkOIDs := []string{
@@ -481,18 +539,48 @@ func (s *SnmpService) GetInterfaces(host string, port int, version SnmpVersion, 
 		IfMibOIDs.IfInUcastPkts, IfMibOIDs.IfOutUcastPkts, IfMibOIDs.IfLastChange,
 	}
 
-	// 并行 walk
 	results := make([][]*SnmpResult, len(walkOIDs))
-	var wg sync.WaitGroup
-	for i, oid := range walkOIDs {
-		wg.Add(1)
-		go func(idx int, targetOID string) {
-			defer wg.Done()
-			results[idx] = s.SnmpWalk(host, port, version, community,
-				user, authProtocol, authKey, privProtocol, privKey, targetOID, 50)
-		}(i, oid)
+
+	session, err := s.createAndConnect(host, port, version, community,
+		user, authProtocol, authKey, privProtocol, privKey)
+	if err != nil {
+		return nil
 	}
-	wg.Wait()
+	defer session.Conn.Close()
+
+	walkDone := make(chan struct{})
+	defer close(walkDone)
+	go func() {
+		select {
+		case <-ctx.Done():
+			session.Conn.Close()
+		case <-walkDone:
+		}
+	}()
+
+	for i, targetOID := range walkOIDs {
+		if ctx.Err() != nil {
+			break
+		}
+		var output []*SnmpResult
+		walkFn := func(pdu gosnmp.SnmpPDU) error {
+			if pdu.Type == gosnmp.NoSuchObject || pdu.Type == gosnmp.NoSuchInstance {
+				return nil
+			}
+			output = append(output, &SnmpResult{
+				OID:      pdu.Name,
+				Value:    NormalizeSnmpValue(int(pdu.Type), pdu.Value),
+				Type:     int(pdu.Type),
+				TypeName: SnmpTypeName(int(pdu.Type)),
+			})
+			return nil
+		}
+		if err := s.walkWithContext(session, targetOID, walkFn); err != nil {
+			// 单个维度失败（设备未实现该列）不影响其余维度
+			continue
+		}
+		results[i] = output
+	}
 
 	// 构建 index → 值 映射
 	makeMap := func(arr []*SnmpResult) map[int]string {
@@ -577,21 +665,21 @@ func (s *SnmpService) GetInterfaces(host string, port int, version SnmpVersion, 
 		}
 
 		interfaces = append(interfaces, InterfaceInfo{
-			Index:       idx,
-			Name:        name,
-			Descr:       descrMap[idx],
-			Type:        ifType,
-			TypeName:    GetIfTypeName(ifType),
-			Speed:       effectiveSpeed,
-			MTU:         mtu,
-			MAC:         FormatMAC(macMap[idx]),
-			AdminStatus: adminStatus,
-			OperStatus:  operStatus,
-			Alias:       aliasMap[idx],
-			InOctets:    inOctets,
-			OutOctets:   outOctets,
-			InErrors:    parseInt64Safe(inErrMap[idx]),
-			OutErrors:   parseInt64Safe(outErrMap[idx]),
+			Index:        idx,
+			Name:         name,
+			Descr:        descrMap[idx],
+			Type:         ifType,
+			TypeName:     GetIfTypeName(ifType),
+			Speed:        effectiveSpeed,
+			MTU:          mtu,
+			MAC:          FormatMAC(macMap[idx]),
+			AdminStatus:  adminStatus,
+			OperStatus:   operStatus,
+			Alias:        aliasMap[idx],
+			InOctets:     inOctets,
+			OutOctets:    outOctets,
+			InErrors:     parseInt64Safe(inErrMap[idx]),
+			OutErrors:    parseInt64Safe(outErrMap[idx]),
 			InUcastPkts:  parseInt64Safe(inUcastPktsMap[idx]),
 			OutUcastPkts: parseInt64Safe(outUcastPktsMap[idx]),
 			LastChange:   parseInt64Safe(lastChangeMap[idx]),
@@ -638,21 +726,24 @@ func (s *SnmpService) HealthCheck(deviceID string, host string, port int) *Devic
 		community = "public"
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), snmpHealthTimeout)
+	defer cancel()
+
 	resultCh := make(chan *DeviceHealth, 1)
 	go func() {
-		resultCh <- s.doHealthCheck(targetHost, targetPort, credential, device.Vendor)
+		resultCh <- s.doHealthCheck(ctx, targetHost, targetPort, credential, device.Vendor)
 	}()
 
 	select {
 	case r := <-resultCh:
 		return r
-	case <-time.After(snmpHealthTimeout):
+	case <-ctx.Done():
 		return nil
 	}
 }
 
-// doHealthCheck 实际执行健康检查
-func (s *SnmpService) doHealthCheck(host string, port int, cred *SnmpCredential, vendor string) *DeviceHealth {
+// doHealthCheck 实际执行健康检查；所有 SNMP walk 都受 ctx 约束，超时后立即中断
+func (s *SnmpService) doHealthCheck(ctx context.Context, host string, port int, cred *SnmpCredential, vendor string) *DeviceHealth {
 	// 并行获取系统信息和接口
 	var sysInfo *SystemInfo
 	var interfaces []InterfaceInfo
@@ -667,7 +758,7 @@ func (s *SnmpService) doHealthCheck(host string, port int, cred *SnmpCredential,
 	}()
 	go func() {
 		defer wg.Done()
-		interfaces = s.GetInterfaces(host, port, cred.SnmpVersion, cred.Community,
+		interfaces = s.GetInterfacesCtx(ctx, host, port, cred.SnmpVersion, cred.Community,
 			cred.SnmpUser, cred.SnmpAuthProtocol, cred.SnmpAuthKey,
 			cred.SnmpPrivProtocol, cred.SnmpPrivKey)
 	}()
@@ -711,7 +802,7 @@ func (s *SnmpService) doHealthCheck(host string, port int, cred *SnmpCredential,
 			tempCh := make(chan *float64, 1)
 			go func() {
 				for _, tempOID := range vendorOIDs.Temperature {
-					temps := s.SnmpWalk(host, port, cred.SnmpVersion, cred.Community,
+					temps := s.SnmpWalkCtx(ctx, host, port, cred.SnmpVersion, cred.Community,
 						cred.SnmpUser, cred.SnmpAuthProtocol, cred.SnmpAuthKey,
 						cred.SnmpPrivProtocol, cred.SnmpPrivKey, tempOID, 10)
 					var maxVal float64
@@ -745,7 +836,7 @@ func (s *SnmpService) doHealthCheck(host string, port int, cred *SnmpCredential,
 		if vendorOIDs.PowerStatus != "" {
 			powerCh := make(chan *string, 1)
 			go func() {
-				results := s.SnmpWalk(host, port, cred.SnmpVersion, cred.Community,
+				results := s.SnmpWalkCtx(ctx, host, port, cred.SnmpVersion, cred.Community,
 					cred.SnmpUser, cred.SnmpAuthProtocol, cred.SnmpAuthKey,
 					cred.SnmpPrivProtocol, cred.SnmpPrivKey, vendorOIDs.PowerStatus, 20)
 				if len(results) == 0 {
@@ -780,7 +871,7 @@ func (s *SnmpService) doHealthCheck(host string, port int, cred *SnmpCredential,
 		if vendorOIDs.FanStatus != "" {
 			fanCh := make(chan *string, 1)
 			go func() {
-				results := s.SnmpWalk(host, port, cred.SnmpVersion, cred.Community,
+				results := s.SnmpWalkCtx(ctx, host, port, cred.SnmpVersion, cred.Community,
 					cred.SnmpUser, cred.SnmpAuthProtocol, cred.SnmpAuthKey,
 					cred.SnmpPrivProtocol, cred.SnmpPrivKey, vendorOIDs.FanStatus, 20)
 				if len(results) == 0 {
@@ -819,7 +910,7 @@ func (s *SnmpService) doHealthCheck(host string, port int, cred *SnmpCredential,
 					opticWG.Add(1)
 					go func() {
 						defer opticWG.Done()
-						results := s.SnmpWalk(host, port, cred.SnmpVersion, cred.Community,
+						results := s.SnmpWalkCtx(ctx, host, port, cred.SnmpVersion, cred.Community,
 							cred.SnmpUser, cred.SnmpAuthProtocol, cred.SnmpAuthKey,
 							cred.SnmpPrivProtocol, cred.SnmpPrivKey, vendorOIDs.OpticRxPower, 20)
 						for _, r := range results {
@@ -836,7 +927,7 @@ func (s *SnmpService) doHealthCheck(host string, port int, cred *SnmpCredential,
 					opticWG.Add(1)
 					go func() {
 						defer opticWG.Done()
-						results := s.SnmpWalk(host, port, cred.SnmpVersion, cred.Community,
+						results := s.SnmpWalkCtx(ctx, host, port, cred.SnmpVersion, cred.Community,
 							cred.SnmpUser, cred.SnmpAuthProtocol, cred.SnmpAuthKey,
 							cred.SnmpPrivProtocol, cred.SnmpPrivKey, vendorOIDs.OpticTxPower, 20)
 						for _, r := range results {
@@ -852,7 +943,7 @@ func (s *SnmpService) doHealthCheck(host string, port int, cred *SnmpCredential,
 					opticWG.Add(1)
 					go func() {
 						defer opticWG.Done()
-						results := s.SnmpWalk(host, port, cred.SnmpVersion, cred.Community,
+						results := s.SnmpWalkCtx(ctx, host, port, cred.SnmpVersion, cred.Community,
 							cred.SnmpUser, cred.SnmpAuthProtocol, cred.SnmpAuthKey,
 							cred.SnmpPrivProtocol, cred.SnmpPrivKey, vendorOIDs.OpticTemperature, 20)
 						for _, r := range results {

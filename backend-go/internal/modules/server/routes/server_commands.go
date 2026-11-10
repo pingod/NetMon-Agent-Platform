@@ -352,8 +352,8 @@ func handleBatchServerInspection(w http.ResponseWriter, r *http.Request) {
 	if req.Concurrency != nil && *req.Concurrency > 0 {
 		concurrency = *req.Concurrency
 	}
-	if concurrency > 20 {
-		concurrency = 20
+	if concurrency > 8 {
+		concurrency = 8
 	}
 
 	inspType := req.InspectionType
@@ -661,15 +661,15 @@ func lineCount(s string) int {
 // defaultServerChecks 返回默认服务器巡检检查项（当无模版时使用）
 func defaultServerChecks() map[string]string {
 	return map[string]string{
-		"系统版本":   "cat /etc/os-release 2>/dev/null | head -5 || ver",
-		"内核版本":   "uname -a",
-		"运行时间":   "uptime",
-		"CPU负载":   "top -bn1 | head -5",
-		"内存使用":   "free -m",
-		"磁盘使用":   "df -h",
-		"最近登录":   "last -n 10 2>/dev/null || echo N/A",
-		"开放端口":   "ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null || echo N/A",
-		"SSH配置":   "grep -E 'PermitRootLogin|PasswordAuthentication' /etc/ssh/sshd_config 2>/dev/null || echo N/A",
+		"系统版本":  "cat /etc/os-release 2>/dev/null | head -5 || ver",
+		"内核版本":  "uname -a",
+		"运行时间":  "uptime",
+		"CPU负载": "top -bn1 | head -5",
+		"内存使用":  "free -m",
+		"磁盘使用":  "df -h",
+		"最近登录":  "last -n 10 2>/dev/null || echo N/A",
+		"开放端口":  "ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null || echo N/A",
+		"SSH配置": "grep -E 'PermitRootLogin|PasswordAuthentication' /etc/ssh/sshd_config 2>/dev/null || echo N/A",
 		"防火墙状态": "systemctl is-active firewalld 2>/dev/null || ufw status 2>/dev/null || echo N/A",
 	}
 }

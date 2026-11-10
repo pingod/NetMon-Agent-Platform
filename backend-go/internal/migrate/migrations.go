@@ -10,10 +10,30 @@ package migrate
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
 
 	"itops-backend/internal/logger"
 	"itops-backend/internal/migrate/schema"
 )
+
+// isDuplicateColumnErr 判断 ALTER TABLE ADD COLUMN 是否仅因列已存在失败。
+// 只有这类错误可以安全忽略，其他错误（权限、锁、语法、磁盘）必须向上返回。
+func isDuplicateColumnErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "duplicate column") || strings.Contains(msg, "duplicate column name")
+}
+
+// addColumnIfMissing 逐条执行 ALTER，列已存在时忽略
+func addColumnIfMissing(tx *sql.Tx, stmt string) error {
+	if _, err := tx.Exec(stmt); err != nil && !isDuplicateColumnErr(err) {
+		return fmt.Errorf("%s: %w", stmt, err)
+	}
+	return nil
+}
 
 // migrationName 与 TS schema_migrations 中记录的 name 完全一致（权威来源：数据库导出）
 var migrationNames = map[int]string{
@@ -83,6 +103,7 @@ var migrationNames = map[int]string{
 	66: "poll_intervals",
 	67: "inspection_templates",
 	68: "servers_vendor_model",
+	69: "agent_token_and_token_invalidation",
 }
 
 // 迁移版本号升序序列（v11、v21 在 TS 中即为空洞）
@@ -93,7 +114,7 @@ var migrationVersions = []int{
 	32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
 	42, 43, 44, 45, 46, 47, 48, 49, 50,
 	51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
-	61, 62, 63, 64, 65, 66, 67, 68,
+	61, 62, 63, 64, 65, 66, 67, 68, 69,
 }
 
 // execScript 在事务上执行多语句 SQL 脚本。
@@ -129,9 +150,10 @@ func buildAllMigrations() []Migration {
 		} else if v == 66 {
 			m.Description = "Add system_poll_interval and interface_poll_interval to network_devices"
 			m.Up = func(tx *sql.Tx) error {
-				_, _ = tx.Exec("ALTER TABLE network_devices ADD COLUMN system_poll_interval INTEGER NOT NULL DEFAULT 300")
-				_, _ = tx.Exec("ALTER TABLE network_devices ADD COLUMN interface_poll_interval INTEGER NOT NULL DEFAULT 60")
-				return nil
+				if err := addColumnIfMissing(tx, "ALTER TABLE network_devices ADD COLUMN system_poll_interval INTEGER NOT NULL DEFAULT 300"); err != nil {
+					return err
+				}
+				return addColumnIfMissing(tx, "ALTER TABLE network_devices ADD COLUMN interface_poll_interval INTEGER NOT NULL DEFAULT 60")
 			}
 		} else if v == 67 {
 			m.Description = "Create inspection_templates table for inspection command templates"
@@ -176,8 +198,24 @@ CREATE TABLE IF NOT EXISTS inspection_templates (
 		} else if v == 68 {
 			m.Description = "Add vendor and model columns to servers table"
 			m.Up = func(tx *sql.Tx) error {
-				_, _ = tx.Exec("ALTER TABLE servers ADD COLUMN vendor TEXT DEFAULT 'other'")
-				_, _ = tx.Exec("ALTER TABLE servers ADD COLUMN model TEXT DEFAULT ''")
+				if err := addColumnIfMissing(tx, "ALTER TABLE servers ADD COLUMN vendor TEXT DEFAULT 'other'"); err != nil {
+					return err
+				}
+				return addColumnIfMissing(tx, "ALTER TABLE servers ADD COLUMN model TEXT DEFAULT ''")
+			}
+		} else if v == 69 {
+			m.Description = "Add agent_token, users.token_invalid_before and alerts.device_id"
+			m.Up = func(tx *sql.Tx) error {
+				alters := []string{
+					"ALTER TABLE users ADD COLUMN token_invalid_before INTEGER NOT NULL DEFAULT 0",
+					"ALTER TABLE alerts ADD COLUMN device_id TEXT DEFAULT ''",
+					"ALTER TABLE servers ADD COLUMN agent_token TEXT DEFAULT ''",
+				}
+				for _, stmt := range alters {
+					if err := addColumnIfMissing(tx, stmt); err != nil {
+						return err
+					}
+				}
 				return nil
 			}
 		}
@@ -202,9 +240,24 @@ func RunMigrations(db *sql.DB) error {
 		return &MigrationError{Version: res.FailedVersion, Msg: res.ErrorMessage}
 	}
 	// 确保 custom_dashboard_metrics 包含 chart_type, metric_name 与 tags 列
-	_, _ = db.Exec(`ALTER TABLE custom_dashboard_metrics ADD COLUMN chart_type TEXT DEFAULT 'auto'`)
-	_, _ = db.Exec(`ALTER TABLE custom_dashboard_metrics ADD COLUMN metric_name TEXT DEFAULT ''`)
-	_, _ = db.Exec(`ALTER TABLE custom_dashboard_metrics ADD COLUMN tags TEXT DEFAULT ''`)
+	// 仅忽略“列已存在”，其余错误必须让启动失败（避免 schema 漂移后静默运行）
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("post-migration schema fix: begin: %w", err)
+	}
+	for _, stmt := range []string{
+		`ALTER TABLE custom_dashboard_metrics ADD COLUMN chart_type TEXT DEFAULT 'auto'`,
+		`ALTER TABLE custom_dashboard_metrics ADD COLUMN metric_name TEXT DEFAULT ''`,
+		`ALTER TABLE custom_dashboard_metrics ADD COLUMN tags TEXT DEFAULT ''`,
+	} {
+		if err := addColumnIfMissing(tx, stmt); err != nil {
+			_ = tx.Rollback()
+			return fmt.Errorf("post-migration schema fix: %w", err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("post-migration schema fix: commit: %w", err)
+	}
 	return nil
 }
 
@@ -216,11 +269,36 @@ func RunMetricsMigrations(db *sql.DB) error {
 		logger.Errorf("Failed to create metrics schema: %v", err)
 		return err
 	}
+	// 旧 metrics.db 的 server_metrics 缺少扩展列：逐条补列，仅忽略“列已存在”
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("metrics schema upgrade: begin: %w", err)
+	}
+	metricAlters := []string{
+		`ALTER TABLE server_metrics ADD COLUMN disk_read_kbps REAL DEFAULT 0`,
+		`ALTER TABLE server_metrics ADD COLUMN disk_write_kbps REAL DEFAULT 0`,
+		`ALTER TABLE server_metrics ADD COLUMN net_rx_kbps REAL DEFAULT 0`,
+		`ALTER TABLE server_metrics ADD COLUMN net_tx_kbps REAL DEFAULT 0`,
+		`ALTER TABLE server_metrics ADD COLUMN cpu_user REAL DEFAULT 0`,
+		`ALTER TABLE server_metrics ADD COLUMN cpu_system REAL DEFAULT 0`,
+		`ALTER TABLE server_metrics ADD COLUMN cpu_iowait REAL DEFAULT 0`,
+		`ALTER TABLE server_metrics ADD COLUMN memory_cached_gb REAL DEFAULT 0`,
+		`ALTER TABLE server_metrics ADD COLUMN memory_buffers_gb REAL DEFAULT 0`,
+		`ALTER TABLE server_metrics ADD COLUMN swap_used_gb REAL DEFAULT 0`,
+		`ALTER TABLE server_metrics ADD COLUMN raw_metrics TEXT DEFAULT '{}'`,
+	}
+	for _, stmt := range metricAlters {
+		if err := addColumnIfMissing(tx, stmt); err != nil {
+			_ = tx.Rollback()
+			return fmt.Errorf("metrics schema upgrade: %w", err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("metrics schema upgrade: commit: %w", err)
+	}
 	logger.Infof("Metrics database schema created/verified")
 	return nil
 }
-
-
 
 // MigrationError 迁移失败错误
 type MigrationError struct {

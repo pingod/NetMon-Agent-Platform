@@ -3,6 +3,7 @@ package migrate
 
 import (
 	"database/sql"
+	"fmt"
 	"sort"
 	"sync"
 
@@ -33,11 +34,11 @@ type Record struct {
 
 // Result 迁移结果
 type Result struct {
-	Success           bool
+	Success            bool
 	ExecutedMigrations int
-	CurrentVersion    int
-	FailedVersion     int
-	ErrorMessage      string
+	CurrentVersion     int
+	FailedVersion      int
+	ErrorMessage       string
 }
 
 // Manager 迁移管理器
@@ -180,6 +181,8 @@ func (m *Manager) MigrateTo(target int) Result {
 		m.insertRecordTx(tx, mig.Version, mig.Name, true, "")
 		if err := tx.Commit(); err != nil {
 			logger.Errorf("❌ Migration v%d commit failed: %v", mig.Version, err)
+			// 事务未提交则迁移记录与结构变更都未生效，必须视为失败，绝不能记录成功
+			return Result{Success: false, ExecutedMigrations: executed, CurrentVersion: m.CurrentVersion(), FailedVersion: mig.Version, ErrorMessage: fmt.Sprintf("commit failed: %v", err)}
 		}
 		executed++
 		logger.Infof("✅ Migration v%d applied successfully", mig.Version)

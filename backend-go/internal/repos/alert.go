@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 
 	"itops-backend/internal/appdb"
@@ -202,26 +201,26 @@ func (AlertAutoAnalysisRepo) List(limit int, alertID string) ([]AlertAutoAnalysi
 // ── 告警关联 ──
 
 type CorrelationGroup struct {
-	ID          string  `json:"id"`
-	Title       string  `json:"title"`
-	Description *string `json:"description"`
-	Status      string  `json:"status"`
-	RootAlertID *string `json:"root_alert_id"`
-	RootCause   *string `json:"root_cause"`
-	AlertCount  int     `json:"alert_count"`
-	DeviceIDs   *string `json:"device_ids"`
-	Severity    string  `json:"severity"`
-	AutoDetected bool   `json:"auto_detected"`
-	CreatedAt   string  `json:"created_at"`
-	UpdatedAt   string  `json:"updated_at"`
-	ResolvedAt  *string `json:"resolved_at"`
+	ID           string  `json:"id"`
+	Title        string  `json:"title"`
+	Description  *string `json:"description"`
+	Status       string  `json:"status"`
+	RootAlertID  *string `json:"root_alert_id"`
+	RootCause    *string `json:"root_cause"`
+	AlertCount   int     `json:"alert_count"`
+	DeviceIDs    *string `json:"device_ids"`
+	Severity     string  `json:"severity"`
+	AutoDetected bool    `json:"auto_detected"`
+	CreatedAt    string  `json:"created_at"`
+	UpdatedAt    string  `json:"updated_at"`
+	ResolvedAt   *string `json:"resolved_at"`
 }
 
 type CorrelationStats struct {
-	TotalGroups    int `json:"total_groups"`
-	OpenGroups     int `json:"open_groups"`
-	ResolvedGroups int `json:"resolved_groups"`
-	AutoDetected   int `json:"auto_detected"`
+	TotalGroups    int     `json:"total_groups"`
+	OpenGroups     int     `json:"open_groups"`
+	ResolvedGroups int     `json:"resolved_groups"`
+	AutoDetected   int     `json:"auto_detected"`
 	AvgGroupSize   float64 `json:"avg_group_size"`
 }
 
@@ -369,13 +368,13 @@ func (AlertCorrelationRepo) GetGroupMembers(groupID string) ([]map[string]interf
 // ── 告警映射 (alert_workflow_mappings) ──
 
 type AlertMapping struct {
-	ID               string  `json:"id"`
-	AlertSource      *string `json:"alert_source"`
-	AlertSeverity    *string `json:"alert_severity"`
+	ID                string  `json:"id"`
+	AlertSource       *string `json:"alert_source"`
+	AlertSeverity     *string `json:"alert_severity"`
 	AlertTitlePattern *string `json:"alert_title_pattern"`
-	WorkflowID       string  `json:"workflow_id"`
-	Enabled          int     `json:"enabled"`
-	CreatedAt        string  `json:"created_at"`
+	WorkflowID        string  `json:"workflow_id"`
+	Enabled           int     `json:"enabled"`
+	CreatedAt         string  `json:"created_at"`
 	// join 字段
 	WorkflowName *string `json:"workflow_name,omitempty"`
 }
@@ -414,7 +413,7 @@ func (AlertMappingRepo) List() ([]AlertMapping, error) {
 
 func (AlertMappingRepo) Create(m AlertMapping) error {
 	db := appdb.DB()
-	_, err := db.Exec("INSERT INTO alert_workflow_mappings (id, alert_source, alert_severity, alert_title_pattern, workflow_id, enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now','localtime'))",
+	_, err := db.Exec("INSERT INTO alert_workflow_mappings (id, alert_source, alert_severity, alert_title_pattern, workflow_id, enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, "+appdb.NowExpr()+")",
 		m.ID, ptrToNullStr(m.AlertSource), ptrToNullStr(m.AlertSeverity), ptrToNullStr(m.AlertTitlePattern), m.WorkflowID, m.Enabled)
 	return err
 }
@@ -435,16 +434,16 @@ func (AlertMappingRepo) Delete(id string) error {
 // ── 告警降噪 (alert_noise_reduction) ──
 
 type NoiseReduction struct {
-	ID               string  `json:"id"`
-	AlertFingerprint string  `json:"alert_fingerprint"`
-	AlertSource      string  `json:"alert_source"`
-	AlertTitle       string  `json:"alert_title"`
-	OccurrenceCount  int     `json:"occurrence_count"`
-	FirstOccurrence  string  `json:"first_occurrence"`
-	LastOccurrence   string  `json:"last_occurrence"`
-	IsSuppressed     int     `json:"is_suppressed"`
+	ID                string  `json:"id"`
+	AlertFingerprint  string  `json:"alert_fingerprint"`
+	AlertSource       string  `json:"alert_source"`
+	AlertTitle        string  `json:"alert_title"`
+	OccurrenceCount   int     `json:"occurrence_count"`
+	FirstOccurrence   string  `json:"first_occurrence"`
+	LastOccurrence    string  `json:"last_occurrence"`
+	IsSuppressed      int     `json:"is_suppressed"`
 	SuppressionReason *string `json:"suppression_reason"`
-	SuppressionUntil *string `json:"suppression_until"`
+	SuppressionUntil  *string `json:"suppression_until"`
 }
 
 var AlertNoise = &AlertNoiseRepo{}
@@ -504,13 +503,12 @@ func (AlertNoiseRepo) ListSuppressed() ([]NoiseReduction, error) {
 
 func (AlertNoiseRepo) Suppress(fingerprint, reason string, durationMinutes int) error {
 	db := appdb.DB()
-	var untilStr string
-	if durationMinutes > 0 {
-		untilStr = fmt.Sprintf("datetime('now','localtime', '+%d minutes')", durationMinutes)
-	} else {
-		untilStr = "datetime('now','localtime', '+1440 minutes')"
+	minutes := durationMinutes
+	if minutes <= 0 {
+		minutes = 1440
 	}
-	_, err := db.Exec("UPDATE alert_noise_reduction SET is_suppressed = 1, suppression_reason = ?, suppression_until = "+untilStr+" WHERE alert_fingerprint = ?", reason, fingerprint)
+	untilStr := time.Now().Add(time.Duration(minutes) * time.Minute).Format("2006-01-02 15:04:05")
+	_, err := db.Exec("UPDATE alert_noise_reduction SET is_suppressed = 1, suppression_reason = ?, suppression_until = ? WHERE alert_fingerprint = ?", reason, untilStr, fingerprint)
 	return err
 }
 
@@ -525,7 +523,8 @@ func (AlertNoiseRepo) Cleanup(daysToKeep int) error {
 	if daysToKeep <= 0 {
 		daysToKeep = 30
 	}
-	_, err := db.Exec("DELETE FROM alert_noise_reduction WHERE last_occurrence < datetime('now','localtime', '-"+strconv.Itoa(daysToKeep)+" days')")
+	cutoff := time.Now().AddDate(0, 0, -daysToKeep).Format("2006-01-02 15:04:05")
+	_, err := db.Exec("DELETE FROM alert_noise_reduction WHERE last_occurrence < ?", cutoff)
 	return err
 }
 
@@ -574,7 +573,7 @@ func (AlertProviderConfigRepo) List() ([]AlertProviderConfig, error) {
 func (AlertProviderConfigRepo) Create(c AlertProviderConfig) error {
 	db := appdb.DB()
 	configJSON := ptrToNullStr(c.Config)
-	_, err := db.Exec("INSERT INTO alert_provider_configs (id, provider_id, name, config, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, datetime('now','localtime'), datetime('now','localtime'))",
+	_, err := db.Exec("INSERT INTO alert_provider_configs (id, provider_id, name, config, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, "+appdb.NowExpr()+", "+appdb.NowExpr()+")",
 		c.ID, c.ProviderID, c.Name, configJSON, c.Enabled)
 	return err
 }
@@ -582,7 +581,7 @@ func (AlertProviderConfigRepo) Create(c AlertProviderConfig) error {
 func (AlertProviderConfigRepo) Update(id string, c AlertProviderConfig) error {
 	db := appdb.DB()
 	configJSON := ptrToNullStr(c.Config)
-	_, err := db.Exec("UPDATE alert_provider_configs SET provider_id = ?, name = ?, config = ?, enabled = ?, updated_at = datetime('now','localtime') WHERE id = ?",
+	_, err := db.Exec("UPDATE alert_provider_configs SET provider_id = ?, name = ?, config = ?, enabled = ?, updated_at = "+appdb.NowExpr()+" WHERE id = ?",
 		c.ProviderID, c.Name, configJSON, c.Enabled, id)
 	return err
 }
@@ -596,22 +595,22 @@ func (AlertProviderConfigRepo) Delete(id string) error {
 // ── 自动响应日志 (aars_response_logs) ──
 
 type AarsResponseLog struct {
-	ID                string  `json:"id"`
-	AlertID           string  `json:"alert_id"`
-	DeviceID          *string `json:"device_id"`
-	DeviceType        *string `json:"device_type"`
-	AccessMethod      *string `json:"access_method"`
-	Status            string  `json:"status"`
-	ProbesUsed        *string `json:"probes_used"`
-	DiagnosisResult   *string `json:"diagnosis_result"`
-	RootCause         *string `json:"root_cause"`
-	RemediationPlan   *string `json:"remediation_plan"`
+	ID                 string  `json:"id"`
+	AlertID            string  `json:"alert_id"`
+	DeviceID           *string `json:"device_id"`
+	DeviceType         *string `json:"device_type"`
+	AccessMethod       *string `json:"access_method"`
+	Status             string  `json:"status"`
+	ProbesUsed         *string `json:"probes_used"`
+	DiagnosisResult    *string `json:"diagnosis_result"`
+	RootCause          *string `json:"root_cause"`
+	RemediationPlan    *string `json:"remediation_plan"`
 	VerificationResult *string `json:"verification_result"`
-	ExecutionStatus   *string `json:"execution_status"`
-	ApprovalStatus    string  `json:"approval_status"`
-	ErrorMessage      *string `json:"error_message"`
-	StartedAt         string  `json:"started_at"`
-	CompletedAt       *string `json:"completed_at"`
+	ExecutionStatus    *string `json:"execution_status"`
+	ApprovalStatus     string  `json:"approval_status"`
+	ErrorMessage       *string `json:"error_message"`
+	StartedAt          string  `json:"started_at"`
+	CompletedAt        *string `json:"completed_at"`
 }
 
 var AarsResponseLogs = &AarsResponseLogRepo{}

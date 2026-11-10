@@ -32,7 +32,7 @@ func SnmpRoutes() chi.Router {
 	handleSnmpStatus := func(w http.ResponseWriter, r *http.Request) {
 		var credCount, taskCount int
 		appdb.DB().QueryRow(`SELECT COUNT(*) FROM snmp_credentials`).Scan(&credCount)
-		appdb.DB().QueryRow(`SELECT COUNT(*) FROM snmp_polling_tasks`).Scan(&taskCount)
+		appdb.DBForTable("snmp_polling_tasks").QueryRow(`SELECT COUNT(*) FROM snmp_polling_tasks`).Scan(&taskCount)
 		httpx.Respond(w, map[string]interface{}{
 			"status":            "healthy",
 			"credentials_count": credCount,
@@ -89,10 +89,20 @@ func SnmpRoutes() chi.Router {
 		}
 		var authKeyEnc, privKeyEnc string
 		if req.SnmpAuthKey != "" {
-			authKeyEnc = crypto.Encrypt(req.SnmpAuthKey)
+			enc, encErr := crypto.Encrypt(req.SnmpAuthKey)
+			if encErr != nil {
+				httpx.RespondError(w, "加密 SNMP 认证密钥失败", http.StatusInternalServerError)
+				return
+			}
+			authKeyEnc = enc
 		}
 		if req.SnmpPrivKey != "" {
-			privKeyEnc = crypto.Encrypt(req.SnmpPrivKey)
+			enc, encErr := crypto.Encrypt(req.SnmpPrivKey)
+			if encErr != nil {
+				httpx.RespondError(w, "加密 SNMP 加密密钥失败", http.StatusInternalServerError)
+				return
+			}
+			privKeyEnc = enc
 		}
 
 		id := uuid.New().String()
@@ -148,10 +158,20 @@ func SnmpRoutes() chi.Router {
 		communityVal := req.Community
 		var authKeyEnc, privKeyEnc string
 		if req.SnmpAuthKey != "" {
-			authKeyEnc = crypto.Encrypt(req.SnmpAuthKey)
+			enc, encErr := crypto.Encrypt(req.SnmpAuthKey)
+			if encErr != nil {
+				httpx.RespondError(w, "加密 SNMP 认证密钥失败", http.StatusInternalServerError)
+				return
+			}
+			authKeyEnc = enc
 		}
 		if req.SnmpPrivKey != "" {
-			privKeyEnc = crypto.Encrypt(req.SnmpPrivKey)
+			enc, encErr := crypto.Encrypt(req.SnmpPrivKey)
+			if encErr != nil {
+				httpx.RespondError(w, "加密 SNMP 加密密钥失败", http.StatusInternalServerError)
+				return
+			}
+			privKeyEnc = enc
 		}
 
 		err := repos.SnmpCredentials.Update(id, repos.SnmpCredentialCreateInput{
@@ -598,7 +618,7 @@ func SnmpRoutes() chi.Router {
 		varbinds := `[{"oid":"1.3.6.1.2.1.1.5.0","value":"iKuai","type":4},{"oid":"1.3.6.1.2.1.1.3.0","value":"123456","type":67},{"oid":"1.3.6.1.4.1.9.9.43.1.1.1.0","value":"linkDown","type":4},{"oid":"1.3.6.1.6.3.1.1.4.1.0","value":"1.3.6.1.6.3.1.1.5.3","type":6}]`
 
 		err := repos.SnmpTraps.Insert(repos.SnmpTrapEvent{
-			ID:           id,
+			ID:            id,
 			SourceIP:      "192.168.60.1",
 			TrapType:      "coldStart",
 			EnterpriseOID: "1.3.6.1.4.1",
@@ -771,12 +791,12 @@ func SnmpRoutes() chi.Router {
 	// POST /custom-oids — 创建自定义 OID 配置
 	r.With(middleware.RequireRole("admin")).Post("/custom-oids", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			Name              string                   `json:"name"`
-			Vendor            string                   `json:"vendor"`
-			Description       string                   `json:"description"`
-			OIDs              []map[string]interface{} `json:"oids"`
-			PollIntervalSeconds int                     `json:"poll_interval_seconds"`
-			Enabled           bool                     `json:"enabled"`
+			Name                string                   `json:"name"`
+			Vendor              string                   `json:"vendor"`
+			Description         string                   `json:"description"`
+			OIDs                []map[string]interface{} `json:"oids"`
+			PollIntervalSeconds int                      `json:"poll_interval_seconds"`
+			Enabled             bool                     `json:"enabled"`
 		}
 		if !parseJSON(w, r, &req) {
 			return
@@ -796,13 +816,13 @@ func SnmpRoutes() chi.Router {
 		}
 
 		profile := repos.CustomOidProfile{
-			ID:                uuid.New().String(),
-			Name:              req.Name,
-			Vendor:            nsStr(req.Vendor),
-			Description:       nsStr(req.Description),
-			OidsJSON:          string(oidsJSON),
+			ID:                  uuid.New().String(),
+			Name:                req.Name,
+			Vendor:              nsStr(req.Vendor),
+			Description:         nsStr(req.Description),
+			OidsJSON:            string(oidsJSON),
 			PollIntervalSeconds: req.PollIntervalSeconds,
-			Enabled:           enabled,
+			Enabled:             enabled,
 		}
 		if err := repos.SnmpCustomOids.Create(profile); err != nil {
 			httpx.RespondError(w, err.Error(), http.StatusInternalServerError)
@@ -821,12 +841,12 @@ func SnmpRoutes() chi.Router {
 		}
 
 		var req struct {
-			Name              string                   `json:"name"`
-			Vendor            string                   `json:"vendor"`
-			Description       string                   `json:"description"`
-			OIDs              []map[string]interface{} `json:"oids"`
-			PollIntervalSeconds int                     `json:"poll_interval_seconds"`
-			Enabled           *bool                    `json:"enabled"`
+			Name                string                   `json:"name"`
+			Vendor              string                   `json:"vendor"`
+			Description         string                   `json:"description"`
+			OIDs                []map[string]interface{} `json:"oids"`
+			PollIntervalSeconds int                      `json:"poll_interval_seconds"`
+			Enabled             *bool                    `json:"enabled"`
 		}
 		if !parseJSON(w, r, &req) {
 			return
@@ -925,22 +945,22 @@ func SnmpRoutes() chi.Router {
 			port = 161
 		}
 
-			// 解析 OID 列表并读取 is_table
-			var oidEntries []services.CustomOidEntry
-			_ = json.Unmarshal([]byte(profile.OidsJSON), &oidEntries)
+		// 解析 OID 列表并读取 is_table
+		var oidEntries []services.CustomOidEntry
+		_ = json.Unmarshal([]byte(profile.OidsJSON), &oidEntries)
 
-			results := services.SnmpServiceInstance.CollectCustomOids(ip, port, services.SnmpVersion(cred.SnmpVersion), community, "", "", "", "", "", oidEntries, 0)
+		results := services.SnmpServiceInstance.CollectCustomOids(ip, port, services.SnmpVersion(cred.SnmpVersion), community, "", "", "", "", "", oidEntries, 0)
 
 		// 保存结果
 		var repoResults []repos.CustomOidResult
 		for _, r := range results {
 			repoResults = append(repoResults, repos.CustomOidResult{
-				DeviceID:     deviceID,
-				ProfileID:    profileID,
-				MetricName:   r.MetricName,
-				MetricValue:  r.MetricValue,
-				OID:          r.OID,
-				SampledAt:     timeNowLocal(),
+				DeviceID:    deviceID,
+				ProfileID:   profileID,
+				MetricName:  r.MetricName,
+				MetricValue: r.MetricValue,
+				OID:         r.OID,
+				SampledAt:   timeNowLocal(),
 			})
 		}
 		_ = repos.SnmpCustomOids.InsertResults(deviceID, profileID, repoResults)

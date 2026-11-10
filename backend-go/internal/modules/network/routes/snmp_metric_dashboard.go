@@ -173,9 +173,9 @@ func SnmpMetricDashboardRoutes() chi.Router {
 	// POST /snmp-metrics/generator — 解析 generator.yml 风格配置
 	r.With(middleware.RequireRole("admin")).Post("/generator", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			Module   string              `json:"module"`
-			Walk     []string            `json:"walk"`
-			Lookups  []services.SnmpLookup `json:"lookups"`
+			Module  string                `json:"module"`
+			Walk    []string              `json:"walk"`
+			Lookups []services.SnmpLookup `json:"lookups"`
 		}
 		if !parseJSON(w, r, &req) {
 			return
@@ -195,136 +195,168 @@ func SnmpMetricDashboardRoutes() chi.Router {
 		})
 	})
 
-	// GET /snmp-metrics/export/prometheus — 导出全量 Prometheus Exposition 格式数据 (包含大屏 4 项核心 CPU/内存指标)
+	// GET /snmp-metrics/export/prometheus — 导出真实采样数据的 Prometheus Exposition 格式
+	// 无真实样本的指标不导出点位（不再填充占位 CPU/内存值）
 	r.Get("/export/prometheus", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
 
 		var sb strings.Builder
 
-		// 1. 导出全量网络设备的 CPU、内存与在线状态 (大屏核心指标)
-		db := appdb.DB()
-		devRows, err := db.Query(`SELECT id, ip_address, name, vendor, status FROM network_devices WHERE status != ''`)
+		// 1. 设备信息（app 库）
+		type promDevice struct {
+			ID     string
+			IP     string
+			Name   string
+			Vendor string
+			Status string
+		}
+		devices := make([]promDevice, 0)
+		devByID := make(map[string]promDevice)
+		devRows, err := appdb.DB().Query(`SELECT id, ip_address, name, vendor, status FROM network_devices WHERE status != ''`)
 		if err == nil {
-			defer devRows.Close()
-
-			sb.WriteString("# HELP device_status 设备综合在线状态 (1=online, 0=offline)\n")
-			sb.WriteString("# TYPE device_status gauge\n")
-			devList := []map[string]interface{}{}
-
 			for devRows.Next() {
-				var id, ip, name, vendor, status string
-				if err := devRows.Scan(&id, &ip, &name, &vendor, &status); err == nil {
-					stVal := 0
-					if status == "online" {
-						stVal = 1
-					}
-					sb.WriteString(fmt.Sprintf("device_status{device_ip=%q, device_name=%q, vendor=%q} %d\n", ip, name, vendor, stVal))
-
-					// 查询 CPU 值
-					var cpuVal float64
-					_ = db.QueryRow(`SELECT current_value FROM snmp_dashboard_metrics WHERE device_id = ? AND LOWER(name) LIKE '%cpu%' LIMIT 1`, id).Scan(&cpuVal)
-					if cpuVal == 0 {
-						if strings.Contains(name, "核心") {
-							cpuVal = 10
-						} else {
-							cpuVal = 8
-						}
-					}
-
-					// 查询 Memory 值
-					var memVal float64
-					_ = db.QueryRow(`SELECT current_value FROM snmp_dashboard_metrics WHERE device_id = ? AND LOWER(name) LIKE '%内存%' LIMIT 1`, id).Scan(&memVal)
-					if memVal == 0 {
-						if strings.Contains(name, "核心") {
-							memVal = 49
-						} else {
-							memVal = 48
-						}
-					}
-
-					// 查询用户在网络大屏设置的自定义指标标签与自定义 Tag 属性
-					custRows, cErr := db.Query(`SELECT custom_name, last_value, oid, COALESCE(metric_name, ''), COALESCE(tags, '') FROM custom_dashboard_metrics WHERE device_id = ? AND custom_name != ''`, id)
-					if cErr == nil {
-						for custRows.Next() {
-							var cName, lVal, cOid, mName, cTags string
-							if err := custRows.Scan(&cName, &lVal, &cOid, &mName, &cTags); err == nil && cName != "" {
-								val := 0.0
-								if v, pErr := strconv.ParseFloat(lVal, 64); pErr == nil {
-									val = v
-								} else if strings.Contains(cName, "内存") {
-									val = memVal
-								} else {
-									val = cpuVal
-								}
-								metricKey := strings.TrimSpace(mName)
-								if metricKey == "" {
-									if strings.Contains(strings.ToLower(cName), "cpu") {
-										metricKey = "cpu_usage"
-									} else if strings.Contains(cName, "内存") {
-										metricKey = "memory_usage"
-									} else {
-										metricKey = "custom_metric"
-									}
-								}
-								extraTags := ""
-								if cTags != "" {
-									var tagMap map[string]string
-									if json.Unmarshal([]byte(cTags), &tagMap) == nil {
-										for k, v := range tagMap {
-											if k != "device_ip" && k != "device_name" && k != "vendor" && k != "metric_label" {
-												extraTags += fmt.Sprintf(", %s=%q", k, v)
-											}
-										}
-									}
-								}
-								sb.WriteString(fmt.Sprintf("\n# HELP %s [用户自定义标签] %s (OID: %s)\n", metricKey, cName, cOid))
-								sb.WriteString(fmt.Sprintf("# TYPE %s gauge\n", metricKey))
-								sb.WriteString(fmt.Sprintf("%s{device_ip=%q, device_name=%q, vendor=%q, metric_label=%q, custom_tag=\"user_defined\"%s} %.2f\n", metricKey, ip, name, vendor, cName, extraTags, val))
-							}
-						}
-						custRows.Close()
-					}
-
-					devList = append(devList, map[string]interface{}{
-						"ip": ip, "name": name, "vendor": vendor, "cpu": cpuVal, "mem": memVal,
-					})
+				var d promDevice
+				if err := devRows.Scan(&d.ID, &d.IP, &d.Name, &d.Vendor, &d.Status); err == nil {
+					devices = append(devices, d)
+					devByID[d.ID] = d
 				}
 			}
+			devRows.Close()
+		}
 
-			sb.WriteString("\n# HELP cpu_usage 设备 CPU 整体使用率 (%)\n")
-			sb.WriteString("# TYPE cpu_usage gauge\n")
-			for _, d := range devList {
-				sb.WriteString(fmt.Sprintf("cpu_usage{device_ip=%q, device_name=%q, vendor=%q} %.2f\n", d["ip"], d["name"], d["vendor"], d["cpu"]))
+		// 2. 用户自定义面板指标（指标库），仅使用真实 last_value
+		type promCustom struct {
+			DeviceID   string
+			CustomName string
+			Value      float64
+			HasValue   bool
+			OID        string
+			MetricKey  string
+			TagsJSON   string
+		}
+		customByDevice := make(map[string][]promCustom)
+		cpuByDevice := make(map[string]float64)
+		memByDevice := make(map[string]float64)
+
+		custRows, cErr := appdb.DBForTable("custom_dashboard_metrics").Query(
+			`SELECT device_id, custom_name, last_value, oid, COALESCE(metric_name, ''), COALESCE(tags, '') FROM custom_dashboard_metrics WHERE custom_name != ''`)
+		if cErr == nil {
+			for custRows.Next() {
+				var devID, cName, lVal, cOid, mName, cTags string
+				if err := custRows.Scan(&devID, &cName, &lVal, &cOid, &mName, &cTags); err != nil || cName == "" {
+					continue
+				}
+				metricKey := strings.TrimSpace(mName)
+				if metricKey == "" {
+					if strings.Contains(strings.ToLower(cName), "cpu") {
+						metricKey = "cpu_usage"
+					} else if strings.Contains(cName, "内存") {
+						metricKey = "memory_usage"
+					} else {
+						metricKey = "custom_metric"
+					}
+				}
+				raw := strings.TrimSpace(lVal)
+				if idx := strings.Index(raw, "="); idx != -1 {
+					raw = raw[idx+1:]
+				}
+				val, parseErr := strconv.ParseFloat(strings.TrimSpace(raw), 64)
+				hasVal := parseErr == nil
+
+				if hasVal && metricKey == "cpu_usage" {
+					cpuByDevice[devID] = val
+				}
+				if hasVal && metricKey == "memory_usage" {
+					memByDevice[devID] = val
+				}
+				customByDevice[devID] = append(customByDevice[devID], promCustom{
+					DeviceID:   devID,
+					CustomName: cName,
+					Value:      val,
+					HasValue:   hasVal,
+					OID:        cOid,
+					MetricKey:  metricKey,
+					TagsJSON:   cTags,
+				})
 			}
+			custRows.Close()
+		}
 
-			sb.WriteString("\n# HELP memory_usage 设备内存整体使用率 (%)\n")
-			sb.WriteString("# TYPE memory_usage gauge\n")
-			for _, d := range devList {
-				sb.WriteString(fmt.Sprintf("memory_usage{device_ip=%q, device_name=%q, vendor=%q} %.2f\n", d["ip"], d["name"], d["vendor"], d["mem"]))
+		// 3. 在线状态 + 真实 CPU/内存指标
+		sb.WriteString("# HELP device_status 设备综合在线状态 (1=online, 0=offline)\n")
+		sb.WriteString("# TYPE device_status gauge\n")
+		for _, d := range devices {
+			stVal := 0
+			if d.Status == "online" {
+				stVal = 1
+			}
+			sb.WriteString(fmt.Sprintf("device_status{device_ip=%q, device_name=%q, vendor=%q} %d\n", d.IP, d.Name, d.Vendor, stVal))
+		}
+
+		sb.WriteString("\n# HELP cpu_usage 设备 CPU 整体使用率 (%)\n")
+		sb.WriteString("# TYPE cpu_usage gauge\n")
+		for _, d := range devices {
+			if val, ok := cpuByDevice[d.ID]; ok {
+				sb.WriteString(fmt.Sprintf("cpu_usage{device_ip=%q, device_name=%q, vendor=%q} %.2f\n", d.IP, d.Name, d.Vendor, val))
 			}
 		}
 
-		// 2. 导出接口数据 (ifHCOutOctets, ifHCInOctets, ifOperStatus, ifSpeed)
-		sampleRows, err := db.Query(`
-			SELECT s.metric_name, s.value, s.unit, s.tag_name, d.ip, d.name, d.vendor
+		sb.WriteString("\n# HELP memory_usage 设备内存整体使用率 (%)\n")
+		sb.WriteString("# TYPE memory_usage gauge\n")
+		for _, d := range devices {
+			if val, ok := memByDevice[d.ID]; ok {
+				sb.WriteString(fmt.Sprintf("memory_usage{device_ip=%q, device_name=%q, vendor=%q} %.2f\n", d.IP, d.Name, d.Vendor, val))
+			}
+		}
+
+		// 4. 用户自定义指标（仅导出真实数值）
+		for _, d := range devices {
+			for _, m := range customByDevice[d.ID] {
+				if !m.HasValue {
+					continue
+				}
+				extraTags := ""
+				if m.TagsJSON != "" {
+					var tagMap map[string]string
+					if json.Unmarshal([]byte(m.TagsJSON), &tagMap) == nil {
+						for k, v := range tagMap {
+							if k != "device_ip" && k != "device_name" && k != "vendor" && k != "metric_label" {
+								extraTags += fmt.Sprintf(", %s=%q", k, v)
+							}
+						}
+					}
+				}
+				sb.WriteString(fmt.Sprintf("\n# HELP %s [用户自定义标签] %s (OID: %s)\n", m.MetricKey, m.CustomName, m.OID))
+				sb.WriteString(fmt.Sprintf("# TYPE %s gauge\n", m.MetricKey))
+				sb.WriteString(fmt.Sprintf("%s{device_ip=%q, device_name=%q, vendor=%q, metric_label=%q, custom_tag=\"user_defined\"%s} %.2f\n",
+					m.MetricKey, d.IP, d.Name, d.Vendor, m.CustomName, extraTags, m.Value))
+			}
+		}
+
+		// 5. 导出接口采样数据（指标库，设备信息在内存中关联，避免跨库 JOIN）
+		sampleRows, sErr := appdb.DBForTable("snmp_metric_samples").Query(`
+			SELECT s.device_id, s.metric_name, s.value, s.unit, s.tag_name
 			FROM snmp_metric_samples s
-			LEFT JOIN network_devices d ON s.device_id = d.id
 			ORDER BY s.metric_name ASC, s.created_at DESC LIMIT 500`)
-		if err == nil {
-			defer sampleRows.Close()
+		if sErr == nil {
 			currentMetric := ""
 			for sampleRows.Next() {
-				var mName, unit, tagName, ip, name, vendor sql.NullString
+				var devID string
+				var mName, unit, tagName sql.NullString
 				var val float64
-				if err := sampleRows.Scan(&mName, &val, &unit, &tagName, &ip, &name, &vendor); err == nil {
-					if mName.String != currentMetric {
-						currentMetric = mName.String
-						sb.WriteString(fmt.Sprintf("\n# HELP %s SNMP 指标采样点数据\n", currentMetric))
-						sb.WriteString(fmt.Sprintf("# TYPE %s gauge\n", currentMetric))
-					}
-					sb.WriteString(fmt.Sprintf("%s{device_ip=%q, device_name=%q, vendor=%q, ifName=%q} %.2f\n", currentMetric, ip.String, name.String, vendor.String, tagName.String, val))
+				if err := sampleRows.Scan(&devID, &mName, &val, &unit, &tagName); err != nil {
+					continue
 				}
+				d := devByID[devID]
+				if mName.String != currentMetric {
+					currentMetric = mName.String
+					sb.WriteString(fmt.Sprintf("\n# HELP %s SNMP 指标采样点数据\n", currentMetric))
+					sb.WriteString(fmt.Sprintf("# TYPE %s gauge\n", currentMetric))
+				}
+				sb.WriteString(fmt.Sprintf("%s{device_ip=%q, device_name=%q, vendor=%q, ifName=%q} %.2f\n",
+					currentMetric, d.IP, d.Name, d.Vendor, tagName.String, val))
 			}
+			sampleRows.Close()
 		}
 
 		w.Write([]byte(sb.String()))

@@ -18,7 +18,8 @@ import (
 )
 
 // ProcessMessage 处理用户消息并返回智能回复
-func ProcessMessage(ctx context.Context, userQuery string) string {
+// role 为当前登录用户角色，用于执行前的命令安全策略校验
+func ProcessMessage(ctx context.Context, userQuery string, role string) string {
 	query := strings.TrimSpace(userQuery)
 	lower := strings.ToLower(query)
 
@@ -38,8 +39,12 @@ func ProcessMessage(ctx context.Context, userQuery string) string {
 	}
 
 	// 3. 真实设备只读指令查询意图（去设备查询配置、执行指令并列出每个设备返回的结果列表）
-	if isCommandQuery, targetScope, targetCmd := parseDeviceCommandQuery(query); isCommandQuery {
-		out, _ := ExecuteReadOnlyQueryOnDevices(ctx, targetScope, targetCmd)
+	// 先做安全校验再决定是否执行；未通过时直接返回拦截说明，绝不连接任何设备
+	if isCommandQuery, targetScope, targetCmd, blockReason := parseDeviceCommandQuery(query); isCommandQuery {
+		if blockReason != "" {
+			return GenerateSecurityBlockNotice(targetCmd, blockReason)
+		}
+		out, _ := ExecuteReadOnlyQueryOnDevices(ctx, targetScope, targetCmd, role)
 		return out
 	}
 
@@ -759,8 +764,48 @@ func isConfigModificationQuery(lower string) bool {
 	return false
 }
 
+// deviceCommandStartTokens 可在自然语言中被识别为“设备指令”的命令起始词
+// 提取时保留完整尾部（不截断），由 ValidateReadOnlyCommand 做整串判定
+var deviceCommandStartTokens = []string{
+	"display", "show", "df", "free", "docker ps", "docker stats", "docker inspect", "docker logs",
+	"uptime", "awk", "grep", "sed", "cat", "ps aux", "ls -", "netstat", "ifconfig",
+	"systemctl", "journalctl", "dmesg", "hostname", "tail", "head", "uname", "top -",
+	"vmstat", "iostat", "ping", "tracert", "traceroute", "rm -", "curl", "wget", "bash", "sh -c",
+}
+
+func isShellWordChar(b byte) bool {
+	return b == '_' || (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9')
+}
+
+// commandStartIndex 返回自然语言中最早出现的命令起始位置
+func commandStartIndex(lower string) int {
+	best := -1
+	for _, tok := range deviceCommandStartTokens {
+		for from := 0; from <= len(lower); {
+			i := strings.Index(lower[from:], tok)
+			if i == -1 {
+				break
+			}
+			i += from
+			beforeOK := i == 0 || !isShellWordChar(lower[i-1])
+			after := i + len(tok)
+			afterOK := after >= len(lower) || lower[after] == ' ' || lower[after] == '\t'
+			if beforeOK && afterOK {
+				if best == -1 || i < best {
+					best = i
+				}
+				break
+			}
+			from = i + 1
+		}
+	}
+	return best
+}
+
 // parseDeviceCommandQuery 解析用户的设备指令查询意图与目标设备
-func parseDeviceCommandQuery(rawQuery string) (bool, string, string) {
+// 返回 (是否指令意图, 目标设备范围, 提取到的指令, 拦截原因)
+// 指令先经过只读安全校验通过后才允许采用；未通过时 blockReason 非空，调用方不得发起任何设备执行。
+func parseDeviceCommandQuery(rawQuery string) (bool, string, string, string) {
 	lower := strings.ToLower(rawQuery)
 
 	// 是否包含去设备查配置、执行命令或列出各设备返回列表意图
@@ -781,7 +826,7 @@ func parseDeviceCommandQuery(rawQuery string) (bool, string, string) {
 
 	var extractedCmd string
 
-	// 1. 优先从引号（反引号、双引号、单引号或中文括号）中提取目标指令
+	// 1. 优先从引号（反引号、双引号、单引号或中文括号）中提取目标指令，仅采用通过校验的候选
 	quotePatterns := []*regexp.Regexp{
 		regexp.MustCompile("`([^`]+)`"),
 		regexp.MustCompile(`"([^"]+)"`),
@@ -789,30 +834,25 @@ func parseDeviceCommandQuery(rawQuery string) (bool, string, string) {
 		regexp.MustCompile(`【([^】]+)】`),
 	}
 	for _, reg := range quotePatterns {
-		matches := reg.FindStringSubmatch(rawQuery)
-		if len(matches) > 1 {
+		for _, matches := range reg.FindAllStringSubmatch(rawQuery, -1) {
+			if len(matches) < 2 {
+				continue
+			}
 			candidate := strings.TrimSpace(matches[1])
 			if ok, _ := ValidateReadOnlyCommand("", candidate); ok {
 				extractedCmd = candidate
 				break
 			}
 		}
+		if extractedCmd != "" {
+			break
+		}
 	}
 
-	// 2. 若未加引号，按常见命令前缀关键字提取
+	// 2. 若未加引号，按命令起始词提取完整尾部（保留 &&、; 等拼接内容以便整串拒绝，绝不截断）
 	if extractedCmd == "" {
-		if idx := strings.Index(lower, "display "); idx != -1 {
+		if idx := commandStartIndex(lower); idx != -1 {
 			extractedCmd = strings.TrimSpace(rawQuery[idx:])
-		} else if idx := strings.Index(lower, "show "); idx != -1 {
-			extractedCmd = strings.TrimSpace(rawQuery[idx:])
-		} else if idx := strings.Index(lower, "df -h"); idx != -1 {
-			extractedCmd = "df -h"
-		} else if idx := strings.Index(lower, "free "); idx != -1 || strings.Contains(lower, "free -m") {
-			extractedCmd = "free -m"
-		} else if strings.Contains(lower, "docker ps") {
-			extractedCmd = "docker ps"
-		} else if strings.Contains(lower, "uptime") {
-			extractedCmd = "uptime"
 		}
 	}
 
@@ -837,7 +877,7 @@ func parseDeviceCommandQuery(rawQuery string) (bool, string, string) {
 	}
 
 	if extractedCmd == "" && !wantsDeviceExec {
-		return false, "", ""
+		return false, "", "", ""
 	}
 
 	// 清除指令末尾可能附带的自然语言尾缀
@@ -854,22 +894,59 @@ func parseDeviceCommandQuery(rawQuery string) (bool, string, string) {
 		targetScope = "servers"
 	}
 
-	// 特定设备精准匹配
-	if strings.Contains(rawQuery, "核心交换机") || strings.Contains(rawQuery, "核心") {
+	// 仅主机可执行的只读命令（如 uptime、cat、journalctl）默认只发往服务器
+	if targetScope == "all" {
+		cmdLower := strings.ToLower(extractedCmd)
+		for _, prefix := range []string{"uptime", "ps", "cat ", "head ", "tail ", "ls ", "uname", "top -", "vmstat", "iostat", "journalctl", "dmesg", "systemctl status", "netstat", "ss ", "lsof", "hostname", "who", "last"} {
+			if strings.HasPrefix(cmdLower, prefix) {
+				targetScope = "servers"
+				break
+			}
+		}
+	}
+
+	// 特定设备精准匹配：提问中出现真实设备名称/IP 时优先锁定该设备，其次才用简称别名
+	exactScope := ""
+	if netDevices, err := repos.NetworkDevices.List(); err == nil {
+		for _, d := range netDevices {
+			if d == nil {
+				continue
+			}
+			candidates := []string{d.Name, d.IPAddress}
+			for _, c := range candidates {
+				if c != "" && strings.Contains(rawQuery, c) && len(c) > len(exactScope) {
+					exactScope = c
+				}
+			}
+		}
+	}
+	if exactScope != "" {
+		targetScope = exactScope
+	} else if strings.Contains(rawQuery, "核心交换机") || strings.Contains(rawQuery, "核心") {
 		targetScope = "核心交换机-1"
 	} else if strings.Contains(rawQuery, "汇聚交换机") || strings.Contains(rawQuery, "汇聚") {
 		targetScope = "汇聚交换机-1"
 	} else if strings.Contains(rawQuery, "防火墙") {
 		targetScope = "防火墙-1"
-	} else if strings.Contains(rawQuery, "180.76.184.2") {
-		targetScope = "180.76.184.2"
 	}
 
-	return true, targetScope, extractedCmd
+	// 5. 先验证再采用：未通过只读校验的指令一律不执行
+	if ok, reason := ValidateReadOnlyCommand("", extractedCmd); !ok {
+		return true, targetScope, extractedCmd, reason
+	}
+
+	return true, targetScope, extractedCmd, ""
 }
 
-// cleanCommandSuffix 清洗命令末尾附带的中文自然语言连词
+// cleanCommandSuffix 清洗命令末尾附带的中文自然语言连词与括号
+// 命令参数仅允许 ASCII，遇到中文等非 ASCII 自然语言尾缀即截断（截断只会缩短指令，不会引入执行内容）
 func cleanCommandSuffix(cmd string) string {
+	for i, r := range cmd {
+		if r > 127 {
+			cmd = cmd[:i]
+			break
+		}
+	}
 	separators := []string{
 		" 并", "，", "。", " 然后", " 列出", " 返回", " 的结果", " 的列表", " 并且", " 请",
 	}
@@ -878,6 +955,7 @@ func cleanCommandSuffix(cmd string) string {
 			cmd = strings.TrimSpace(cmd[:idx])
 		}
 	}
+	// 去掉自然语言包裹用的尾部括号
+	cmd = strings.TrimRight(cmd, " \t)]}")
 	return strings.TrimSpace(cmd)
 }
-

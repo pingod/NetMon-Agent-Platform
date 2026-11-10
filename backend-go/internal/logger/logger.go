@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"itops-backend/internal/config"
 	"itops-backend/internal/paths"
 )
 
@@ -58,24 +59,74 @@ type Entry struct {
 
 // Stats 日志统计
 type Stats struct {
-	Total    int64          `json:"total"`
+	Total    int64            `json:"total"`
 	ByLevel  map[string]int64 `json:"byLevel"`
-	Errors   int64          `json:"errors"`
-	Warnings int64          `json:"warnings"`
-	LastHour int64          `json:"lastHour"`
-	LastDay  int64          `json:"lastDay"`
+	Errors   int64            `json:"errors"`
+	Warnings int64            `json:"warnings"`
+	LastHour int64            `json:"lastHour"`
+	LastDay  int64            `json:"lastDay"`
 }
 
 type Logger struct {
-	mu       sync.Mutex
-	level    Level
-	service  string
-	stats    Stats
-	times    []time.Time
-	recent   []Entry
-	logFile  *os.File
-	errFile  *os.File
-	onError  []func(Entry)
+	mu      sync.Mutex
+	level   Level
+	service string
+	stats   Stats
+	times   []time.Time
+	recent  []Entry
+	logFile *os.File
+	errFile *os.File
+	logDate string
+	onError []func(Entry)
+}
+
+// Init 在配置加载完成后初始化日志（打开当日文件，跨天自动轮转重开）。
+// cfg 可为空（仅按环境变量清理），兼容 main 中的 logger.Init(cfg) 与 logger.Init()。
+func Init(cfg ...*config.Config) {
+	if len(cfg) > 0 && cfg[0] != nil {
+		if lv, ok := parseLevel(cfg[0].LogLevel); ok {
+			std.level = lv
+		} else if cfg[0].NodeEnv == "production" {
+			std.level = Info
+		}
+	}
+	std.mu.Lock()
+	defer std.mu.Unlock()
+	std.openFilesLocked(true)
+}
+
+// setupFiles 打开当前日期的日志文件
+func (l *Logger) setupFiles() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.openFilesLocked(true)
+}
+
+// openFilesLocked 按当前日期打开日志文件；force=false 且日期未变时复用已有文件句柄
+func (l *Logger) openFilesLocked(force bool) {
+	date := time.Now().Format("2006-01-02")
+	if !force && l.logDate == date && l.logFile != nil {
+		return
+	}
+	dir := paths.LogsDir()
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return
+	}
+	if l.logFile != nil {
+		_ = l.logFile.Close()
+		l.logFile = nil
+	}
+	if l.errFile != nil {
+		_ = l.errFile.Close()
+		l.errFile = nil
+	}
+	l.logDate = date
+	if f, err := os.OpenFile(filepath.Join(dir, fmt.Sprintf("%s-%s.log", l.service, date)), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
+		l.logFile = f
+	}
+	if f, err := os.OpenFile(filepath.Join(dir, fmt.Sprintf("%s-error-%s.log", l.service, date)), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
+		l.errFile = f
+	}
 }
 
 var std = newLogger("itops-agent")
@@ -100,20 +151,6 @@ func newLogger(service string) *Logger {
 		l.setupFiles()
 	}
 	return l
-}
-
-func (l *Logger) setupFiles() {
-	dir := paths.LogsDir()
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return
-	}
-	date := time.Now().Format("2006-01-02")
-	if f, err := os.OpenFile(filepath.Join(dir, fmt.Sprintf("%s-%s.log", l.service, date)), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
-		l.logFile = f
-	}
-	if f, err := os.OpenFile(filepath.Join(dir, fmt.Sprintf("%s-error-%s.log", l.service, date)), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
-		l.errFile = f
-	}
 }
 
 // OnError 注册错误日志监听器(自监控服务使用)
@@ -152,6 +189,7 @@ func (l *Logger) log(lv Level, msg string, args ...any) {
 	if len(l.recent) > 1000 {
 		l.recent = l.recent[len(l.recent)-1000:]
 	}
+	l.openFilesLocked(false)
 	logFile, errFile := l.logFile, l.errFile
 	errListeners := make([]func(Entry), len(l.onError))
 	copy(errListeners, l.onError)

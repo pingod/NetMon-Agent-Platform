@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Bell, CheckCircle, Clock, AlertCircle, Loader2 } from 'lucide-react';
@@ -23,6 +23,8 @@ export default function Alerts() {
   const [automationLogAlert, setAutomationLogAlert] = useState<Alert | null>(null);
   const [processResult, setProcessResult] = useState<ProcessResult | null>(null);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
+  // 记录已自动打开过的 URL 告警参数，避免轮询刷新后重复弹出
+  const handledAlertParamRef = useRef<string | null>(null);
 
   const { data: alerts, refetch } = useQuery({
     queryKey: ['alerts', statusFilter, severityFilter],
@@ -100,11 +102,12 @@ export default function Alerts() {
   // 支持 URL 参数 ?alertId=... 或 ?highlight=... 自动弹出告警详情弹窗
   useEffect(() => {
     const alertIdParam = searchParams.get('alertId') || searchParams.get('highlight');
-    if (alertIdParam && alerts && alerts.length > 0) {
-      const target = alerts.find(a => a.id === alertIdParam);
-      if (target) {
-        setSelectedAlert(target);
-      }
+    if (!alertIdParam || !alerts || alerts.length === 0) return;
+    if (handledAlertParamRef.current === alertIdParam) return;
+    const target = alerts.find(a => a.id === alertIdParam);
+    if (target) {
+      handledAlertParamRef.current = alertIdParam;
+      setSelectedAlert(target);
     }
   }, [searchParams, alerts]);
 

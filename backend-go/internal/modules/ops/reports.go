@@ -20,18 +20,18 @@ import (
 
 // Report 报告实体
 type Report struct {
-	ID          string  `json:"id"`
-	Name        string  `json:"name"`
-	Type        string  `json:"type"`
-	Content     string  `json:"content"`
-	Format      string  `json:"format"`
-	TemplateID  *string `json:"template_id"`
-	TaskID      *string `json:"task_id"`
-	Variables   *string `json:"variables"`
-	Metadata    *string `json:"metadata"`
-	IsPreset    int     `json:"is_preset"`
-	CreatedAt   string  `json:"created_at"`
-	UpdatedAt   string  `json:"updated_at"`
+	ID         string  `json:"id"`
+	Name       string  `json:"name"`
+	Type       string  `json:"type"`
+	Content    string  `json:"content"`
+	Format     string  `json:"format"`
+	TemplateID *string `json:"template_id"`
+	TaskID     *string `json:"task_id"`
+	Variables  *string `json:"variables"`
+	Metadata   *string `json:"metadata"`
+	IsPreset   int     `json:"is_preset"`
+	CreatedAt  string  `json:"created_at"`
+	UpdatedAt  string  `json:"updated_at"`
 }
 
 // ReportTemplate 报告模板实体
@@ -156,8 +156,8 @@ func SyncAllDevicesInspectionReports() []string {
 			"total":          len(netDeviceIDs),
 			"online_count":   netOnline,
 			"offline_count":  netTotal - netOnline,
-			"success_count":  len(netDeviceIDs),
-			"failed_count":   0,
+			"success_count":  netOnline,
+			"failed_count":   netTotal - netOnline,
 		})
 		_, _ = db.Exec(`
 			INSERT OR REPLACE INTO reports (id, name, type, content, format, metadata, is_preset, created_at, updated_at)
@@ -208,8 +208,8 @@ func SyncAllDevicesInspectionReports() []string {
 			"total":          len(serverIDs),
 			"online_count":   serverOnline,
 			"offline_count":  serverTotal - serverOnline,
-			"success_count":  len(serverIDs),
-			"failed_count":   0,
+			"success_count":  serverOnline,
+			"failed_count":   serverTotal - serverOnline,
 		})
 		_, _ = db.Exec(`
 			INSERT OR REPLACE INTO reports (id, name, type, content, format, metadata, is_preset, created_at, updated_at)
@@ -405,10 +405,10 @@ func ReportRoutes() chi.Router {
 		}
 
 		var tplName, tplContent string
-		_ = appdb.DB().QueryRow("SELECT name, content FROM reports WHERE id = ?", req.TemplateID).Scan(&tplName, &tplContent)
-		if tplName == "" {
-			tplName = "IT基础设施巡检报告"
-			tplContent = "# IT基础设施巡检报告\n\n生成时间: " + time.Now().Format("2006-01-02 15:04:05")
+		err := appdb.DB().QueryRow("SELECT name, content FROM reports WHERE id = ? AND type = 'template'", req.TemplateID).Scan(&tplName, &tplContent)
+		if err != nil {
+			httpx.RespondFailStatus(w, http.StatusNotFound, "报告模板不存在")
+			return
 		}
 
 		// 替换模板变量
@@ -422,7 +422,7 @@ func ReportRoutes() chi.Router {
 		reportName := fmt.Sprintf("%s - %s", tplName, time.Now().Format("2006-01-02 15:04"))
 		varsJSON, _ := json.Marshal(req.Variables)
 
-		_, err := appdb.DB().Exec(`
+		_, err = appdb.DB().Exec(`
 			INSERT INTO reports (id, name, type, content, format, template_id, variables, created_at, updated_at)
 			VALUES (?, ?, 'inspection', ?, 'markdown', ?, ?, datetime('now','localtime'), datetime('now','localtime'))`,
 			reportID, reportName, content, req.TemplateID, string(varsJSON))
@@ -440,47 +440,64 @@ func ReportRoutes() chi.Router {
 	// 6. GET /analytics — 报告数据分析
 	r.Get("/analytics", func(w http.ResponseWriter, r *http.Request) {
 		db := appdb.DB()
-		var reportCount, inspectionCount int
+		var reportCount, inspectionTotal, inspectionCompleted, inspectionFailed int
 		_ = db.QueryRow("SELECT COUNT(*) FROM reports WHERE type != 'template'").Scan(&reportCount)
-		_ = db.QueryRow("SELECT COUNT(*) FROM network_inspection_history").Scan(&inspectionCount)
+		_ = db.QueryRow(`SELECT COUNT(*),
+			COALESCE(SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END),0),
+			COALESCE(SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END),0)
+			FROM network_inspection_history`).Scan(&inspectionTotal, &inspectionCompleted, &inspectionFailed)
 
 		httpx.Respond(w, map[string]interface{}{
 			"analysisStats": map[string]interface{}{
-				"total":     reportCount + inspectionCount,
-				"completed": reportCount + inspectionCount,
-				"failed":    0,
+				"total":     reportCount + inspectionTotal,
+				"completed": reportCount + inspectionCompleted,
+				"failed":    inspectionFailed,
 			},
 			"remediationStats": map[string]interface{}{
-				"total":         reportCount,
-				"success_count": reportCount,
-				"failed_count":  0,
+				"total":         inspectionTotal,
+				"success_count": inspectionCompleted,
+				"failed_count":  inspectionFailed,
 				"rolled_back":   0,
 			},
 		})
 	})
 
-	// 7. GET /scheduled/all — 定时报告
+	// 7. GET /scheduled/all — 定时报告（读取真实配置表）
 	r.Get("/scheduled/all", func(w http.ResponseWriter, r *http.Request) {
-		httpx.Respond(w, []map[string]interface{}{
-			{
-				"id":              "sched-daily-net",
-				"name":            "每日网络设备例行健康巡检",
-				"format":          "markdown",
-				"enabled":         true,
-				"cron_expression": "0 8 * * *",
-				"last_generated":  time.Now().Add(-14 * time.Hour).Format("2006-01-02 08:00:00"),
-				"recipients":      []string{"admin@ops.local", "network-team@ops.local"},
-			},
-			{
-				"id":              "sched-weekly-server",
-				"name":            "每周服务器合规与负载分析周报",
-				"format":          "markdown",
-				"enabled":         true,
-				"cron_expression": "0 9 * * 1",
-				"last_generated":  time.Now().Add(-48 * time.Hour).Format("2006-01-02 09:00:00"),
-				"recipients":      []string{"admin@ops.local", "system-team@ops.local"},
-			},
-		})
+		rows, err := appdb.DB().Query(`SELECT id, name, template_id, cron_expression, enabled, recipients, format, last_generated
+			FROM report_schedules ORDER BY created_at DESC`)
+		if err != nil {
+			httpx.Respond(w, []map[string]interface{}{})
+			return
+		}
+		defer rows.Close()
+		list := []map[string]interface{}{}
+		for rows.Next() {
+			var id, name, templateID, cron, format string
+			var recipients, lastGenerated sql.NullString
+			var enabled int
+			if rows.Scan(&id, &name, &templateID, &cron, &enabled, &recipients, &format, &lastGenerated) != nil {
+				continue
+			}
+			var recipientList []string
+			if recipients.Valid && recipients.String != "" {
+				_ = json.Unmarshal([]byte(recipients.String), &recipientList)
+			}
+			if recipientList == nil {
+				recipientList = []string{}
+			}
+			list = append(list, map[string]interface{}{
+				"id":              id,
+				"name":            name,
+				"template_id":     templateID,
+				"cron_expression": cron,
+				"enabled":         enabled == 1,
+				"recipients":      recipientList,
+				"format":          format,
+				"last_generated":  lastGenerated.String,
+			})
+		}
+		httpx.Respond(w, list)
 	})
 
 	// 8. GET /{id}/export & GET /{id}/download-zip — 导出报告（支持 ZIP 压缩包，每台设备独立文件）
@@ -495,14 +512,22 @@ func handleExportReportZip(w http.ResponseWriter, r *http.Request) {
 	exportReportAsZip(w, r, chi.URLParam(r, "id"))
 }
 
-// handleExportReport 处理报告导出（支持 markdown / pdf / word / zip）
+// handleExportReport 处理报告导出（Markdown / ZIP；PDF、Word 尚未实现）
 func handleExportReport(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	format := strings.ToLower(r.URL.Query().Get("format"))
+	format := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("format")))
 
-	// 如果指定了 zip 或者是多设备巡检报告请求 zip
-	if format == "zip" {
+	switch format {
+	case "zip":
 		exportReportAsZip(w, r, id)
+		return
+	case "pdf", "word", "docx":
+		httpx.RespondFailStatus(w, http.StatusBadRequest, "暂不支持导出为 "+format+" 格式，请使用 markdown 或 zip")
+		return
+	case "", "md", "markdown":
+		// 默认按 Markdown 输出
+	default:
+		httpx.RespondFailStatus(w, http.StatusBadRequest, "不支持的导出格式: "+format)
 		return
 	}
 
@@ -513,7 +538,7 @@ func handleExportReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filename := fmt.Sprintf("report-%s.md", id)
+	filename := fmt.Sprintf("report-%s.md", sanitizeFilename(id))
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
 	w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
 	_, _ = w.Write([]byte(content))
@@ -584,11 +609,10 @@ func exportReportAsZip(w http.ResponseWriter, r *http.Request, reportID string) 
 	}
 
 	// 1. 写入总览汇总文件：00_巡检总览及汇总报告.md
-	overviewHeader := fmt.Sprintf("# %s\n\n", reportName)
-	overviewHeader += fmt.Sprintf("- **导出时间**: %s\n", time.Now().Format("2006-01-02 15:04:05"))
+	overviewHeader := "# " + reportName + "\n\n"
+	overviewHeader += "- **导出时间**: " + time.Now().Format("2006-01-02 15:04:05") + "\n"
 	overviewHeader += fmt.Sprintf("- **巡检设备总数**: %d 台\n", len(targetIDs))
-	overviewHeader += "- **报告说明**: 本压缩包内包含每台受检设备的独立巡检报告文件，共计 %d 份。\n\n"
-	overviewHeader = fmt.Sprintf(overviewHeader, len(targetIDs))
+	overviewHeader += fmt.Sprintf("- **报告说明**: 本压缩包内包含每台受检设备的独立巡检报告文件，共计 %d 份。\n\n", len(targetIDs))
 
 	overviewFile, _ := zipWriter.Create("00_巡检总览及汇总报告.md")
 	_, _ = overviewFile.Write([]byte(overviewHeader + reportContent))
@@ -605,8 +629,8 @@ func exportReportAsZip(w http.ResponseWriter, r *http.Request, reportID string) 
 				SELECT name, hostname, port, os, cpu_cores, memory_gb, disk_gb
 				FROM servers WHERE id = ?`, devID).Scan(&sName, &sHost, &sPort, &sOs, &sCpu, &sMem, &sDisk)
 			if sName == "" {
+				// 记录已不存在：仅保留 ID，不编造主机信息
 				sName = devID
-				sHost = "127.0.0.1"
 			}
 
 			// 查询该服务器最新合规检查结果
@@ -629,10 +653,8 @@ func exportReportAsZip(w http.ResponseWriter, r *http.Request, reportID string) 
 				SELECT name, ip_address, vendor, model, device_type
 				FROM network_devices WHERE id = ?`, devID).Scan(&dName, &dIP, &dVendor, &dModel, &dType)
 			if dName == "" {
+				// 记录已不存在：仅保留 ID，不编造 IP / 厂商
 				dName = devID
-				dIP = "192.168.1.1"
-				dVendor = "cisco"
-				dType = "switch"
 			}
 
 			// 查询最新巡检明细
@@ -700,7 +722,7 @@ func generateSingleNetworkDeviceReportMarkdown(index int, name, ip, vendor, mode
 		_ = json.Unmarshal([]byte(resultsJSON), &parsedItems)
 	}
 
-	// 统计异常与警告数量
+	// 统计异常与警告数量（仅基于真实巡检项，不臆测）
 	criticalCount := 0
 	warningCount := 0
 	normalCount := 0
@@ -716,39 +738,32 @@ func generateSingleNetworkDeviceReportMarkdown(index int, name, ip, vendor, mode
 		}
 	}
 
-	// 如果 summary 中包含异常统计，但 parsedItems 为空，从 summary 解析出问题
-	if len(parsedItems) == 0 && summary != "" {
-		if strings.Contains(summary, "严重问题") {
-			criticalCount = 6
-		}
-		if strings.Contains(summary, "警告") {
-			warningCount = 3
-		}
-	}
-
-	// 确定整体健康状态
-	if criticalCount > 0 {
+	// 确定整体健康状态；无数据时不做健康结论
+	if len(parsedItems) == 0 {
+		sb.WriteString("- **健康状态**: 未知（无巡检项数据）\n\n")
+	} else if criticalCount > 0 {
 		sb.WriteString(fmt.Sprintf("- **健康状态**: ❌ 异常 (存在 %d 项严重问题，%d 项警告)\n\n", criticalCount, warningCount))
 	} else if warningCount > 0 {
 		sb.WriteString(fmt.Sprintf("- **健康状态**: ⚠️ 警告 (存在 %d 项警告关注项)\n\n", warningCount))
 	} else {
-		sb.WriteString(fmt.Sprintf("- **健康状态**: ✅ 正常连通 (各项指标健康)\n\n"))
+		sb.WriteString(fmt.Sprintf("- **健康状态**: ✅ 正常 (共 %d 项巡检项通过)\n\n", normalCount))
 	}
 
-	// 连通性表格
-	delayMs := durationMs
-	if delayMs <= 0 || delayMs > 500 {
-		delayMs = int64(12 + (index*3)%25)
-	}
+	// 连通性表格：仅使用采集到的真实耗时
 	sb.WriteString("## 二、连通性与服务可用性探测\n\n")
-	sb.WriteString("| 探测协议 | 端口 | 连通状态 | 延迟 (ms) | 诊断结论 |\n")
-	sb.WriteString("| --- | --- | --- | --- | --- |\n")
-	sb.WriteString(fmt.Sprintf("| ICMP Ping | - | ✅ 正常 | %d ms | 连通正常，无丢包 |\n", delayMs))
-	sb.WriteString("| SSH 管理 | 22 | ✅ 正常 | - | SSH 认证通道正常 |\n")
-	sb.WriteString("| SNMP 监控 | 161 | ✅ 正常 | - | OID 指标采集正常 |\n\n")
+	if durationMs > 0 {
+		sb.WriteString("| 探测协议 | 端口 | 连通状态 | 延迟 (ms) | 诊断结论 |\n")
+		sb.WriteString("| --- | --- | --- | --- | --- |\n")
+		sb.WriteString(fmt.Sprintf("| 巡检会话 | - | ✅ 已完成 | %d ms | 采集命令执行完成 |\n\n", durationMs))
+	} else {
+		sb.WriteString("无连通性探测数据。\n\n")
+	}
 
 	// 巡检项表格
 	sb.WriteString("## 三、关键巡检项执行明细\n\n")
+	if len(parsedItems) == 0 {
+		sb.WriteString("无巡检项明细数据，请先对该设备执行巡检任务。\n\n")
+	}
 	sb.WriteString("| 检查项目 | 执行命令 | 巡检结果与分析 | 状态 |\n")
 	sb.WriteString("| --- | --- | --- | --- |\n")
 
@@ -830,94 +845,7 @@ func generateSingleNetworkDeviceReportMarkdown(index int, name, ip, vendor, mode
 		}
 	}
 
-	// 若没有具体 parsedItems，根据异常/正常模式生成具有真实异常项与警告项的明细表
-	if len(tableItems) == 0 {
-		if criticalCount > 0 || warningCount > 0 {
-			tableItems = []CheckItemDef{
-				{
-					Name:    "接口运行状态 (Up/Down)",
-					Command: "display interface brief / show ip int brief",
-					Result:  "❌ 检测到 2 个核心聚合互联接口处于 Down 状态，且 GigabitEthernet0/1 存在大量 CRC 错包",
-					Status:  "❌ 严重异常",
-				},
-				{
-					Name:    "CPU 与系统负载",
-					Command: "display cpu-usage / show processes cpu",
-					Result:  "❌ CPU 总体利用率持续达到 89%，超过 80% 高负载安全告警阈值",
-					Status:  "❌ 严重异常",
-				},
-				{
-					Name:    "电源与风扇环境",
-					Command: "display environment / show environment",
-					Result:  "❌ 主用电源正常，备用电源 Power-2 掉电离线，冗余供电丢失",
-					Status:  "❌ 严重异常",
-				},
-				{
-					Name:    "内存空间利用率",
-					Command: "display memory / show memory statistics",
-					Result:  "⚠️ 内存使用率 78.5%，接近 80% 预警线，缓冲队列增长较快",
-					Status:  "⚠️ 告警",
-				},
-				{
-					Name:    "路由表与拓扑收敛",
-					Command: "display ip routing-table / show ip route",
-					Result:  "⚠️ OSPF 邻居发生重新收敛震荡，路由表存在备用路径切换记录",
-					Status:  "⚠️ 告警",
-				},
-				{
-					Name:    "安全策略与访问控制",
-					Command: "display acl all / show access-lists",
-					Result:  "⚠️ 存在 1 条默认放行安全策略未关联命中计数器，建议复核",
-					Status:  "⚠️ 告警",
-				},
-				{
-					Name:    "配置文件保存状态",
-					Command: "display saved-configuration",
-					Result:  "✅ 运行配置与启动保存配置一致，无未保存的临时修改",
-					Status:  "✅ 正常",
-				},
-			}
-		} else {
-			tableItems = []CheckItemDef{
-				{
-					Name:    "接口运行状态 (Up/Down)",
-					Command: "display interface brief / show ip int brief",
-					Result:  "核心上联与互联端口均为 Up 状态，无 CRC 错包",
-					Status:  "✅ 正常",
-				},
-				{
-					Name:    "CPU 与系统负载",
-					Command: "display cpu-usage / show processes cpu",
-					Result:  "CPU 总体利用率低于 25%，负荷健康",
-					Status:  "✅ 正常",
-				},
-				{
-					Name:    "内存空间利用率",
-					Command: "display memory / show memory statistics",
-					Result:  "内存使用率低于 40%，缓冲池充足",
-					Status:  "✅ 正常",
-				},
-				{
-					Name:    "电源与风扇环境",
-					Command: "display environment / show environment",
-					Result:  "主备冗余电源正常，风扇转速正常",
-					Status:  "✅ 正常",
-				},
-				{
-					Name:    "路由表与拓扑收敛",
-					Command: "display ip routing-table / show ip route",
-					Result:  "OSPF/BGP 邻居状态 Full，路由无震荡",
-					Status:  "✅ 正常",
-				},
-				{
-					Name:    "安全策略与访问控制",
-					Command: "display acl all / show access-lists",
-					Result:  "安全访问控制列表策略生效",
-					Status:  "✅ 正常",
-				},
-			}
-		}
-	}
+	// 无可解析巡检项时不生成任何推测性明细
 
 	for _, item := range tableItems {
 		cleanRes := strings.ReplaceAll(item.Result, "|", "\\|")
@@ -930,20 +858,27 @@ func generateSingleNetworkDeviceReportMarkdown(index int, name, ip, vendor, mode
 	sb.WriteString("## 四、巡检诊断总结\n\n")
 	if summary != "" {
 		sb.WriteString(summary + "\n\n")
+	} else if len(parsedItems) == 0 {
+		sb.WriteString("本次未获得巡检结果数据，无法给出健康结论。\n\n")
 	} else if criticalCount > 0 || warningCount > 0 {
 		sb.WriteString(fmt.Sprintf("发现 %d 个严重问题，%d 个警告，需要立即处理\n\n", criticalCount, warningCount))
 	} else {
-		sb.WriteString("巡检完成，各项核心指标全部正常，设备运行稳定。\n\n")
+		sb.WriteString(fmt.Sprintf("共 %d 项巡检项全部正常。\n\n", normalCount))
 	}
 
-	// 五、异常处理清单
+	// 五、异常处理清单（仅在存在真实异常时输出）
 	if criticalCount > 0 || warningCount > 0 {
-		sb.WriteString("## 五、异常问题清单与处置指引\n\n")
-		sb.WriteString("1. **【严重】核心接口 Down 及错包排查**: 检查物理光纤收发光功率，排查对端端口协商模式，必要时更换光模块。\n")
-		sb.WriteString("2. **【严重】CPU 高负载优化**: 排查是否有突发广播风暴或异常流量注入，调整管理进程轮询频率。\n")
-		sb.WriteString("3. **【严重】电源冗余告警修复**: 检查机房配电 PDU 与备用电源模块插头，恢复双路供电冗余。\n")
-		sb.WriteString("4. **【警告】内存与路由震荡跟踪**: 监控内存泄漏趋势，审计 OSPF/BGP 邻居 Keepalive 状态。\n\n")
-		sb.WriteString("## 六、运维保障建议\n\n")
+		sb.WriteString("## 五、异常问题清单\n\n")
+		for _, item := range parsedItems {
+			if item.Status == "critical" || item.Status == "error" || item.Status == "warning" {
+				detail := item.Details
+				if detail == "" {
+					detail = item.RawOutput
+				}
+				sb.WriteString(fmt.Sprintf("- [%s] %s: %s\n", item.Status, item.Type, strings.ReplaceAll(detail, "\n", " ")))
+			}
+		}
+		sb.WriteString("\n## 六、运维保障建议\n\n")
 	} else {
 		sb.WriteString("## 五、运维保障建议\n\n")
 	}
@@ -995,10 +930,12 @@ func generateSingleServerReportMarkdown(index int, name, host string, port int, 
 		}
 	}
 
-	if abnormalCount > 0 {
+	if len(results) == 0 {
+		sb.WriteString("- **巡检结论**: 未知（未获取到合规检查数据）\n\n")
+	} else if abnormalCount > 0 {
 		sb.WriteString(fmt.Sprintf("- **巡检结论**: ❌ 存在 %d 项合规检查异常，需立即整改\n\n", abnormalCount))
 	} else {
-		sb.WriteString(fmt.Sprintf("- **巡检结论**: ✅ 合规检查通过 (各项基线指标正常)\n\n"))
+		sb.WriteString("- **巡检结论**: ✅ 合规检查通过 (各项基线指标正常)\n\n")
 	}
 
 	sb.WriteString("## 二、合规与性能巡检项目明细\n\n")
@@ -1021,19 +958,14 @@ func generateSingleServerReportMarkdown(index int, name, host string, port int, 
 			}
 			cleanCmd := strings.ReplaceAll(res.Command, "|", "\\|")
 			cleanStdout := strings.ReplaceAll(res.Stdout, "\n", " ")
-			if len(cleanStdout) > 40 {
-				cleanStdout = cleanStdout[:40] + "..."
+			if runes := []rune(cleanStdout); len(runes) > 40 {
+				cleanStdout = string(runes[:40]) + "..."
 			}
 			cleanStdout = strings.ReplaceAll(cleanStdout, "|", "\\|")
 			sb.WriteString(fmt.Sprintf("| %s | `%s` | %s (%s) | %s |\n", checkName, cleanCmd, analysis, cleanStdout, statusIcon))
 		}
 	} else {
-		sb.WriteString("| 系统版本 | `cat /etc/os-release` | Linux 操作系统版本已核实 | ✅ 通过 |\n")
-		sb.WriteString("| CPU 负载 | `top -bn1` | 负载在安全阈值以内 | ✅ 通过 |\n")
-		sb.WriteString("| 内存使用 | `free -m` | 内存可用容量充裕 | ✅ 通过 |\n")
-		sb.WriteString("| 磁盘存储 | `df -h` | 各分区使用率未超过 80% | ✅ 通过 |\n")
-		sb.WriteString("| SSH 安全 | `grep PermitRootLogin` | 基础安全策略符合基线要求 | ✅ 通过 |\n")
-		sb.WriteString("| 防火墙状态 | `systemctl is-active firewalld` | 防火墙服务运行中 | ✅ 通过 |\n")
+		sb.WriteString("无合规检查结果数据，请先对该服务器执行巡检任务。\n")
 	}
 
 	sb.WriteString("\n## 三、综合安全与优化建议\n\n")

@@ -66,6 +66,8 @@ api.interceptors.response.use(
       }
 
       if (originalRequest.url?.includes('/auth/refresh')) {
+        processQueue(error as Error, null);
+        isRefreshing = false;
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('refreshToken');
@@ -92,6 +94,9 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem('refreshToken');
 
       if (!refreshToken) {
+        // 无 refreshToken：必须复位刷新标记并结算等待队列，否则后续 401 请求会永久挂起
+        processQueue(error as Error, null);
+        isRefreshing = false;
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/login';
@@ -105,6 +110,8 @@ api.interceptors.response.use(
           const { token: newToken, refreshToken: newRefreshToken } = data.data;
           localStorage.setItem('token', newToken);
           localStorage.setItem('refreshToken', newRefreshToken);
+          // 通知 AuthContext / socket 等持有 token 的消费者进行轮换
+          window.dispatchEvent(new CustomEvent('auth:token', { detail: { token: newToken } }));
 
           processQueue(null, { token: newToken, refreshToken: newRefreshToken });
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -114,10 +121,11 @@ api.interceptors.response.use(
         }
       } catch (refreshError) {
         processQueue(refreshError as Error, null);
+        isRefreshing = false;
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('refreshToken');
-        
+
         window.location.href = '/login';
         return Promise.reject(refreshError);
       } finally {
@@ -125,8 +133,17 @@ api.interceptors.response.use(
       }
     }
 
-    const message = error.response?.data?.message || error.response?.data?.error || '网络错误';
-    return Promise.reject(new Error(message));
+    const message = error.response?.data?.message || error.response?.data?.error || error.message || '网络错误';
+    // 保留原始 axios error（含 response.status），仅把可读消息挂到 message 上，
+    // 让调用方既能展示错误文案，也能按 response.status 判断 403/404 等状态。
+    if (error && typeof error === 'object') {
+      try {
+        error.message = message;
+      } catch {
+        // 个别错误对象的 message 只读，忽略
+      }
+    }
+    return Promise.reject(error);
   }
 );
 

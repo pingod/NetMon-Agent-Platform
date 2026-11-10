@@ -128,6 +128,12 @@ export function ServerListSection({
     return counts;
   }, [selectedServersList]);
 
+  // 依赖原始值：品牌列表字符串，避免 distribution 对象引用变化触发重复请求
+  const selectedVendorsKey = useMemo(
+    () => Object.keys(selectedVendorsDistribution).sort().join(','),
+    [selectedVendorsDistribution],
+  );
+
   // 加载模版中心服务器模版
   useEffect(() => {
     if (!showBatchModal) return;
@@ -141,7 +147,7 @@ export function ServerListSection({
         setServerTemplates(list);
 
         // 如果全部属于同一个品牌，默认选中该品牌模版
-        const vendors = Object.keys(selectedVendorsDistribution);
+        const vendors = selectedVendorsKey ? selectedVendorsKey.split(',') : [];
         if (vendors.length === 1 && vendors[0] !== 'other') {
           const matched = list.find((t) => (t.vendor || '').toLowerCase() === vendors[0]);
           if (matched) {
@@ -160,7 +166,7 @@ export function ServerListSection({
       }
     };
     fetchTemplates();
-  }, [showBatchModal, selectedVendorsDistribution]);
+  }, [showBatchModal, selectedVendorsKey]);
 
   const toggleSelectAll = () => {
     if (selectedServerIds.size === filteredServers.length && filteredServers.length > 0) {

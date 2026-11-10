@@ -2,6 +2,8 @@
 package tokenblacklist
 
 import (
+	"encoding/base64"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 const (
 	cleanupInterval = 10 * time.Minute
 	maxCacheSize    = 10000
+	maxTokenLength  = 4096
 )
 
 type cachedToken struct {
@@ -26,6 +29,26 @@ var (
 	cache = make(map[string]cachedToken)
 	stop  chan struct{}
 )
+
+// validTokenShape 校验 token 形如三段 base64url（JWT），长度不超过 4096
+func validTokenShape(token string) bool {
+	if token == "" || len(token) > maxTokenLength {
+		return false
+	}
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return false
+	}
+	for _, p := range parts {
+		if p == "" {
+			return false
+		}
+		if _, err := base64.RawURLEncoding.DecodeString(p); err != nil {
+			return false
+		}
+	}
+	return true
+}
 
 func decodeExpiry(token string) time.Time {
 	// 仅解析不校验签名（等价 jwt.decode）
@@ -87,6 +110,10 @@ func enforceCacheLimit() {
 
 // AddToBlacklist 将 token 加入黑名单
 func AddToBlacklist(token, reason, userID string) {
+	if !validTokenShape(token) {
+		logger.Warnf("Refusing to blacklist malformed token")
+		return
+	}
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Errorf("Failed to add token to blacklist: %v", r)
@@ -113,8 +140,11 @@ func AddToBlacklist(token, reason, userID string) {
 	}
 }
 
-// IsBlacklisted 判断 token 是否已被拉黑
+// IsBlacklisted 判断 token 是否已被拉黑；格式非法的 token 直接视为未拉黑（后续签名校验会拒绝）
 func IsBlacklisted(token string) bool {
+	if !validTokenShape(token) {
+		return false
+	}
 	mu.Lock()
 	if c, ok := cache[token]; ok {
 		if c.expiresAt.After(time.Now()) {
@@ -154,10 +184,18 @@ func CleanExpiredTokens() {
 	logger.Infof("Cleaned up %d expired tokens from blacklist", dbCleaned)
 }
 
-// Init 启动时清理并开启定期清理（等价 initTokenBlacklist）
+// Init 启动时清理并开启定期清理（幂等）
 func Init() {
+	mu.Lock()
+	if stop != nil {
+		mu.Unlock()
+		return
+	}
+	ch := make(chan struct{})
+	stop = ch
+	mu.Unlock()
+
 	CleanExpiredTokens()
-	stop = make(chan struct{})
 	go func() {
 		ticker := time.NewTicker(cleanupInterval)
 		defer ticker.Stop()
@@ -165,16 +203,20 @@ func Init() {
 			select {
 			case <-ticker.C:
 				CleanExpiredTokens()
-			case <-stop:
+			case <-ch:
 				return
 			}
 		}
 	}()
 }
 
-// Shutdown 停止定期清理
+// Shutdown 停止定期清理（幂等）
 func Shutdown() {
-	if stop != nil {
-		close(stop)
+	mu.Lock()
+	ch := stop
+	stop = nil
+	mu.Unlock()
+	if ch != nil {
+		close(ch)
 	}
 }

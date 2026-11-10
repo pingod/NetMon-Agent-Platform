@@ -93,11 +93,11 @@ func ServerManagementRoutes() chi.Router {
 		}
 
 		var result struct {
-			Success int                    `json:"success"`
-			Failed  int                    `json:"failed"`
-			Skipped int                    `json:"skipped"`
-			Details []importDetailItem     `json:"details"`
-			Errors  []string               `json:"errors"`
+			Success int                `json:"success"`
+			Failed  int                `json:"failed"`
+			Skipped int                `json:"skipped"`
+			Details []importDetailItem `json:"details"`
+			Errors  []string           `json:"errors"`
 		}
 		result.Details = []importDetailItem{}
 		result.Errors = []string{}
@@ -142,8 +142,9 @@ func ServerManagementRoutes() chi.Router {
 				Description: item.Description,
 				Tags:        tags,
 				GroupID:     item.GroupID,
+				OSType:      strings.ToLower(strings.TrimSpace(item.OSType)),
 			}
-			if createReq.OSType == "" {
+			if createReq.OSType != "windows" && createReq.OSType != "linux" {
 				createReq.OSType = "linux"
 			}
 
@@ -188,17 +189,17 @@ func ServerManagementRoutes() chi.Router {
 
 // importServerItem 导入条目
 type importServerItem struct {
-	Name        string   `json:"name"`
-	Hostname    string   `json:"hostname"`
-	Port        int      `json:"port"`
-	Username    string   `json:"username"`
-	Password    string   `json:"password"`
-	PrivateKey  string   `json:"private_key"`
-	UseSSHKey   *int     `json:"use_ssh_key"`
-	Description string   `json:"description"`
+	Name        string    `json:"name"`
+	Hostname    string    `json:"hostname"`
+	Port        int       `json:"port"`
+	Username    string    `json:"username"`
+	Password    string    `json:"password"`
+	PrivateKey  string    `json:"private_key"`
+	UseSSHKey   *int      `json:"use_ssh_key"`
+	Description string    `json:"description"`
 	Tags        *[]string `json:"tags"`
-	GroupID     string   `json:"group_id"`
-	OSType      string   `json:"os_type"`
+	GroupID     string    `json:"group_id"`
+	OSType      string    `json:"os_type"`
 }
 
 // importDetailItem 导入详情

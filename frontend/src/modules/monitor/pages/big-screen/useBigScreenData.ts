@@ -38,6 +38,7 @@ export function useBigScreenData() {
   const containerRef = useRef<HTMLDivElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const criticalAlertSoundPlayedRef = useRef(false);
+  const criticalSoundResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -273,14 +274,31 @@ export function useBigScreenData() {
     }
   }, []);
 
+  // 卸载时释放 AudioContext 与声音节流定时器，避免音频资源泄漏
+  useEffect(() => {
+    const contextRef = audioContextRef;
+    return () => {
+      if (criticalSoundResetTimerRef.current) {
+        clearTimeout(criticalSoundResetTimerRef.current);
+        criticalSoundResetTimerRef.current = null;
+      }
+      const context = contextRef.current;
+      if (context && context.state !== 'closed') {
+        void context.close();
+      }
+      contextRef.current = null;
+    };
+  }, []);
+
   useEffect(() => {
     const newCriticalCount = stats?.alerts.critical || 0;
 
     if (newCriticalCount > prevCriticalCountRef.current && newCriticalCount > 0 && !criticalAlertSoundPlayedRef.current) {
       playCriticalAlertSound();
       criticalAlertSoundPlayedRef.current = true;
-      setTimeout(() => {
+      criticalSoundResetTimerRef.current = setTimeout(() => {
         criticalAlertSoundPlayedRef.current = false;
+        criticalSoundResetTimerRef.current = null;
       }, 30000);
     }
 

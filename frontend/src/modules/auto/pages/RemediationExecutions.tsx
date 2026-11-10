@@ -39,6 +39,20 @@ export default function RemediationExecutions() {
     }
   });
 
+  const totalPages = data ? Math.max(1, Math.ceil((data.total || 0) / limit)) : 1;
+
+  // 状态筛选变化时回到第一页
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
+
+  // 筛选后总页数减少时，收敛到有效页
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
   const approveMutation = useMutation({
     mutationFn: async ({ id, action }: { id: string; action: 'approve' | 'reject' }) => {
       await api.post(`/remediation-executions/${id}/approve`, { action });
@@ -279,7 +293,7 @@ export default function RemediationExecutions() {
           </div>
         )}
 
-        {data && data.total > limit && (
+        {data && totalPages > 1 && (
           <div className="flex items-center justify-between mt-4">
             <div className="text-sm text-text-secondary">共 {data.total} 条记录</div>
             <div className="flex items-center gap-2">
@@ -290,10 +304,11 @@ export default function RemediationExecutions() {
               >
                 上一页
               </button>
-              <span className="text-text-secondary text-sm">{page}</span>
+              <span className="text-text-secondary text-sm">{page} / {totalPages}</span>
               <button
-                onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1.5 bg-surface border border-border rounded-lg text-text-primary hover:bg-slate-700/50 transition-colors"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="px-3 py-1.5 bg-surface border border-border rounded-lg text-text-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700/50 transition-colors"
               >
                 下一页
               </button>

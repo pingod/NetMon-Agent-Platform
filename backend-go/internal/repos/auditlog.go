@@ -129,17 +129,24 @@ type TokenBlacklistRepo struct{}
 var TokenBlacklists = &TokenBlacklistRepo{}
 
 func (r *TokenBlacklistRepo) Add(id, token string, userID, reason *string, expiresAt string) error {
-	_, err := appdb.DB().Exec(`INSERT OR IGNORE INTO token_blacklist (id, token, user_id, reason, expires_at) VALUES (?, ?, ?, ?, ?)`,
-		id, token, userID, reason, expiresAt)
+	stmt := `INSERT OR IGNORE INTO token_blacklist (id, token, user_id, reason, expires_at) VALUES (?, ?, ?, ?, ?)`
+	if appdb.IsMySQLMode() {
+		stmt = `INSERT IGNORE INTO token_blacklist (id, token, user_id, reason, expires_at) VALUES (?, ?, ?, ?, ?)`
+	}
+	_, err := appdb.DB().Exec(stmt, id, token, userID, reason, expiresAt)
 	return err
 }
 
-// IsBlacklisted 判断 token 是否在黑名单且未过期
+// IsBlacklisted 判断 token 是否在黑名单且未过期。
+// 查询失败时 fail-closed：视为已拉黑，避免数据库异常导致已撤销 token 被放行。
 func (r *TokenBlacklistRepo) IsBlacklisted(token string) bool {
 	var n int
 	now := time.Now().Format("2006-01-02 15:04:05")
 	err := appdb.DB().QueryRow(`SELECT COUNT(*) FROM token_blacklist WHERE token = ? AND expires_at > ?`, token, now).Scan(&n)
-	return err == nil && n > 0
+	if err != nil {
+		return true
+	}
+	return n > 0
 }
 
 // CleanExpired 清理过期 token，返回删除数量

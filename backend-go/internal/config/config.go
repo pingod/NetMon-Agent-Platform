@@ -23,6 +23,15 @@ type Config struct {
 	JWTExpiresIn        string
 	AllowedOrigins      []string
 
+	// 加密密钥（用于 PBKDF2 派生 AES 密钥）；未设置时回退到 JWT_SECRET
+	EncryptionKey string
+
+	// AuthDevBypass 仅用于开发环境：未认证请求注入 admin（生产环境强制关闭）
+	AuthDevBypass bool
+
+	// TrustedProxies 可信反向代理 IP/CIDR 列表；仅当 RemoteAddr 命中时才信任 XFF/X-Real-IP
+	TrustedProxies []string
+
 	// MySQL 可选后端（业务与常用元数据存储）
 	MySQLEnabled bool
 	MySQLDSN     string // user:password@tcp(host:port)/dbname?charset=utf8mb4&parseTime=True&loc=Local
@@ -82,6 +91,36 @@ func getEnvNum(key string, def int) int {
 		}
 	}
 	return def
+}
+
+// parseEnvBool 解析布尔型环境变量，兼容 true/1/yes/on/false/0/no/off。
+func parseEnvBool(key string, def bool) bool {
+	v, ok := os.LookupEnv(key)
+	if !ok {
+		return def
+	}
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "1", "true", "yes", "y", "on":
+		return true
+	case "0", "false", "no", "n", "off":
+		return false
+	}
+	if b, err := strconv.ParseBool(strings.TrimSpace(v)); err == nil {
+		return b
+	}
+	return def
+}
+
+// parseList 解析逗号分隔列表，去除空白与空项。
+func parseList(v string) []string {
+	parts := strings.Split(v, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if t := strings.TrimSpace(p); t != "" {
+			out = append(out, t)
+		}
+	}
+	return out
 }
 
 func parseWebhookVerifyMode(v string) string {
@@ -157,7 +196,8 @@ func Load() (*Config, error) {
 		fmt.Println("⚠️ Missing recommended environment variable: JWT_SECRET (using insecure default, DO NOT use in production)")
 	}
 
-	if jwtSecret != "" && placeholderSecrets[strings.ToLower(strings.TrimSpace(jwtSecret))] {
+	trimmedSecret := strings.ToLower(strings.TrimSpace(jwtSecret))
+	if jwtSecret != "" && (placeholderSecrets[trimmedSecret] || strings.HasPrefix(trimmedSecret, "itops-agent-platform-secret")) {
 		if isProd {
 			return nil, fmt.Errorf("cannot use placeholder JWT_SECRET in production! Please set a secure random secret (openssl rand -hex 32)")
 		}
@@ -179,20 +219,23 @@ func Load() (*Config, error) {
 
 	return &Config{
 		NodeEnv:             getEnv("NODE_ENV", "development"),
-		Port:                getEnvNum("PORT", 3001),
+		Port:                getEnvNum("PORT", 8088),
 		DatabasePath:        paths.DatabasePath(),
 		MetricsDatabasePath: paths.MetricsDatabasePath(),
 		LogLevel:            getEnv("LOG_LEVEL", "info"),
 		JWTSecret:           jwtSecret,
 		JWTExpiresIn:        getEnv("JWT_EXPIRES_IN", "24h"),
-		AllowedOrigins:      strings.Split(getEnv("ALLOWED_ORIGINS", "http://localhost:3000"), ","),
+		AllowedOrigins:      parseList(getEnv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8088")),
+		EncryptionKey:       os.Getenv("ENCRYPTION_KEY"),
+		AuthDevBypass:       parseEnvBool("AUTH_DEV_BYPASS", false),
+		TrustedProxies:      parseList(getEnv("TRUSTED_PROXIES", "")),
 
 		// MySQL 可选后端（业务与常用元数据存储）
-		MySQLEnabled: os.Getenv("MYSQL_ENABLED") == "true",
+		MySQLEnabled: parseEnvBool("MYSQL_ENABLED", false),
 		MySQLDSN:     os.Getenv("MYSQL_DSN"),
 
 		// InfluxDB 可选时序库后端（网络设备与指标时序数据存储）
-		InfluxdbEnabled:           os.Getenv("INFLUXDB_ENABLED") == "true",
+		InfluxdbEnabled:           parseEnvBool("INFLUXDB_ENABLED", false),
 		InfluxdbVersion:           getEnv("INFLUXDB_VERSION", "v2"),
 		InfluxdbHost:              getEnv("INFLUXDB_HOST", "127.0.0.1"),
 		InfluxdbPort:              getEnvNum("INFLUXDB_PORT", 8086),

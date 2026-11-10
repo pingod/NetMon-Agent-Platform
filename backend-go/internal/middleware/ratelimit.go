@@ -31,9 +31,9 @@ type rateLimitEntry struct {
 }
 
 type rateLimitCfg struct {
-	prefix  string
-	window  time.Duration
-	max     int
+	prefix string
+	window time.Duration
+	max    int
 }
 
 // 按 TS rateLimitConfig 的顺序匹配（前缀优先）
@@ -51,21 +51,56 @@ var (
 )
 
 // ClientIP 提取客户端 IP（剥离 IPv4 映射前缀与端口）
-func ClientIP(r *http.Request) string {
-	ip := r.Header.Get("X-Forwarded-For")
-	if ip == "" {
-		ip = r.Header.Get("X-Real-IP")
+// remoteHost 提取 RemoteAddr 的 IP（去端口与 IPv4 映射前缀）
+func remoteHost(remoteAddr string) string {
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		host = remoteAddr
 	}
-	if ip == "" {
-		host, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			return r.RemoteAddr
+	return strings.TrimPrefix(strings.TrimSpace(host), "::ffff:")
+}
+
+// isTrustedProxy 判断远端地址是否命中 TRUSTED_PROXIES（IP 或 CIDR）
+func isTrustedProxy(ip string) bool {
+	if config.Env == nil || ip == "" {
+		return false
+	}
+	parsed := net.ParseIP(ip)
+	if parsed == nil {
+		return false
+	}
+	for _, entry := range config.Env.TrustedProxies {
+		if strings.Contains(entry, "/") {
+			if _, network, err := net.ParseCIDR(entry); err == nil && network.Contains(parsed) {
+				return true
+			}
+			continue
 		}
-		ip = host
-	} else {
-		ip = strings.TrimSpace(strings.Split(ip, ",")[0])
+		if p := net.ParseIP(entry); p != nil && p.Equal(parsed) {
+			return true
+		}
 	}
-	return strings.TrimPrefix(ip, "::ffff:")
+	return false
+}
+
+// ClientIP 提取客户端 IP。
+// 只有当直连地址命中可信代理白名单时才信任 X-Forwarded-For / X-Real-IP，
+// 避免客户端伪造转发头绕过限流或污染审计日志。
+func ClientIP(r *http.Request) string {
+	direct := remoteHost(r.RemoteAddr)
+	if !isTrustedProxy(direct) {
+		return direct
+	}
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		first := strings.TrimSpace(strings.Split(xff, ",")[0])
+		if first != "" {
+			return strings.TrimPrefix(first, "::ffff:")
+		}
+	}
+	if xri := strings.TrimSpace(r.Header.Get("X-Real-IP")); xri != "" {
+		return strings.TrimPrefix(xri, "::ffff:")
+	}
+	return direct
 }
 
 func ipWhitelist() []string {

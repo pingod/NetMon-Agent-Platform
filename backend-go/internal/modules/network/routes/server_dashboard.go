@@ -26,7 +26,7 @@ func handleDashboardFull(w http.ResponseWriter, r *http.Request) {
 
 	// 告警统计
 	var alertTotal, alertActive, alertCritical, alertHigh int
-	db.QueryRow(`SELECT COUNT(*), COALESCE(SUM(CASE WHEN status IN ('active','pending','acknowledged') THEN 1 ELSE 0 END),0),
+	db.QueryRow(`SELECT COUNT(*), COALESCE(SUM(CASE WHEN status IN ('firing','acknowledged') THEN 1 ELSE 0 END),0),
 		COALESCE(SUM(CASE WHEN severity='critical' THEN 1 ELSE 0 END),0),
 		COALESCE(SUM(CASE WHEN severity='high' THEN 1 ELSE 0 END),0) FROM alerts`).Scan(&alertTotal, &alertActive, &alertCritical, &alertHigh)
 
@@ -123,9 +123,9 @@ func handleDashboardFull(w http.ResponseWriter, r *http.Request) {
 			"workflows": map[string]interface{}{"total": workflowTotal, "templates": workflowTemplates},
 			"knowledge": map[string]interface{}{"total": knowledgeTotal},
 		},
-		"servers":       serverList,
-		"recentTasks":   tasks,
-		"recentAlerts":  alerts,
+		"servers":      serverList,
+		"recentTasks":  tasks,
+		"recentAlerts": alerts,
 	}
 
 	httpx.Respond(w, result)
@@ -248,12 +248,12 @@ func handleServerMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result := map[string]interface{}{
-		"servers":        servers,
-		"has_real_data":  hasRealData,
-		"cpu_history":    cpuHistory,
-		"memory_history": memoryHistory,
+		"servers":         servers,
+		"has_real_data":   hasRealData,
+		"cpu_history":     cpuHistory,
+		"memory_history":  memoryHistory,
 		"network_history": networkHistory,
-		"disk_history":   diskHistory,
+		"disk_history":    diskHistory,
 	}
 
 	httpx.Respond(w, result)
@@ -277,7 +277,7 @@ func handleAlertTrends(w http.ResponseWriter, r *http.Request) {
 			COALESCE(SUM(CASE WHEN severity='medium' THEN 1 ELSE 0 END),0) AS medium,
 			COALESCE(SUM(CASE WHEN severity='low' THEN 1 ELSE 0 END),0) AS low
 		FROM alerts
-		WHERE created_at >= datetime('now','localtime','`+strconv.Itoa(-hours)+` hours')
+		WHERE created_at >= datetime('now','localtime','` + strconv.Itoa(-hours) + ` hours')
 		GROUP BY time_bucket ORDER BY time_bucket ASC`)
 	if err != nil {
 		httpx.RespondFailStatus(w, http.StatusInternalServerError, "查询告警趋势失败")
@@ -320,7 +320,7 @@ func handleTaskTrends(w http.ResponseWriter, r *http.Request) {
 			COALESCE(SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END),0) AS failed,
 			COALESCE(SUM(CASE WHEN status='running' THEN 1 ELSE 0 END),0) AS running
 		FROM tasks
-		WHERE created_at >= datetime('now','localtime','`+strconv.Itoa(-hours)+` hours')
+		WHERE created_at >= datetime('now','localtime','` + strconv.Itoa(-hours) + ` hours')
 		GROUP BY time_bucket ORDER BY time_bucket ASC`)
 	if err != nil {
 		httpx.RespondFailStatus(w, http.StatusInternalServerError, "查询任务趋势失败")
@@ -409,10 +409,10 @@ func handleAgentStats(w http.ResponseWriter, r *http.Request) {
 	result := map[string]interface{}{
 		"agents": agentStats,
 		"overall": map[string]interface{}{
-			"totalExecutions":   totalExecutions,
-			"totalSuccess":      totalSuccess,
+			"totalExecutions":    totalExecutions,
+			"totalSuccess":       totalSuccess,
 			"overallSuccessRate": overallSuccessRate,
-			"todayExecutions":   todayExecutions,
+			"todayExecutions":    todayExecutions,
 		},
 	}
 
@@ -528,17 +528,17 @@ func handleRemediationStats(w http.ResponseWriter, r *http.Request) {
 
 	result := map[string]interface{}{
 		"total_policies":   totalPolicies,
-		"enabled_policies":  enabledPolicies,
+		"enabled_policies": enabledPolicies,
 		"today": map[string]interface{}{
-			"total":          todayTotal,
-			"success":        todaySuccess,
-			"failed":         todayFailed,
-			"rolled_back":    todayRolledBack,
-			"success_rate":   todaySuccessRate,
+			"total":           todayTotal,
+			"success":         todaySuccess,
+			"failed":          todayFailed,
+			"rolled_back":     todayRolledBack,
+			"success_rate":    todaySuccessRate,
 			"avg_duration_ms": todayAvgDuration,
 		},
-		"waiting_approval":   waitingApproval,
-		"recent_executions":  recentExecutions,
+		"waiting_approval":  waitingApproval,
+		"recent_executions": recentExecutions,
 	}
 
 	httpx.Respond(w, result)
@@ -587,12 +587,12 @@ func handleSlaStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result := map[string]interface{}{
-		"mttr_minutes":        mttrMinutes,
-		"uptime_percentage":   uptimePct,
-		"avg_response_seconds": avgResponseSeconds,
+		"mttr_minutes":          mttrMinutes,
+		"uptime_percentage":     uptimePct,
+		"avg_response_seconds":  avgResponseSeconds,
 		"alert_resolution_rate": alertResolutionRate,
-		"total_alerts_today":   totalAlertsToday,
-		"resolved_today":       resolvedToday,
+		"total_alerts_today":    totalAlertsToday,
+		"resolved_today":        resolvedToday,
 	}
 
 	httpx.Respond(w, result)

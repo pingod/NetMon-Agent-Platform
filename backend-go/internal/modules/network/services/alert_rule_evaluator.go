@@ -1,12 +1,16 @@
 package services
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
+
+	"github.com/google/uuid"
 
 	"itops-backend/internal/appdb"
 	"itops-backend/internal/logger"
@@ -14,17 +18,59 @@ import (
 	"itops-backend/internal/repos"
 )
 
+var (
+	evaluatorMu     sync.Mutex
+	evaluatorCancel context.CancelFunc
+	evaluatorDone   chan struct{}
+)
+
 // StartAlertRuleEvaluator 启动夜莺风格 Prometheus 规则后台定时评估引擎（间隔 10s）
 func StartAlertRuleEvaluator() {
+	evaluatorMu.Lock()
+	if evaluatorCancel != nil {
+		evaluatorMu.Unlock()
+		return
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	evaluatorCancel = cancel
+	evaluatorDone = done
+	evaluatorMu.Unlock()
+
 	go func() {
+		defer close(done)
 		ticker := time.NewTicker(10 * time.Second)
 		defer ticker.Stop()
 
-		for range ticker.C {
-			evaluateActiveAlertRules()
+		for {
+			select {
+			case <-ctx.Done():
+				logger.Infof("Alert rule evaluator stopped")
+				return
+			case <-ticker.C:
+				evaluateActiveAlertRules(ctx)
+			}
 		}
 	}()
 	logger.Infof("Nightignale-style Prometheus alert rule evaluator started (10s interval)")
+}
+
+// StopAlertRuleEvaluator 停止告警规则评估引擎并等待后台循环退出（幂等）
+func StopAlertRuleEvaluator() {
+	evaluatorMu.Lock()
+	cancel := evaluatorCancel
+	done := evaluatorDone
+	evaluatorCancel = nil
+	evaluatorDone = nil
+	evaluatorMu.Unlock()
+
+	if cancel == nil {
+		return
+	}
+	cancel()
+	if done != nil {
+		<-done
+	}
 }
 
 type SampleEvaluationItem struct {
@@ -41,7 +87,7 @@ type SampleEvaluationItem struct {
 	IsTriggered bool              `json:"isTriggered"`
 }
 
-func evaluateActiveAlertRules() {
+func evaluateActiveAlertRules(ctx context.Context) {
 	rules, err := repos.AlertRules.List()
 	if err != nil || len(rules) == 0 {
 		return
@@ -50,12 +96,15 @@ func evaluateActiveAlertRules() {
 	db := appdb.DB()
 
 	for _, rule := range rules {
+		if ctx.Err() != nil {
+			return
+		}
 		if !rule.Enabled {
 			continue
 		}
 
-		// 提取与此规则 Metric 相关的当前采样值列表
-		samples := CollectMetricCurrentSamples(db, rule.MetricName)
+		// 提取与此规则 Metric 相关的当前采样值列表；无真实样本则不评估、不产生告警
+		samples := CollectMetricCurrentSamples(rule.MetricName)
 		if len(samples) == 0 {
 			continue
 		}
@@ -85,209 +134,197 @@ func evaluateActiveAlertRules() {
 	}
 }
 
-// CollectMetricCurrentSamples 收集当前指标的所有设备采样值（包含网络大屏自定义指标与 Tag 标签）
-func CollectMetricCurrentSamples(db *sql.DB, metricName string) []SampleEvaluationItem {
+// deviceInfo 设备基础信息（app 库）
+type deviceInfo struct {
+	IP     string
+	Name   string
+	Vendor string
+	Status string
+}
+
+// loadDeviceInfoMap 读取设备基础信息，避免指标库与 app 库之间跨库 JOIN
+func loadDeviceInfoMap() map[string]deviceInfo {
+	result := make(map[string]deviceInfo)
+	rows, err := appdb.DB().Query(`SELECT id, COALESCE(ip_address, ''), COALESCE(name, ''), COALESCE(vendor, ''), COALESCE(status, '') FROM network_devices`)
+	if err != nil {
+		return result
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id string
+		var info deviceInfo
+		if rows.Scan(&id, &info.IP, &info.Name, &info.Vendor, &info.Status) == nil {
+			result[id] = info
+		}
+	}
+	return result
+}
+
+// parseMetricValue 解析存储的指标值；形如 "OID=123" 时只取数值部分
+func parseMetricValue(raw string) (float64, bool) {
+	cleanValStr := strings.TrimSpace(raw)
+	if idx := strings.Index(cleanValStr, "="); idx != -1 {
+		cleanValStr = cleanValStr[idx+1:]
+	}
+	v, err := stringsToFloat(cleanValStr)
+	if err != nil {
+		return 0, false
+	}
+	return v, true
+}
+
+// CollectMetricCurrentSamples 收集当前指标的所有设备采样值（仅返回真实采集到的样本）
+func CollectMetricCurrentSamples(metricName string) []SampleEvaluationItem {
 	var items []SampleEvaluationItem
 	seenMap := make(map[string]bool)
+	devices := loadDeviceInfoMap()
 
-	// 1. 从 custom_dashboard_metrics 查询（用户自定义指标与标签）
-	custRows, err := db.Query(`
+	// 1. 从 custom_dashboard_metrics 查询（用户自定义指标与标签，位于指标库）
+	custRows, err := appdb.DBForTable("custom_dashboard_metrics").Query(`
 		SELECT m.id, m.oid, m.custom_name, m.device_id, m.last_value, m.unit,
-		       COALESCE(m.metric_name, ''), COALESCE(m.tags, ''),
-		       COALESCE(d.ip_address, ''), COALESCE(d.name, ''), COALESCE(d.vendor, ''), COALESCE(d.status, 'online')
+		       COALESCE(m.metric_name, ''), COALESCE(m.tags, '')
 		FROM custom_dashboard_metrics m
-		LEFT JOIN network_devices d ON m.device_id = d.id
 	`)
 	if err == nil {
 		defer custRows.Close()
 		for custRows.Next() {
-			var mId, mOid, cName, devId, lastVal, unit, mName, cTags, devIp, devName, vendor, status string
-			if err := custRows.Scan(&mId, &mOid, &cName, &devId, &lastVal, &unit, &mName, &cTags, &devIp, &devName, &vendor, &status); err == nil {
-				keyName := strings.TrimSpace(mName)
-				if keyName == "" {
-					if strings.Contains(strings.ToLower(cName), "cpu") {
-						keyName = "cpu_usage"
-					} else if strings.Contains(cName, "内存") {
-						keyName = "memory_usage"
-					} else {
-						keyName = "custom_metric"
+			var mId, mOid, cName, devId, lastVal, unit, mName, cTags string
+			if err := custRows.Scan(&mId, &mOid, &cName, &devId, &lastVal, &unit, &mName, &cTags); err != nil {
+				continue
+			}
+			info := devices[devId]
+			keyName := strings.TrimSpace(mName)
+			if keyName == "" {
+				if strings.Contains(strings.ToLower(cName), "cpu") {
+					keyName = "cpu_usage"
+				} else if strings.Contains(cName, "内存") {
+					keyName = "memory_usage"
+				} else {
+					keyName = "custom_metric"
+				}
+			}
+
+			// 如果指定了 metricName 并且不匹配，跳过（如果 metricName 为空则匹配全部）
+			if metricName != "" && keyName != metricName {
+				continue
+			}
+
+			// 无法解析为数值说明没有真实采样，直接跳过（禁止用占位值参与阈值判定）
+			val, ok := parseMetricValue(lastVal)
+			if !ok {
+				continue
+			}
+
+			tags := map[string]string{
+				"device_id":    devId,
+				"device_ip":    info.IP,
+				"device_name":  info.Name,
+				"vendor":       info.Vendor,
+				"metric_label": cName,
+				"status":       info.Status,
+			}
+			if cTags != "" {
+				var extra map[string]string
+				if json.Unmarshal([]byte(cTags), &extra) == nil {
+					for k, v := range extra {
+						tags[k] = v
 					}
 				}
+			}
 
-				// 如果指定了 metricName 并且不匹配，跳过（如果 metricName 为空则匹配全部）
-				if metricName != "" && keyName != metricName {
+			uniqueKey := fmt.Sprintf("%s-%s", devId, keyName)
+			seenMap[uniqueKey] = true
+
+			items = append(items, SampleEvaluationItem{
+				Value:       val,
+				DeviceID:    devId,
+				DeviceIP:    info.IP,
+				DeviceName:  info.Name,
+				Vendor:      info.Vendor,
+				MetricName:  keyName,
+				MetricLabel: cName,
+				Unit:        unit,
+				Tags:        tags,
+			})
+		}
+	}
+
+	// 2. 从 network_devices 补充设备在线状态指标（真实 status 字段）
+	if metricName == "device_status" || metricName == "" {
+		rows, err := appdb.DB().Query(`SELECT id, ip_address, name, vendor, status FROM network_devices WHERE status != ''`)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var id, ip, name, vendor, status string
+				if err := rows.Scan(&id, &ip, &name, &vendor, &status); err != nil {
 					continue
 				}
-
-				val := 0.0
-				cleanValStr := strings.TrimSpace(lastVal)
-				if idx := strings.Index(cleanValStr, "="); idx != -1 {
-					cleanValStr = cleanValStr[idx+1:]
-				}
-				if v, pErr := stringsToFloat(cleanValStr); pErr == nil {
-					val = v
-				} else if strings.Contains(cName, "内存") {
-					val = 49
-				} else if strings.Contains(strings.ToLower(cName), "cpu") {
-					val = 10
-				}
-
 				tags := map[string]string{
-					"device_id":    devId,
-					"device_ip":    devIp,
-					"device_name":  devName,
-					"vendor":       vendor,
-					"metric_label": cName,
-					"status":       status,
+					"device_id":   id,
+					"device_ip":   ip,
+					"device_name": name,
+					"vendor":      vendor,
+					"status":      status,
 				}
-				if cTags != "" {
-					var extra map[string]string
-					if json.Unmarshal([]byte(cTags), &extra) == nil {
-						for k, v := range extra {
-							tags[k] = v
-						}
-					}
+				uniqueKey := fmt.Sprintf("%s-device_status", id)
+				if seenMap[uniqueKey] {
+					continue
 				}
-
-				uniqueKey := fmt.Sprintf("%s-%s", devId, keyName)
 				seenMap[uniqueKey] = true
-
+				stVal := 0.0
+				if status == "online" {
+					stVal = 1.0
+				}
 				items = append(items, SampleEvaluationItem{
-					Value:       val,
-					DeviceID:    devId,
-					DeviceIP:    devIp,
-					DeviceName:  devName,
+					Value:       stVal,
+					DeviceID:    id,
+					DeviceIP:    ip,
+					DeviceName:  name,
 					Vendor:      vendor,
-					MetricName:  keyName,
-					MetricLabel: cName,
-					Unit:        unit,
+					MetricName:  "device_status",
+					MetricLabel: "设备在线状态",
+					Unit:        "0/1",
 					Tags:        tags,
 				})
 			}
 		}
 	}
 
-	// 2. 从 network_devices 补充设备状态或默认指标
-	if metricName == "device_status" || metricName == "cpu_usage" || metricName == "memory_usage" || len(items) == 0 {
-		rows, err := db.Query(`SELECT id, ip_address, name, vendor, status FROM network_devices WHERE status != ''`)
-		if err == nil {
-			defer rows.Close()
-			for rows.Next() {
-				var id, ip, name, vendor, status string
-				if err := rows.Scan(&id, &ip, &name, &vendor, &status); err == nil {
-					tags := map[string]string{
-						"device_id":   id,
-						"device_ip":   ip,
-						"device_name": name,
-						"vendor":      vendor,
-						"status":      status,
-					}
-
-					if metricName == "device_status" || metricName == "" {
-						uniqueKey := fmt.Sprintf("%s-device_status", id)
-						if !seenMap[uniqueKey] {
-							seenMap[uniqueKey] = true
-							stVal := 0.0
-							if status == "online" {
-								stVal = 1.0
-							}
-							items = append(items, SampleEvaluationItem{
-								Value:       stVal,
-								DeviceID:    id,
-								DeviceIP:    ip,
-								DeviceName:  name,
-								Vendor:      vendor,
-								MetricName:  "device_status",
-								MetricLabel: "设备在线状态",
-								Unit:        "0/1",
-								Tags:        tags,
-							})
-						}
-					}
-
-					if metricName == "cpu_usage" || metricName == "" {
-						uniqueKey := fmt.Sprintf("%s-cpu_usage", id)
-						if !seenMap[uniqueKey] {
-							seenMap[uniqueKey] = true
-							val := 10.0
-							if strings.Contains(name, "汇聚") {
-								val = 8.0
-							}
-							items = append(items, SampleEvaluationItem{
-								Value:       val,
-								DeviceID:    id,
-								DeviceIP:    ip,
-								DeviceName:  name,
-								Vendor:      vendor,
-								MetricName:  "cpu_usage",
-								MetricLabel: "CPU使用率",
-								Unit:        "%",
-								Tags:        tags,
-							})
-						}
-					}
-
-					if metricName == "memory_usage" || metricName == "" {
-						uniqueKey := fmt.Sprintf("%s-memory_usage", id)
-						if !seenMap[uniqueKey] {
-							seenMap[uniqueKey] = true
-							val := 49.0
-							if strings.Contains(name, "汇聚") {
-								val = 48.0
-							}
-							items = append(items, SampleEvaluationItem{
-								Value:       val,
-								DeviceID:    id,
-								DeviceIP:    ip,
-								DeviceName:  name,
-								Vendor:      vendor,
-								MetricName:  "memory_usage",
-								MetricLabel: "内存使用率",
-								Unit:        "%",
-								Tags:        tags,
-							})
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// 3. SNMP metric samples
-	if metricName != "" && metricName != "device_status" && metricName != "cpu_usage" && metricName != "memory_usage" {
-		rows, err := db.Query(`
-			SELECT s.device_id, s.metric_name, s.value, s.unit, s.tag_name, s.created_at,
-			       COALESCE(d.ip_address, ''), COALESCE(d.name, ''), COALESCE(d.vendor, '')
+	// 3. SNMP metric samples（指标库，不与 app 库网络设备表做跨库 JOIN）
+	if metricName != "" && metricName != "device_status" {
+		rows, err := appdb.DBForTable("snmp_metric_samples").Query(`
+			SELECT s.device_id, s.metric_name, s.value, s.unit, s.tag_name, s.created_at
 			FROM snmp_metric_samples s
-			LEFT JOIN network_devices d ON s.device_id = d.id
 			WHERE s.metric_name = ?
 			ORDER BY s.created_at DESC LIMIT 200`, metricName)
 		if err == nil {
 			defer rows.Close()
 			for rows.Next() {
-				var devID, mName, unit, tagName, cAt, devIp, devName, vendor string
+				var devID, mName, unit, tagName, cAt string
 				var val float64
-				if err := rows.Scan(&devID, &mName, &val, &unit, &tagName, &cAt, &devIp, &devName, &vendor); err == nil {
-					items = append(items, SampleEvaluationItem{
-						Value:       val,
-						DeviceID:    devID,
-						DeviceIP:    devIp,
-						DeviceName:  devName,
-						Vendor:      vendor,
-						MetricName:  mName,
-						IfName:      tagName,
-						MetricLabel: mName,
-						Unit:        unit,
-						Tags: map[string]string{
-							"device_id":   devID,
-							"device_ip":   devIp,
-							"device_name": devName,
-							"vendor":      vendor,
-							"if_name":     tagName,
-							"unit":        unit,
-						},
-					})
+				if err := rows.Scan(&devID, &mName, &val, &unit, &tagName, &cAt); err != nil {
+					continue
 				}
+				info := devices[devID]
+				items = append(items, SampleEvaluationItem{
+					Value:       val,
+					DeviceID:    devID,
+					DeviceIP:    info.IP,
+					DeviceName:  info.Name,
+					Vendor:      info.Vendor,
+					MetricName:  mName,
+					IfName:      tagName,
+					MetricLabel: mName,
+					Unit:        unit,
+					Tags: map[string]string{
+						"device_id":   devID,
+						"device_ip":   info.IP,
+						"device_name": info.Name,
+						"vendor":      info.Vendor,
+						"if_name":     tagName,
+						"unit":        unit,
+					},
+				})
 			}
 		}
 	}
@@ -359,7 +396,8 @@ func CheckThresholdCondition(val float64, op string, threshold float64) bool {
 }
 
 func triggerAlertRecord(db *sql.DB, rule repos.AlertRuleRecord, sample SampleEvaluationItem, nowTs int64) {
-	alertID := fmt.Sprintf("alt-%d", nowTs)
+	// 主键使用 uuid，避免同一毫秒内多条告警 ID 冲突
+	alertID := uuid.NewString()
 	title := fmt.Sprintf("%s 触发告警", rule.Name)
 	message := rule.Template
 	if message == "" {

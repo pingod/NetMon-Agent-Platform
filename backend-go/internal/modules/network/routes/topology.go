@@ -90,15 +90,15 @@ func TopologyRoutes() chi.Router {
 
 		for _, dev := range devices {
 			dh := DeviceHealth{
-				DeviceID:            dev.ID,
-				DeviceName:          dev.Name,
-				Status:              dev.Status,
-				DownInterfaces:      make([]string, 0),
-				Alerts:              make([]map[string]interface{}, 0),
+				DeviceID:       dev.ID,
+				DeviceName:     dev.Name,
+				Status:         dev.Status,
+				DownInterfaces: make([]string, 0),
+				Alerts:         make([]map[string]interface{}, 0),
 			}
 
-			// 查询该设备最新的每个接口指标
-			rows, qerr := db.Query(`
+			// 查询该设备最新的每个接口指标（指标库）
+			rows, qerr := appdb.DBForTable("snmp_interface_metrics").Query(`
 				SELECT interface_name, if_oper_status, if_admin_status
 				FROM snmp_interface_metrics
 				WHERE device_id = ?
@@ -127,11 +127,11 @@ func TopologyRoutes() chi.Router {
 				rows.Close()
 			}
 
-			// 查询该设备的活跃告警
+			// 查询该设备的活跃告警（alerts.device_id 为显式关联列，状态词表统一为 firing/acknowledged/resolved）
 			alertRows, aerr := db.Query(`
 				SELECT id, title, severity, status, created_at
 				FROM alerts
-				WHERE (device_id = ? OR metadata LIKE ?) AND status IN ('active', 'pending', 'acknowledged')
+				WHERE (device_id = ? OR metadata LIKE ?) AND status IN ('firing', 'acknowledged')
 				ORDER BY created_at DESC LIMIT 5`, dev.ID, "%"+dev.IPAddress+"%")
 			if aerr == nil {
 				for alertRows.Next() {
