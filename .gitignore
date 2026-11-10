@@ -1,0 +1,89 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs
+backend/dist/
+backend/build/
+frontend/dist/
+frontend/build/
+backend/data/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+backend/data/app.db
+backend/data/*.db
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+server.log
+
+# Testing
+coverage/
+.nyc_output/
+
+# IDE & Editor
+.idea/
+.vscode/
+.trae/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cache
+.cache/
+.temp/
+.tmp/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Docker runtime data
+backend-data/
+backend-logs/
+frontend-data/
+backend-logs.txt
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Runtime backups
+backend/backups/
+
+# Backup files
+*.bak
+
+# Internal audit reports (sensitive)
+docs/
+
+# Lint output dumps
+eslint.txt
+
+# 机房大屏（独立项目，不纳入主仓库）
+jifangdaping/
+
+# 开发辅助脚本（不纳入仓库）
+scripts/
+
+# 构建产物与二进制（不纳入仓库）
+*.exe
+release/itops-server-*
+backend-go/release/itops-server-*
+backend-go/frontend_dist/
+backend-go/internal/modules/frontend_dist/

@@ -1,0 +1,413 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useRef, useEffect } from 'react';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import type { Rack3D } from './types';
+
+export type ViewMode = 'overview' | 'zoneA' | 'zoneB';
+
+interface SceneProps {
+  racks: Rack3D[];
+  onRackClick: (rackId: string) => void;
+  selectedRackId?: string | null;
+  hoveredRackId?: string | null;
+  onHoverChange?: (rackId: string | null) => void;
+  heatmapData?: Record<string, number>;
+  viewMode: ViewMode;
+}
+
+// ── 纹理缓存 ──
+const texCache: Record<string, THREE.CanvasTexture> = {};
+
+function floorTex(): THREE.CanvasTexture {
+  if (texCache._floor) return texCache._floor;
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 256;
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = '#4a5a6a';
+  ctx.fillRect(0, 0, 256, 256);
+  for (let x = 0; x < 256; x += 3) {
+    for (let y = 0; y < 256; y += 3) {
+      const n = (Math.random() - 0.5) * 10;
+      const v = Math.max(0, Math.min(255, 74 + n));
+      ctx.fillStyle = `rgb(${v},${v+8},${v+20})`;
+      ctx.fillRect(x, y, 3, 3);
+    }
+  }
+  ctx.strokeStyle = '#3a4a55';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, 254, 254);
+  ctx.strokeStyle = 'rgba(100,120,140,0.5)';
+  ctx.lineWidth = 1;
+  [64, 128, 192].forEach(p => {
+    ctx.beginPath(); ctx.moveTo(p, 4); ctx.lineTo(p, 252); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(4, p); ctx.lineTo(252, p); ctx.stroke();
+  });
+  texCache._floor = new THREE.CanvasTexture(c);
+  return texCache._floor;
+}
+
+function labelTex(id: string, warn: boolean): THREE.CanvasTexture {
+  const k = `L_${id}_${warn}`;
+  if (texCache[k]) return texCache[k];
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 64;
+  const ctx = c.getContext('2d')!;
+  const g = ctx.createLinearGradient(0, 0, 256, 0);
+  if (warn) { g.addColorStop(0, 'rgba(255,80,50,0.15)'); g.addColorStop(0.5, 'rgba(255,80,50,0.3)'); g.addColorStop(1, 'rgba(255,80,50,0.15)'); }
+  else { g.addColorStop(0, 'rgba(0,212,255,0.1)'); g.addColorStop(0.5, 'rgba(0,212,255,0.22)'); g.addColorStop(1, 'rgba(0,212,255,0.1)'); }
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 64);
+  ctx.strokeStyle = warn ? 'rgba(255,100,60,0.6)' : 'rgba(0,212,255,0.5)';
+  ctx.lineWidth = 2; ctx.strokeRect(2, 2, 252, 60);
+  ctx.fillStyle = warn ? '#ff8866' : '#00d4ff';
+  ctx.font = 'bold 32px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = warn ? '#ff4422' : '#00aacc'; ctx.shadowBlur = 8;
+  ctx.fillText(id, 128, 34);
+  texCache[k] = new THREE.CanvasTexture(c);
+  return texCache[k];
+}
+
+const geo = {
+  led: new THREE.SphereGeometry(0.02, 4, 4),
+  glow: new THREE.SphereGeometry(0.035, 4, 4),
+  foot: new THREE.CylinderGeometry(0.06, 0.08, 0.1, 8),
+};
+
+// 提亮机柜颜色
+const mats = {
+  bodyN: new THREE.MeshStandardMaterial({ color: 0x6a7a8a, metalness: 0.6, roughness: 0.35 }),
+  bodyW: new THREE.MeshStandardMaterial({ color: 0x7a5a3a, metalness: 0.6, roughness: 0.35 }),
+  top: new THREE.MeshStandardMaterial({ color: 0x7a8a9a, metalness: 0.7, roughness: 0.25 }),
+  frame: new THREE.MeshStandardMaterial({ color: 0x8a9aaa, metalness: 0.85, roughness: 0.15 }),
+  glass: new THREE.MeshPhysicalMaterial({ color: 0xaaddff, metalness: 0, roughness: 0.05, transparent: true, opacity: 0.08 }),
+  serverN: new THREE.MeshStandardMaterial({ color: 0x5a6a7a, metalness: 0.5, roughness: 0.35 }),
+  serverW: new THREE.MeshStandardMaterial({ color: 0x6a5a3a, metalness: 0.5, roughness: 0.35 }),
+  ledG: new THREE.MeshBasicMaterial({ color: 0x00ff88 }),
+  ledC: new THREE.MeshBasicMaterial({ color: 0x00d4ff }),
+  ledR: new THREE.MeshBasicMaterial({ color: 0xff4444 }),
+  glowG: new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false }),
+  glowR: new THREE.MeshBasicMaterial({ color: 0xff4444, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false }),
+  sideC: new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false }),
+  sideO: new THREE.MeshBasicMaterial({ color: 0xff6644, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false }),
+};
+
+const RW = 2.2, RD = 1.2, RH = 5.5;
+const UH = RH / 42;
+
+function createRack(rack: Rack3D): THREE.Group {
+  const g = new THREE.Group();
+  g.userData = { rackId: rack.id };
+  const warn = rack.alertCount > 0;
+  const bm = warn ? mats.bodyW : mats.bodyN;
+  const sm = warn ? mats.serverW : mats.serverN;
+  const sgm = warn ? mats.sideO : mats.sideC;
+
+  const back = new THREE.Mesh(new THREE.BoxGeometry(RW, RH, 0.06), bm);
+  back.position.set(0, RH / 2, -RD / 2);
+  back.castShadow = back.receiveShadow = true; g.add(back);
+
+  const left = new THREE.Mesh(new THREE.BoxGeometry(0.06, RH, RD), bm);
+  left.position.set(-RW / 2, RH / 2, 0);
+  left.castShadow = left.receiveShadow = true; g.add(left);
+
+  const right = new THREE.Mesh(new THREE.BoxGeometry(0.06, RH, RD), bm);
+  right.position.set(RW / 2, RH / 2, 0);
+  right.castShadow = right.receiveShadow = true; g.add(right);
+
+  const top = new THREE.Mesh(new THREE.BoxGeometry(RW + 0.1, 0.06, RD + 0.1), mats.top);
+  top.position.y = RH + 0.03; top.castShadow = true; g.add(top);
+
+  const bottom = new THREE.Mesh(new THREE.BoxGeometry(RW + 0.1, 0.04, RD + 0.1), bm);
+  bottom.position.y = 0.02; bottom.castShadow = true; g.add(bottom);
+
+  [[-RW / 2 + 0.2, -RD / 2 + 0.2], [RW / 2 - 0.2, -RD / 2 + 0.2], [-RW / 2 + 0.2, RD / 2 - 0.2], [RW / 2 - 0.2, RD / 2 - 0.2]].forEach(([fx, fz]) => {
+    const f = new THREE.Mesh(geo.foot, mats.top);
+    f.position.set(fx, 0.05, fz); g.add(f);
+  });
+
+  const doorPivot = new THREE.Group();
+  doorPivot.position.set(0, 0, RD / 2);
+  doorPivot.userData = { isRackDoor: true };
+
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(RW - 0.1, RH - 0.1, 0.02), mats.glass);
+  glass.position.set(0, RH / 2, 0); doorPivot.add(glass);
+
+  const ft = 0.04;
+  const fm = mats.frame;
+  const lf = new THREE.Mesh(new THREE.BoxGeometry(ft, RH, ft), fm);
+  lf.position.set(-RW / 2 + ft / 2, RH / 2, 0); doorPivot.add(lf);
+  const rf = new THREE.Mesh(new THREE.BoxGeometry(ft, RH, ft), fm);
+  rf.position.set(RW / 2 - ft / 2, RH / 2, 0); doorPivot.add(rf);
+  const tf = new THREE.Mesh(new THREE.BoxGeometry(RW, ft, ft), fm);
+  tf.position.set(0, RH + ft / 2, 0); doorPivot.add(tf);
+  const bf = new THREE.Mesh(new THREE.BoxGeometry(RW, ft, ft), fm);
+  bf.position.set(0, ft / 2, 0); doorPivot.add(bf);
+
+  const handle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.2, 0.06), fm);
+  handle.position.set(RW / 2 - 0.06, RH / 2, 0.04); doorPivot.add(handle);
+  g.add(doorPivot);
+
+  const usedU = Math.min(rack.usedU, rack.totalU);
+  for (let u = 0; u < usedU; u++) {
+    const y = UH * (u + 0.5);
+    const server = new THREE.Mesh(new THREE.BoxGeometry(RW - 0.3, UH * 0.85, RD - 0.2), sm);
+    server.position.set(0, y, 0); server.castShadow = true; g.add(server);
+    const ledM = warn ? mats.ledR : (u % 3 === 0 ? mats.ledG : mats.ledC);
+    const led = new THREE.Mesh(geo.led, ledM);
+    led.position.set(-RW / 2 + 0.2, y, RD / 2 - 0.02); g.add(led);
+    const gl = new THREE.Mesh(geo.glow, warn ? mats.glowR : mats.glowG);
+    gl.position.copy(led.position); g.add(gl);
+  }
+
+  const lt = labelTex(rack.name, warn);
+  const label = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.6, 0.4),
+    new THREE.MeshBasicMaterial({ map: lt, transparent: true, side: THREE.DoubleSide, depthWrite: false })
+  );
+  label.position.set(0, RH + 0.5, RD / 2 + 0.01); g.add(label);
+
+  const sl = new THREE.Mesh(geo.led, warn ? mats.ledR : mats.ledG);
+  sl.position.set(0, RH + 0.03, RD / 2 + 0.01); sl.scale.setScalar(3);
+  sl.userData = { isStatusLed: true }; g.add(sl);
+  const sg = new THREE.Mesh(geo.glow, warn ? mats.glowR : mats.glowG);
+  sg.position.copy(sl.position); sg.scale.setScalar(3);
+  sg.userData = { isGlow: true }; g.add(sg);
+
+  const lg = new THREE.Mesh(new THREE.BoxGeometry(0.01, RH * 0.9, 0.01), sgm);
+  lg.position.set(-RW / 2 - 0.01, RH / 2, RD / 2 - 0.05); g.add(lg);
+  const rg = new THREE.Mesh(new THREE.BoxGeometry(0.01, RH * 0.9, 0.01), sgm);
+  rg.position.set(RW / 2 + 0.01, RH / 2, RD / 2 - 0.05); g.add(rg);
+
+  return g;
+}
+
+function createEnv(scene: THREE.Scene) {
+  const ft = floorTex();
+  ft.wrapS = ft.wrapT = THREE.RepeatWrapping;
+  ft.repeat.set(40, 40);
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(80, 80),
+    new THREE.MeshStandardMaterial({ map: ft, color: 0x6a7a8a, metalness: 0.05, roughness: 0.8 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  const grid = new THREE.GridHelper(80, 40, 0x4488aa, 0x335577);
+  grid.position.y = 0.02;
+  grid.material.opacity = 0.5;
+  grid.material.transparent = true;
+  scene.add(grid);
+}
+
+// 视图相机目标
+const VIEW_TARGETS: Record<ViewMode, { pos: THREE.Vector3; target: THREE.Vector3 }> = {
+  overview: { pos: new THREE.Vector3(25, 18, 25), target: new THREE.Vector3(0, 3, 0) },
+  zoneA: { pos: new THREE.Vector3(-10, 10, 20), target: new THREE.Vector3(-10, 3, 0) },
+  zoneB: { pos: new THREE.Vector3(10, 10, 20), target: new THREE.Vector3(10, 3, 0) },
+};
+
+export default function Scene({ racks, onRackClick, selectedRackId, hoveredRackId, onHoverChange, heatmapData, viewMode }: SceneProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const controlsRef = useRef<OrbitControls | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const rackMap = useRef<Map<string, THREE.Group>>(new Map());
+  const ray = useRef(new THREE.Raycaster());
+  const mouse = useRef(new THREE.Vector2());
+  const anim = useRef<{ doors: THREE.Group[]; leds: THREE.Mesh[]; glows: THREE.Mesh[] }>({ doors: [], leds: [], glows: [] });
+  const viewModeRef = useRef(viewMode);
+
+  useEffect(() => { viewModeRef.current = viewMode; }, [viewMode]);
+
+  // 初始化
+  useEffect(() => {
+    const cv = canvasRef.current; if (!cv) return;
+    const w = cv.clientWidth, h = cv.clientHeight;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1e2e3e);
+    scene.fog = new THREE.Fog(0x1e2e3e, 40, 120);
+    sceneRef.current = scene;
+
+    const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 200);
+    camera.position.copy(VIEW_TARGETS.overview.pos);
+    cameraRef.current = camera;
+
+    const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: false });
+    renderer.setClearColor(0x1e2e3e);
+    renderer.setSize(w, h, false);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.5;
+    rendererRef.current = renderer;
+
+    const controls = new OrbitControls(camera, cv);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.maxPolarAngle = Math.PI / 2.2;
+    controls.minDistance = 6;
+    controls.maxDistance = 70;
+    controls.target.copy(VIEW_TARGETS.overview.target);
+    controlsRef.current = controls;
+
+    // 灯光
+    scene.add(new THREE.AmbientLight(0xbbccdd, 1.1));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.3);
+    sun.position.set(30, 50, 20);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.near = 1; sun.shadow.camera.far = 120;
+    sun.shadow.camera.left = -60; sun.shadow.camera.right = 60;
+    sun.shadow.camera.top = 60; sun.shadow.camera.bottom = -60;
+    sun.shadow.bias = -0.0005;
+    scene.add(sun);
+
+    scene.add(new THREE.DirectionalLight(0x99aacc, 0.5)).position.set(-20, 25, -10);
+    scene.add(new THREE.DirectionalLight(0xaabbdd, 0.4)).position.set(20, 20, 10);
+    scene.add(new THREE.PointLight(0x00d4ff, 2.5, 50)).position.set(-10, 8, 0);
+    scene.add(new THREE.PointLight(0x00d4ff, 2.5, 50)).position.set(10, 8, 0);
+    scene.add(new THREE.PointLight(0x4488ff, 1.5, 40)).position.set(0, 10, 0);
+    scene.add(new THREE.HemisphereLight(0x99aacc, 0x445566, 0.6));
+
+    createEnv(scene);
+
+    // 交互
+    let dragging = false, ds = { x: 0, y: 0 };
+
+    const onDown = (e: PointerEvent) => {
+      dragging = false; ds = { x: e.clientX, y: e.clientY };
+      cv.addEventListener('pointermove', onMove);
+      cv.addEventListener('pointerup', onUp);
+    };
+    const onMove = (e: PointerEvent) => {
+      if (Math.abs(e.clientX - ds.x) > 3 || Math.abs(e.clientY - ds.y) > 3) dragging = true;
+      const r = cv.getBoundingClientRect();
+      mouse.current.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+      ray.current.setFromCamera(mouse.current, camera);
+      const hits = ray.current.intersectObjects(
+        Array.from(rackMap.current.values()).flatMap(g => { const a: THREE.Object3D[] = []; g.traverse(c => { if ((c as any).isMesh) a.push(c); }); return a; }),
+        false
+      );
+      let hid: string | null = null;
+      if (hits.length > 0) { let c: any = hits[0].object; while (c && !c.userData?.rackId) c = c.parent; if (c) hid = c.userData.rackId; }
+      onHoverChange?.(hid);
+    };
+    const onUp = (e: PointerEvent) => {
+      cv.removeEventListener('pointermove', onMove);
+      cv.removeEventListener('pointerup', onUp);
+      if (dragging) return;
+      const r = cv.getBoundingClientRect();
+      mouse.current.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+      ray.current.setFromCamera(mouse.current, camera);
+      const hits = ray.current.intersectObjects(
+        Array.from(rackMap.current.values()).flatMap(g => { const a: THREE.Object3D[] = []; g.traverse(c => { if ((c as any).isMesh) a.push(c); }); return a; }),
+        false
+      );
+      if (hits.length > 0) { let c: any = hits[0].object; while (c && !c.userData?.rackId) c = c.parent; if (c) onRackClick(c.userData.rackId); }
+    };
+    cv.addEventListener('pointerdown', onDown);
+
+    const onResize = () => {
+      const r = cv.getBoundingClientRect();
+      camera.aspect = r.width / r.height; camera.updateProjectionMatrix();
+      renderer.setSize(r.width, r.height, false);
+    };
+    window.addEventListener('resize', onResize);
+
+    let aid: number;
+    const loop = () => {
+      aid = requestAnimationFrame(loop);
+      controls.update();
+      const t = Date.now() * 0.001;
+      anim.current.doors.forEach(d => {
+        const tg = (d.userData as any).targetRotation || 0;
+        const df = tg - d.rotation.y;
+        if (Math.abs(df) > 0.001) d.rotation.y += df * 0.1;
+        else d.rotation.y = tg;
+      });
+      anim.current.leds.forEach(l => { (l.material as any).opacity = 0.4 + 0.6 * Math.sin(t * 3); });
+      anim.current.glows.forEach(g => {
+        g.scale.setScalar(0.7 + 0.5 * Math.sin(t * 3));
+        (g.material as any).opacity = 0.15 + 0.3 * Math.sin(t * 3);
+      });
+      renderer.render(scene, camera);
+    };
+    loop();
+
+    return () => {
+      window.removeEventListener('resize', onResize);
+      cv.removeEventListener('pointerdown', onDown);
+      cancelAnimationFrame(aid);
+      renderer.dispose();
+      scene.clear();
+      controls.dispose();
+    };
+  }, []);
+
+  // 视图切换
+  useEffect(() => {
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+    if (!camera || !controls) return;
+    const vt = VIEW_TARGETS[viewMode];
+    // 平滑动画
+    const startPos = camera.position.clone();
+    const startTarget = controls.target.clone();
+    const endPos = vt.pos;
+    const endTarget = vt.target;
+    const startTime = Date.now();
+    const duration = 800;
+
+    const animView = () => {
+      const elapsed = Date.now() - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // easeInOutQuad
+      camera.position.lerpVectors(startPos, endPos, ease);
+      controls.target.lerpVectors(startTarget, endTarget, ease);
+      if (t < 1) requestAnimationFrame(animView);
+    };
+    animView();
+  }, [viewMode]);
+
+  // 更新机柜
+  useEffect(() => {
+    const scene = sceneRef.current; if (!scene) return;
+    rackMap.current.forEach(g => scene.remove(g));
+    rackMap.current.clear();
+    anim.current = { doors: [], leds: [], glows: [] };
+
+    const spacing = 4.5;
+    racks.forEach((rack, i) => {
+      const g = createRack(rack);
+      const col = i % 8, row = Math.floor(i / 8);
+      g.position.set(-16 + col * spacing, 0, -5 + row * 10);
+      scene.add(g);
+      rackMap.current.set(rack.id, g);
+      g.traverse(o => {
+        if ((o as any).userData?.isRackDoor) anim.current.doors.push(o as THREE.Group);
+        if ((o as any).userData?.isStatusLed) anim.current.leds.push(o as THREE.Mesh);
+        if ((o as any).userData?.isGlow) anim.current.glows.push(o as THREE.Mesh);
+      });
+    });
+  }, [racks, heatmapData]);
+
+  // 高亮
+  useEffect(() => {
+    rackMap.current.forEach((g, id) => {
+      const sel = id === selectedRackId, hov = id === hoveredRackId;
+      g.scale.setScalar(sel || hov ? 1.03 : 1);
+      g.traverse(o => {
+        if ((o as any).userData?.isRackDoor) {
+          (o as any).userData.targetRotation = sel ? -Math.PI / 2.2 : 0;
+        }
+      });
+    });
+  }, [selectedRackId, hoveredRackId]);
+
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing" />;
+}

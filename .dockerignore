@@ -1,0 +1,15 @@
+.git
+.gitignore
+**/node_modules
+**/__pycache__
+frontend/dist
+backend-go/release
+backend-go/internal/modules/frontend_dist
+backend-go/*.exe
+*.exe
+data
+docker-data
+.env
+.env.*
+!.env.example
+*.log
