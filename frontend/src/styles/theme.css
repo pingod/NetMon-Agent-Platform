@@ -1020,3 +1020,20 @@ body:not([data-theme='light']) {
 [data-theme='light'] .viz-dark .text-white {
   color: #ffffff !important;
 }
+
+/* 移动端：避免 flex/grid 子项按 min-content 撑破视口 */
+.page-enter,
+.page-enter > * {
+  min-width: 0;
+}
+
+main .grid > *,
+main .flex > * {
+  min-width: 0;
+}
+
+/* 页面根节点在 flex 布局中使用 mx-auto 时会被 min-content 撑宽，强制占满可用宽度 */
+.page-enter > * {
+  width: 100%;
+  max-width: 100%;
+}

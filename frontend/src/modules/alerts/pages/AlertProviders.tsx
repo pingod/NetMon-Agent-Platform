@@ -322,7 +322,7 @@ export default function AlertProviders() {
           placeholder="搜索告警源..."
           className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-blue-500 w-64"
         />
-        <div className="flex gap-2 items-center">
+        <div className="flex flex-wrap gap-2 items-center">
           <span className="text-sm text-slate-400">类型:</span>
           <button onClick={() => setSelectedType(null)} className={clsx("px-3 py-1.5 rounded-full text-sm font-medium transition-all", !selectedType ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700")}>全部</button>
           {types.map(type => (
