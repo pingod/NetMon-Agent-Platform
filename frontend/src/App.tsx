@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, theme as antdTheme } from 'antd';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
-import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { UIPreferencesProvider } from './contexts/UIPreferencesContext';
 import ErrorBoundary from './shared/components/ErrorBoundary';
 import ProtectedRoute from './shared/components/ProtectedRoute';
@@ -51,49 +51,41 @@ function SuspenseRoute({ children, isInner = false }: { children: React.ReactNod
 }
 
 function ThemedConfigProvider({ children }: { children: React.ReactNode }) {
-  const { theme } = useTheme();
-  const dark = theme === 'dark';
-  const surface = dark ? '#0b1220' : '#ffffff';
-  const surface2 = dark ? '#101a2b' : '#f7f9fd';
-  const border = dark ? 'rgba(148,163,184,0.13)' : '#e3e8f2';
-  const text = dark ? '#eef2fa' : '#0f172a';
-  const text2 = dark ? '#9aa8bf' : '#51607a';
-
-  return (
+return (
     <ConfigProvider
       theme={{
-        algorithm: dark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+        algorithm: antdTheme.defaultAlgorithm,
         token: {
           colorPrimary: '#6d5efc',
           colorInfo: '#6d5efc',
-          colorBgBase: dark ? '#060a12' : '#f4f6fb',
-          colorBgContainer: surface,
-          colorBgElevated: surface,
-          colorBorder: border,
-          colorBorderSecondary: border,
-          colorSplit: border,
-          colorText: text,
-          colorTextSecondary: text2,
+          colorBgBase: '#f4f6fb',
+          colorBgContainer: '#ffffff',
+          colorBgElevated: '#ffffff',
+          colorBorder: '#e3e8f2',
+          colorBorderSecondary: '#e3e8f2',
+          colorSplit: '#e3e8f2',
+          colorText: '#0f172a',
+          colorTextSecondary: '#51607a',
           borderRadius: 10,
           borderRadiusLG: 14,
           controlHeight: 36,
           fontSize: 13,
           fontFamily:
             "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif",
-          boxShadowSecondary: '0 24px 60px -28px rgba(0,0,0,0.6)',
+          boxShadowSecondary: '0 24px 60px -28px rgba(0,0,0,0.35)',
         },
         components: {
           Button: { primaryShadow: 'none', fontWeight: 500 },
-          Card: { colorBgContainer: surface, colorBorderSecondary: border },
+          Card: { colorBgContainer: '#ffffff', colorBorderSecondary: '#e3e8f2' },
           Modal: { borderRadiusLG: 16 },
           Table: {
-            headerBg: surface2,
-            headerColor: text2,
-            borderColor: border,
-            rowHoverBg: dark ? 'rgba(148,163,184,0.06)' : 'rgba(15,23,42,0.035)',
+            headerBg: '#f7f9fd',
+            headerColor: '#51607a',
+            borderColor: '#e3e8f2',
+            rowHoverBg: 'rgba(15,23,42,0.035)',
           },
           Tabs: { itemSelectedColor: '#6d5efc', inkBarColor: '#6d5efc' },
-          Tooltip: { colorBgSpotlight: dark ? '#16223a' : '#0f172a' },
+          Tooltip: { colorBgSpotlight: '#0f172a' },
           Select: { optionSelectedBg: 'rgba(109,94,252,0.14)' },
         },
       }}

@@ -8,15 +8,12 @@ import {
   ChevronRight,
   LogOut,
   Menu as MenuIcon,
-  Moon,
   Search,
-  Sun,
   User as UserIcon,
   X,
 } from 'lucide-react';
 import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTheme } from '../../contexts/ThemeContext';
 import { useUIPreferences } from '../../contexts/UIPreferencesContext';
 import ChatWidget from '../../modules/ai/components/ChatWidget';
 import { buildVisibleNavigation, findActiveNav } from '../../lib/navigation';
@@ -24,7 +21,6 @@ import { buildVisibleNavigation, findActiveNav } from '../../lib/navigation';
 export default function Layout() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const { hiddenGroups, hiddenItems } = useUIPreferences();
   const navigate = useNavigate();
   const location = useLocation();
@@ -297,19 +293,14 @@ export default function Layout() {
             )}
           </div>
 
-          <div className="hidden items-center gap-1.5 rounded-full border border-border bg-surface-2 px-2.5 py-1 md:flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            <span className="text-[11px] font-medium text-text-secondary">{t('app.systemNormal')}</span>
-          </div>
-
           <button
             type="button"
-            onClick={toggleTheme}
-            className="btn btn-ghost btn-icon"
-            title={theme === 'dark' ? t('app.lightMode') : t('app.darkMode')}
-            aria-label="toggle theme"
+            title={t('app.systemNormal')}
+            aria-label="system status"
+            className="hidden items-center gap-1.5 rounded-full border border-border bg-surface-2 px-2.5 py-1 md:flex"
           >
-            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <span className="text-[11px] font-medium text-text-secondary">{t('app.systemNormal')}</span>
           </button>
 
           {user && (

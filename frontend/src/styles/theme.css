@@ -5,70 +5,9 @@
    ========================================================================== */
 
 :root {
-  /* 色板 —— 深色（默认） */
-  --bg-app: #060a12;
-  --bg-deep: #04070d;
-  --surface-1: #0b1220;
-  --surface-2: #101a2b;
-  --surface-3: #16223a;
-  --surface-hover: rgba(148, 163, 184, 0.07);
-  --border-subtle: rgba(148, 163, 184, 0.13);
-  --border-strong: rgba(148, 163, 184, 0.24);
-
-  --text-1: #eef2fa;
-  --text-2: #9aa8bf;
-  --text-3: #67758d;
-
-  --primary: #6d5efc;
-  --primary-strong: #5a4ae8;
-  --primary-soft: rgba(109, 94, 252, 0.14);
-  --primary-ring: rgba(109, 94, 252, 0.35);
-  --accent: #22d3ee;
-  --accent-soft: rgba(34, 211, 238, 0.12);
-
-  --success: #34d399;
-  --warning: #fbbf24;
-  --danger: #fb7185;
-  --info: #60a5fa;
-
-  --radius-sm: 8px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 18px;
-
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.25), 0 10px 30px -18px rgba(0, 0, 0, 0.55);
-  --shadow-2: 0 24px 60px -28px rgba(0, 0, 0, 0.7);
-  --shadow-glow: 0 0 0 1px rgba(109, 94, 252, 0.25), 0 18px 48px -22px rgba(109, 94, 252, 0.45);
-
-  /* 兼容既有 Tailwind token */
-  --color-primary: var(--primary);
-  --color-primary-light: #8f83ff;
-  --color-primary-dark: var(--primary-strong);
-  --color-secondary: var(--surface-2);
-  --color-accent: var(--accent);
-  --color-background: var(--bg-app);
-  --color-surface: var(--surface-1);
-  --color-border: var(--border-subtle);
-  --color-text-primary: var(--text-1);
-  --color-text-secondary: var(--text-2);
-  --color-text-tertiary: var(--text-3);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-error: var(--danger);
-  --color-info: var(--primary);
-  --color-status-success: var(--success);
-  --color-status-warning: var(--warning);
-  --color-status-error: var(--danger);
-}
-
-[data-theme='dark'],
-.dark {
-  color-scheme: dark;
-}
-
-[data-theme='light'] {
   color-scheme: light;
 
+  /* 色板 —— 浅色（唯一主题，深色主题已移除） */
   --bg-app: #f4f6fb;
   --bg-deep: #eef1f8;
   --surface-1: #ffffff;
@@ -94,9 +33,34 @@
   --danger: #e11d48;
   --info: #2563eb;
 
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
   --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 12px 30px -22px rgba(15, 23, 42, 0.35);
   --shadow-2: 0 24px 60px -30px rgba(15, 23, 42, 0.35);
   --shadow-glow: 0 0 0 1px rgba(90, 74, 232, 0.18), 0 18px 48px -26px rgba(90, 74, 232, 0.3);
+
+  /* 兼容既有 Tailwind token */
+  --color-primary: var(--primary);
+  --color-primary-light: #8f83ff;
+  --color-primary-dark: var(--primary-strong);
+  --color-secondary: var(--surface-2);
+  --color-accent: var(--accent);
+  --color-background: var(--bg-app);
+  --color-surface: var(--surface-1);
+  --color-border: var(--border-subtle);
+  --color-text-primary: var(--text-1);
+  --color-text-secondary: var(--text-2);
+  --color-text-tertiary: var(--text-3);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--danger);
+  --color-info: var(--primary);
+  --color-status-success: var(--success);
+  --color-status-warning: var(--warning);
+  --color-status-error: var(--danger);
 }
 
 html,
@@ -119,16 +83,7 @@ body {
   background-color: var(--bg-app);
 }
 
-[data-theme='dark'] body,
-body:not([data-theme='light']) {
-  background-image:
-    radial-gradient(1100px 520px at 6% -12%, rgba(109, 94, 252, 0.16), transparent 62%),
-    radial-gradient(900px 460px at 102% -6%, rgba(34, 211, 238, 0.09), transparent 58%),
-    radial-gradient(700px 420px at 50% 110%, rgba(109, 94, 252, 0.06), transparent 70%);
-  background-attachment: fixed;
-}
-
-[data-theme='light'] body {
+body {
   background-image:
     radial-gradient(900px 420px at 0% -10%, rgba(90, 74, 232, 0.08), transparent 60%),
     radial-gradient(700px 380px at 100% 0%, rgba(8, 145, 178, 0.06), transparent 55%);
@@ -417,13 +372,14 @@ body:not([data-theme='light']) {
 
 /* ---------- 侧边栏 ---------- */
 .sidebar {
-  background: linear-gradient(180deg, rgba(11, 18, 32, 0.92), rgba(6, 10, 18, 0.94));
+  background: linear-gradient(180deg, #ffffff, #f8faff);
   border-right: 1px solid var(--border-subtle);
   backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
-[data-theme='light'] .sidebar {
-  background: linear-gradient(180deg, #ffffff, #f8faff);
+:root {
+  --header-bg: rgba(255, 255, 255, 0.82);
 }
 
 .nav-group-label {
@@ -626,23 +582,8 @@ body:not([data-theme='light']) {
   -webkit-backdrop-filter: blur(18px);
 }
 
-:root {
-  --header-bg: rgba(8, 13, 24, 0.72);
-}
-
-[data-theme='light'] {
-  --header-bg: rgba(255, 255, 255, 0.82);
-}
-
 /* 登录/改密等认证页背景 */
 .auth-bg {
-  background:
-    radial-gradient(720px 420px at 18% 12%, rgba(109, 94, 252, 0.28), transparent 62%),
-    radial-gradient(560px 380px at 84% 82%, rgba(34, 211, 238, 0.16), transparent 60%),
-    var(--bg-app);
-}
-
-[data-theme='light'] .auth-bg {
   background:
     radial-gradient(720px 420px at 16% 10%, rgba(90, 74, 232, 0.16), transparent 62%),
     radial-gradient(560px 380px at 86% 84%, rgba(8, 145, 178, 0.12), transparent 60%),
@@ -1065,10 +1006,6 @@ main .flex > * {
 
 /* 侧边栏分组标题：浅色主题下加深，避免白底灰字发虚 */
 :root {
-  --nav-group-color: #94a3b8;
-}
-
-[data-theme='light'] {
   --nav-group-color: #475569;
 }
 

@@ -1,14 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Check, LayoutPanelLeft, Moon, RotateCcw, Search, Sun } from 'lucide-react';
+import { Check, LayoutPanelLeft, RotateCcw, Search, Sun } from 'lucide-react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
-import { useTheme } from '../../../../contexts/ThemeContext';
 import { useUIPreferences } from '../../../../contexts/UIPreferencesContext';
 import { getMenuCatalog } from '../../../../lib/navigation';
 
 export default function AppearanceSettings() {
   const { t } = useTranslation();
-  const { theme, toggleTheme } = useTheme();
   const {
     toggleGroup,
     toggleItem,
@@ -44,68 +42,27 @@ export default function AppearanceSettings() {
         <p className="mt-1.5 text-[13px] text-text-secondary">{t('settings.appearanceDesc')}</p>
       </div>
 
-      {/* 主题 */}
+      {/* 主题（固定浅色，深色主题已移除） */}
       <section className="surface-card p-5">
         <div className="mb-4">
           <h4 className="text-[13.5px] font-semibold text-text-primary">{t('settings.theme')}</h4>
           <p className="mt-0.5 text-[12px] text-text-secondary">{t('settings.themeDesc')}</p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => theme !== 'dark' && toggleTheme()}
-            className={clsx(
-              'group relative flex items-center gap-3 rounded-xl border p-4 text-left transition-all',
-              theme === 'dark'
-                ? 'border-primary bg-primary-soft shadow-glow'
-                : 'border-border bg-surface-2 hover:border-border-strong'
-            )}
-          >
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0b1220] text-[#eef2fa] ring-1 ring-white/10">
-              <Moon className="h-4 w-4" />
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-surface-2 p-4">
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-[#0f172a] ring-1 ring-black/5">
+            <Sun className="h-4 w-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] font-medium text-text-primary">
+              {t('settings.themeLight')}
             </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[13px] font-medium text-text-primary">
-                {t('settings.themeDark')}
-              </span>
-              <span className="mt-0.5 block text-[11.5px] text-text-tertiary">
-                {t('settings.themeDarkDesc')}
-              </span>
+            <span className="mt-0.5 block text-[11.5px] text-text-tertiary">
+              {t('settings.themeLightDesc')}
             </span>
-            {theme === 'dark' && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white">
-                <Check className="h-3 w-3" />
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => theme !== 'light' && toggleTheme()}
-            className={clsx(
-              'group relative flex items-center gap-3 rounded-xl border p-4 text-left transition-all',
-              theme === 'light'
-                ? 'border-primary bg-primary-soft shadow-glow'
-                : 'border-border bg-surface-2 hover:border-border-strong'
-            )}
-          >
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-[#0f172a] ring-1 ring-black/5">
-              <Sun className="h-4 w-4" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[13px] font-medium text-text-primary">
-                {t('settings.themeLight')}
-              </span>
-              <span className="mt-0.5 block text-[11.5px] text-text-tertiary">
-                {t('settings.themeLightDesc')}
-              </span>
-            </span>
-            {theme === 'light' && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white">
-                <Check className="h-3 w-3" />
-              </span>
-            )}
-          </button>
+          </span>
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white">
+            <Check className="h-3 w-3" />
+          </span>
         </div>
       </section>
 

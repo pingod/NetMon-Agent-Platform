@@ -27,7 +27,6 @@ import {
 import api from '../../../lib/api';
 import MarkdownOutput from '../../../shared/components/MarkdownOutput';
 import { useToast } from '../../../contexts/ToastContext';
-import { useTheme } from '../../../contexts/ThemeContext';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -46,8 +45,6 @@ interface Conversation {
 export default function ChatWidget() {
   const queryClient = useQueryClient();
   const toast = useToast();
-  const { theme } = useTheme();
-  const _isDark = theme === 'dark';
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
