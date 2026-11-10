@@ -99,7 +99,7 @@ export const RackCabinet2D: React.FC<RackCabinet2DProps> = ({
 
   if (!rack) {
     return (
-      <div className="flex-1 flex items-center justify-center p-12 bg-slate-950/40 border border-slate-800 rounded-2xl text-slate-500">
+      <div className="flex-1 flex items-center justify-center p-12 bg-surface-2 border border-border rounded-2xl text-text-secondary">
         请在顶部选择或创建一个机房与机柜
       </div>
     );
@@ -119,7 +119,7 @@ export const RackCabinet2D: React.FC<RackCabinet2DProps> = ({
                 onClick={() => onSelectRack(r.id)}
                 className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
                   isCur
-                    ? 'bg-primary-soft text-primary border border-primary/40 shadow-[0_0_10px_rgba(109,94,252,0.18)]'
+                    ? 'bg-primary-soft text-primary border border-[rgba(90,74,232,0.4)] shadow-[0_0_10px_rgba(109,94,252,0.18)]'
                     : 'bg-surface-2 text-text-secondary border border-border hover:text-text-primary hover:bg-surface-3'
                 }`}
               >
@@ -157,9 +157,9 @@ export const RackCabinet2D: React.FC<RackCabinet2DProps> = ({
         </div>
       </div>
 
-      {/* 机柜立面主容器（适配系统暗色金属风格） */}
+      {/* 机柜立面主容器（适配系统浅色金属风格） */}
       <div
-        className="viz-dark w-full max-w-[540px] bg-gradient-to-b from-[#141b2b] via-[#0d1320] to-[#080d16] border-2 border-slate-700/80 rounded-3xl p-5 shadow-[0_0_35px_rgba(0,0,0,0.85),0_0_15px_rgba(139,92,246,0.1)] flex flex-col relative"
+        className="w-full max-w-[540px] bg-gradient-to-b from-[#f5f8fd] via-[#eef2f9] to-[#e5ebf5] border-2 border-slate-300/90 rounded-3xl p-5 shadow-[0_4px_24px_rgba(15,23,42,0.14),0_0_0_1px_var(--border)] flex flex-col relative"
         style={{
           transform: `scale(${zoomScale / 100})`,
           transformOrigin: 'top center',
@@ -167,22 +167,22 @@ export const RackCabinet2D: React.FC<RackCabinet2DProps> = ({
         }}
       >
         {/* 机柜头部状态栏（R1 · [在线] · [37U / 42U]） */}
-        <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-slate-800 px-1">
+        <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-border px-1">
           <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-black tracking-wider text-white font-mono">
+            <h2 className="text-2xl font-black tracking-wider text-text-primary font-mono">
               {rack.name}
             </h2>
           </div>
 
           <div className="flex items-center gap-2.5">
             {/* 在线状态徽章（绿色胶囊） */}
-            <span className="px-3 py-1 bg-emerald-950/80 text-emerald-400 border border-emerald-500/50 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-[0_0_10px_rgba(16,185,129,0.25)]">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-full text-xs font-bold flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               在线
             </span>
 
             {/* 容量占用徽章（系统紫色胶囊） */}
-            <span className="px-3 py-1 bg-purple-950/80 text-purple-300 border border-purple-500/50 rounded-full text-xs font-mono font-bold shadow-[0_0_10px_rgba(139,92,246,0.25)]">
+            <span className="px-3 py-1 bg-[color:var(--primary-soft)] text-primary border border-[rgba(90,74,232,0.4)] rounded-full text-xs font-mono font-bold">
               {usedU}U / {totalU}U
             </span>
           </div>
@@ -190,7 +190,7 @@ export const RackCabinet2D: React.FC<RackCabinet2DProps> = ({
 
         {/* 占用进度条 + 空机柜引导 */}
         <div className="px-1 mb-3">
-          <div className="h-1.5 w-full rounded-full bg-slate-800/80 overflow-hidden">
+          <div className="h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-[#6d5efc] via-[#8b5cf6] to-cyan-400 rounded-full transition-[width] duration-500"
               style={{ width: `${Math.max(0, Math.min(100, (usedU / totalU) * 100))}%` }}
@@ -199,8 +199,8 @@ export const RackCabinet2D: React.FC<RackCabinet2DProps> = ({
         </div>
 
         {usedU === 0 && (
-          <div className="mb-3 px-1 flex items-center justify-center gap-2 rounded-xl border border-dashed border-slate-700/80 bg-slate-900/40 py-2.5 text-xs text-slate-400">
-            <Server className="w-3.5 h-3.5 text-purple-400" />
+          <div className="mb-3 px-1 flex items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-surface-2 py-2.5 text-xs text-text-secondary">
+            <Server className="w-3.5 h-3.5 text-primary" />
             <span>
               机柜为空 · 点击任意 U 位或从左侧「设备库」拖拽设备上架
             </span>
@@ -208,16 +208,16 @@ export const RackCabinet2D: React.FC<RackCabinet2DProps> = ({
         )}
 
         {/* 机柜立柱外框架与 U 位槽位 */}
-        <div className="relative w-full bg-[#070d18] border-2 border-slate-800 rounded-xl overflow-hidden shadow-[inset_0_0_20px_rgba(0,0,0,0.9)] flex">
+        <div className="relative w-full bg-surface-1 border-2 border-slate-300 rounded-xl overflow-hidden shadow-[inset_0_2px_6px_rgba(15,23,42,0.06)] flex">
           {/* 左侧 U 标尺立柱 */}
-          <div className="w-9 bg-gradient-to-r from-[#192235] via-[#111a2c] to-[#0d1526] border-r border-slate-800 flex flex-col justify-between select-none py-1 flex-shrink-0 z-20 shadow-md">
+          <div className="w-9 bg-gradient-to-r from-[#eef2f9] via-[#e8eef7] to-[#e2e9f3] border-r border-border flex flex-col justify-between select-none py-1 flex-shrink-0 z-20 shadow-md">
             {uNumbersDesc.map(u => (
               <div
                 key={`left-u-${u}`}
                 style={{ height: `${scaledSlotHeightPx}px` }}
-                className="flex items-center justify-center border-b border-slate-800/50"
+                className="flex items-center justify-center border-b border-border"
               >
-                <span className="text-[10.5px] font-mono font-bold text-slate-300/80 tracking-tight">
+                <span className="text-[10.5px] font-mono font-bold text-text-secondary tracking-tight">
                   {u}
                 </span>
               </div>
@@ -225,7 +225,7 @@ export const RackCabinet2D: React.FC<RackCabinet2DProps> = ({
           </div>
 
           {/* 中间 U 槽位主网格区 */}
-          <div className="flex-1 flex flex-col relative bg-[#070b14] overflow-hidden">
+          <div className="flex-1 flex flex-col relative bg-surface-2 overflow-hidden">
             {uNumbersDesc.map(u => {
               const mounted = slotMap.get(u);
               const isSelected = Boolean(mounted && selectedDevice && mounted.id === selectedDevice.id);
@@ -249,14 +249,14 @@ export const RackCabinet2D: React.FC<RackCabinet2DProps> = ({
           </div>
 
           {/* 右侧 U 标尺立柱 */}
-          <div className="w-9 bg-gradient-to-l from-[#192235] via-[#111a2c] to-[#0d1526] border-l border-slate-800 flex flex-col justify-between select-none py-1 flex-shrink-0 z-20 shadow-md">
+          <div className="w-9 bg-gradient-to-l from-[#eef2f9] via-[#e8eef7] to-[#e2e9f3] border-l border-border flex flex-col justify-between select-none py-1 flex-shrink-0 z-20 shadow-md">
             {uNumbersDesc.map(u => (
               <div
                 key={`right-u-${u}`}
                 style={{ height: `${scaledSlotHeightPx}px` }}
-                className="flex items-center justify-center border-b border-slate-800/50"
+                className="flex items-center justify-center border-b border-border"
               >
-                <span className="text-[10.5px] font-mono font-bold text-slate-300/80 tracking-tight">
+                <span className="text-[10.5px] font-mono font-bold text-text-secondary tracking-tight">
                   {u}
                 </span>
               </div>
@@ -265,7 +265,7 @@ export const RackCabinet2D: React.FC<RackCabinet2DProps> = ({
         </div>
 
         {/* 底部标准机柜说明 */}
-        <div className="mt-3 flex items-center justify-between text-[10px] text-slate-500 font-mono px-2">
+        <div className="mt-3 flex items-center justify-between text-[10px] text-text-tertiary font-mono px-2">
           <span>42U EIA-310-D STANDARD RACK</span>
           <span>AIRFLOW: FRONT TO REAR</span>
         </div>

@@ -68,7 +68,7 @@ export const RackSlotUnit: React.FC<RackSlotUnitProps> = ({
   }
 
   // 2. 空闲槽位 (Empty 1U Slot)
-  const zebra = uNumber % 2 === 0 ? 'bg-[#0d1526]' : 'bg-[#0a111f]';
+  const zebra = uNumber % 2 === 0 ? 'bg-[#f2f6fb]' : 'bg-[#e9eff7]';
   return (
     <div
       style={{ height: `${slotHeightPx}px` }}
@@ -79,21 +79,21 @@ export const RackSlotUnit: React.FC<RackSlotUnitProps> = ({
       }}
       onDragLeave={onDragLeave}
       onDrop={e => onDrop && onDrop(e, uNumber)}
-      className={`w-full relative border-b border-slate-800/60 transition-all flex items-center justify-between px-3 cursor-pointer group ${
+      className={`w-full relative border-b border-border transition-all flex items-center justify-between px-3 cursor-pointer group ${
         isDragOver
           ? 'bg-[rgba(109,94,252,0.25)] border-primary shadow-[inset_0_0_14px_rgba(109,94,252,0.45)]'
           : `${zebra} hover:bg-[rgba(109,94,252,0.10)]`
       }`}
     >
       {/* 槽位顶部高光线，营造金属反光 */}
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-700/70 to-transparent pointer-events-none" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-300/70 to-transparent pointer-events-none" />
 
       {/* 左右两侧螺丝孔示意 */}
-      <div className="w-1.5 h-1.5 rounded-full bg-slate-700 border border-slate-500/50 flex-shrink-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]" />
+      <div className="w-1.5 h-1.5 rounded-full bg-slate-400 border border-slate-300 flex-shrink-0" />
 
       {/* 鼠标悬浮才显示的上架提示 */}
       <span
-        className={`text-[10px] font-mono text-slate-400 transition-opacity flex items-center gap-1 select-none ${
+        className={`text-[10px] font-mono text-text-tertiary transition-opacity flex items-center gap-1 select-none ${
           isDragOver ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-100 group-hover:text-primary'
         }`}
       >
@@ -104,7 +104,7 @@ export const RackSlotUnit: React.FC<RackSlotUnitProps> = ({
         上架 U{uNumber}
       </span>
 
-      <div className="w-1.5 h-1.5 rounded-full bg-slate-700 border border-slate-500/50 flex-shrink-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]" />
+      <div className="w-1.5 h-1.5 rounded-full bg-slate-400 border border-slate-300 flex-shrink-0" />
     </div>
   );
 };
