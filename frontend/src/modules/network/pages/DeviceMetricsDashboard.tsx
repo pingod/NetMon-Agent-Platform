@@ -92,7 +92,7 @@ export default function DeviceMetricsDashboard() {
   }
 
   return (
-    <div className="p-6 h-full flex flex-col bg-[#0a0e1a] min-h-0 overflow-y-auto">
+    <div className="viz-dark p-6 h-full flex flex-col bg-[#0a0e1a] min-h-0 overflow-y-auto">
       {/* 顶部导航 */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">

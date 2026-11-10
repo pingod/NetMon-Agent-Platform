@@ -451,7 +451,7 @@ export default function Topology() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-[1600px] mx-auto text-slate-100 min-h-screen">
+    <div className="viz-dark p-6 space-y-6 max-w-[1600px] mx-auto text-slate-100 min-h-screen">
       {/* 顶部标题与控制栏 */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-slate-800 shadow-xl">
         <div className="flex items-center gap-3.5">

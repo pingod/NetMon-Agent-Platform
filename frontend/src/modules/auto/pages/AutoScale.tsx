@@ -240,7 +240,7 @@ export default function AutoScale() {
               title={<span className="text-slate-400 text-xs">活跃规则数</span>}
               value={summary.activeRules}
               prefix={<Zap size={16} className="text-yellow-400 inline-block mr-1" />}
-              valueStyle={{ color: '#facc15', fontSize: 24, fontWeight: 700 }}
+              valueStyle={{ color: 'var(--warning)', fontSize: 24, fontWeight: 700 }}
             />
           </Card>
         </Col>
@@ -250,7 +250,7 @@ export default function AutoScale() {
               title={<span className="text-slate-400 text-xs">今日扩容次数</span>}
               value={summary.todayScaleUp}
               prefix={<ArrowUpRight size={16} className="text-green-400 inline-block mr-1" />}
-              valueStyle={{ color: '#34d399', fontSize: 24, fontWeight: 700 }}
+              valueStyle={{ color: 'var(--success)', fontSize: 24, fontWeight: 700 }}
             />
           </Card>
         </Col>
@@ -260,7 +260,7 @@ export default function AutoScale() {
               title={<span className="text-slate-400 text-xs">今日缩容次数</span>}
               value={summary.todayScaleDown}
               prefix={<ArrowDownRight size={16} className="text-orange-400 inline-block mr-1" />}
-              valueStyle={{ color: '#fb923c', fontSize: 24, fontWeight: 700 }}
+              valueStyle={{ color: 'var(--warning)', fontSize: 24, fontWeight: 700 }}
             />
           </Card>
         </Col>
@@ -270,7 +270,7 @@ export default function AutoScale() {
               title={<span className="text-slate-400 text-xs">管理实例总数</span>}
               value={summary.totalManagedInstances}
               prefix={<Server size={16} className="text-blue-400 inline-block mr-1" />}
-              valueStyle={{ color: '#60a5fa', fontSize: 24, fontWeight: 700 }}
+              valueStyle={{ color: 'var(--info)', fontSize: 24, fontWeight: 700 }}
             />
           </Card>
         </Col>

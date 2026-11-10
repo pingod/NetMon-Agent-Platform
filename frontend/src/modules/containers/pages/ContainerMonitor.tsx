@@ -289,7 +289,7 @@ export default function ContainerMonitor() {
         </Col>
         <Col xs={12} sm={6} lg={4}>
           <Card hoverable>
-            <Statistic title="运行中" value={clusterStats.runningContainers} valueStyle={{ color: '#52c41a' }} />
+            <Statistic title="运行中" value={clusterStats.runningContainers} valueStyle={{ color: 'var(--success)' }} />
           </Card>
         </Col>
         <Col xs={12} sm={6} lg={4}>
@@ -299,7 +299,7 @@ export default function ContainerMonitor() {
               value={parseFloat(clusterStats.totalCpuPercent)}
               suffix="%"
               precision={1}
-              valueStyle={{ color: parseFloat(clusterStats.totalCpuPercent) > 90 ? '#ff4d4f' : parseFloat(clusterStats.totalCpuPercent) > 70 ? '#faad14' : '#3b82f6' }}
+              valueStyle={{ color: parseFloat(clusterStats.totalCpuPercent) > 90 ? 'var(--danger)' : parseFloat(clusterStats.totalCpuPercent) > 70 ? 'var(--warning)' : 'var(--info)' }}
             />
           </Card>
         </Col>
@@ -312,7 +312,7 @@ export default function ContainerMonitor() {
                 const v = Number(val);
                 return formatBytes(v);
               }}
-              valueStyle={{ color: '#3b82f6' }}
+              valueStyle={{ color: 'var(--info)' }}
             />
           </Card>
         </Col>
@@ -335,7 +335,7 @@ export default function ContainerMonitor() {
               value={parseFloat(clusterStats.totalMemoryPercent)}
               suffix="%"
               precision={1}
-              valueStyle={{ color: parseFloat(clusterStats.totalMemoryPercent) > 90 ? '#ff4d4f' : parseFloat(clusterStats.totalMemoryPercent) > 70 ? '#faad14' : '#3b82f6' }}
+              valueStyle={{ color: parseFloat(clusterStats.totalMemoryPercent) > 90 ? 'var(--danger)' : parseFloat(clusterStats.totalMemoryPercent) > 70 ? 'var(--warning)' : 'var(--info)' }}
             />
           </Card>
         </Col>

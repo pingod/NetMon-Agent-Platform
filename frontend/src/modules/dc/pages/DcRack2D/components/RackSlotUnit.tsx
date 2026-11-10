@@ -91,7 +91,7 @@ export const RackSlotUnit: React.FC<RackSlotUnitProps> = ({
       <div className="w-1.5 h-1.5 rounded-full bg-slate-950 border border-slate-800 flex-shrink-0" />
 
       {/* 鼠标悬浮提示 */}
-      <span className="text-[9px] font-mono text-slate-700 group-hover:text-purple-400/90 transition-colors">
+      <span className="text-[9px] font-mono text-slate-500 group-hover:text-purple-300 transition-colors">
         + 上架 (U{uNumber})
       </span>
 

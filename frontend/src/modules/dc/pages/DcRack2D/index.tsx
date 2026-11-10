@@ -175,7 +175,7 @@ export default function DcRack2DMonitor() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b101b] bg-[linear-gradient(to_right,#151c2e_1px,transparent_1px),linear-gradient(to_bottom,#151c2e_1px,transparent_1px)] bg-[size:4rem_4rem] text-slate-100 p-4 md:p-6 flex flex-col gap-5 select-none font-sans">
+    <div className="rack-canvas min-h-full p-4 md:p-6 flex flex-col gap-5 select-none font-sans">
       {/* 1. 顶部机房与新增操作栏 */}
       <RoomRackHeader
         rooms={rooms}

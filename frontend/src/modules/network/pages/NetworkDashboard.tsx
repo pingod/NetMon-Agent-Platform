@@ -125,7 +125,7 @@ export default function NetworkDashboard() {
   }, [devices, selectedVendorFilter]);
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white overflow-y-auto">
+    <div className="viz-dark min-h-screen bg-[#0a0e1a] text-white overflow-y-auto">
       {/* 顶部标题栏 */}
       <div className="sticky top-0 z-30 bg-gradient-to-r from-[#0d1225] via-[#111836] to-[#0d1225] border-b border-blue-500/20 px-6 py-3">
         <div className="flex items-center justify-between">

@@ -446,12 +446,12 @@ export default function AlertProviders() {
 
                 {/* Usage Guide Summary */}
                 {guide && (
-                  <div className="mb-4 p-3 bg-blue-900/20 border border-blue-800/30 rounded-lg">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Info className="w-3.5 h-3.5 text-blue-400" />
-                      <span className="text-xs font-medium text-blue-300">{guide.title}</span>
+                  <div className="mb-4 rounded-lg border border-border bg-surface-2 p-3">
+                    <div className="mb-1 flex items-center gap-2">
+                      <Info className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-xs font-medium text-text-primary">{guide.title}</span>
                     </div>
-                    {guide.note && <p className="text-xs text-blue-400/70 mt-1">{guide.note}</p>}
+                    {guide.note && <p className="mt-1 text-xs text-text-secondary">{guide.note}</p>}
                   </div>
                 )}
 

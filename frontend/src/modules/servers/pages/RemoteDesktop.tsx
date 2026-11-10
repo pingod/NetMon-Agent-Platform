@@ -283,7 +283,7 @@ export default function RemoteDesktop() {
         <div className="bg-card border border-border rounded-lg overflow-hidden">
           <div
             ref={containerRef}
-            className="w-full h-[600px] bg-gray-900 flex items-center justify-center"
+            className="viz-dark w-full h-[600px] bg-gray-900 flex items-center justify-center"
           >
             {connectionState === 'disconnected' && !selectedServer && (
               <div className="text-center text-gray-400">

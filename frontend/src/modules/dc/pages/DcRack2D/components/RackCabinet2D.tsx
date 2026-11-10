@@ -119,8 +119,8 @@ export const RackCabinet2D: React.FC<RackCabinet2DProps> = ({
                 onClick={() => onSelectRack(r.id)}
                 className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
                   isCur
-                    ? 'bg-purple-600/20 text-purple-300 border border-purple-500/60 shadow-[0_0_10px_rgba(139,92,246,0.3)]'
-                    : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200 hover:bg-slate-800'
+                    ? 'bg-primary-soft text-primary border border-primary/40 shadow-[0_0_10px_rgba(109,94,252,0.18)]'
+                    : 'bg-surface-2 text-text-secondary border border-border hover:text-text-primary hover:bg-surface-3'
                 }`}
               >
                 <Server className="w-3 h-3" />
@@ -131,25 +131,25 @@ export const RackCabinet2D: React.FC<RackCabinet2DProps> = ({
         </div>
 
         {/* 缩放控制器 */}
-        <div className="flex items-center gap-1 px-2 py-1 bg-slate-900/90 border border-slate-800 rounded-lg text-xs text-slate-300 shadow-sm">
+        <div className="flex items-center gap-1 rounded-lg border border-border bg-surface-2 px-2 py-1 text-xs text-text-secondary shadow-sm">
           <button
             onClick={() => onZoomChange(Math.max(70, zoomScale - 10))}
-            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-purple-400"
+            className="rounded p-1 text-text-tertiary transition-colors hover:bg-surface-3 hover:text-primary"
             title="缩小"
           >
             <ZoomOut className="w-3.5 h-3.5" />
           </button>
-          <span className="font-mono text-[11px] px-1 text-purple-300">{zoomScale}%</span>
+          <span className="px-1 font-mono text-[11px] text-primary">{zoomScale}%</span>
           <button
             onClick={() => onZoomChange(Math.min(140, zoomScale + 10))}
-            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-purple-400"
+            className="rounded p-1 text-text-tertiary transition-colors hover:bg-surface-3 hover:text-primary"
             title="放大"
           >
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => onZoomChange(100)}
-            className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-purple-400 ml-0.5"
+            className="ml-0.5 rounded p-1 text-text-tertiary transition-colors hover:bg-surface-3 hover:text-primary"
             title="重置 100%"
           >
             <RotateCcw className="w-3 h-3" />
@@ -159,7 +159,7 @@ export const RackCabinet2D: React.FC<RackCabinet2DProps> = ({
 
       {/* 机柜立面主容器（适配系统暗色金属风格） */}
       <div
-        className="w-full max-w-[540px] bg-gradient-to-b from-[#141b2b] via-[#0d1320] to-[#080d16] border-2 border-slate-700/80 rounded-3xl p-5 shadow-[0_0_35px_rgba(0,0,0,0.85),0_0_15px_rgba(139,92,246,0.1)] flex flex-col relative"
+        className="viz-dark w-full max-w-[540px] bg-gradient-to-b from-[#141b2b] via-[#0d1320] to-[#080d16] border-2 border-slate-700/80 rounded-3xl p-5 shadow-[0_0_35px_rgba(0,0,0,0.85),0_0_15px_rgba(139,92,246,0.1)] flex flex-col relative"
         style={{
           transform: `scale(${zoomScale / 100})`,
           transformOrigin: 'top center',

@@ -17,49 +17,45 @@ interface RoomRackHeaderProps {
 
 export const RoomRackHeader: React.FC<RoomRackHeaderProps> = ({
   rooms,
-  racks,
   selectedRoomId,
-  selectedRackId,
   onSelectRoom,
-  onSelectRack,
   onAddRoom,
   onAddRack,
   currentRoom,
 }) => {
   return (
-    <div className="w-full flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800/80 select-none">
-      {/* 左侧：系统风格标题与机房下拉切换 */}
+    <div className="flex w-full flex-col justify-between gap-4 border-b border-border pb-4 select-none md:flex-row md:items-center">
+      {/* 左侧：标题与机房切换 */}
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 shadow-inner">
-          <Server className="w-5 h-5" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/25 bg-primary-soft text-primary">
+          <Server className="h-5 w-5" />
         </div>
         <div>
-          <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+          <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight text-text-primary">
             <span>平面机架监控</span>
             {currentRoom && (
-              <span className="text-xs font-normal text-purple-400/90 font-mono px-2 py-0.5 rounded bg-purple-950/60 border border-purple-500/30">
+              <span className="rounded-md border border-primary/25 bg-primary-soft px-2 py-0.5 font-mono text-[11px] font-normal text-primary">
                 {currentRoom.name}
               </span>
             )}
           </h2>
-          <p className="text-[11px] text-slate-400 font-mono">
-            2D Flat Rack Monitor & Elevation Management
+          <p className="font-mono text-[11px] text-text-tertiary">
+            2D Flat Rack Monitor &amp; Elevation Management
           </p>
         </div>
 
-        {/* 机房下拉切换器 */}
         {rooms.length > 0 && (
-          <div className="ml-3 hidden sm:flex items-center gap-2 pl-3 border-l border-slate-800">
-            <span className="text-xs text-slate-400 flex items-center gap-1">
-              <Building2 className="w-3.5 h-3.5 text-purple-400" />
+          <div className="ml-3 hidden items-center gap-2 border-l border-border pl-3 sm:flex">
+            <span className="flex items-center gap-1 text-xs text-text-secondary">
+              <Building2 className="h-3.5 w-3.5 text-primary" />
               <span>切换机房:</span>
             </span>
             <select
               value={selectedRoomId}
-              onChange={e => onSelectRoom(e.target.value)}
-              className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-2.5 py-1.5 focus:border-purple-500 focus:outline-none cursor-pointer hover:border-slate-600 transition"
+              onChange={(e) => onSelectRoom(e.target.value)}
+              className="cursor-pointer rounded-lg border border-border-strong bg-surface-2 px-2.5 py-1.5 text-xs text-text-primary transition hover:border-primary/40 focus:border-primary focus:outline-none"
             >
-              {rooms.map(r => (
+              {rooms.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name} ({r.floor || '1F'})
                 </option>
@@ -69,43 +65,34 @@ export const RoomRackHeader: React.FC<RoomRackHeaderProps> = ({
         )}
       </div>
 
-      {/* 右侧：机房实时环境指标与操作按钮 */}
+      {/* 右侧：环境指标与操作 */}
       <div className="flex items-center gap-3 self-end md:self-auto">
-        {/* 机房环境状态指标 */}
         {currentRoom && (
-          <div className="hidden lg:flex items-center gap-3 px-3 py-1.5 bg-slate-900/90 border border-slate-800 rounded-lg text-xs font-mono text-slate-300 shadow-inner">
+          <div className="hidden items-center gap-3 rounded-lg border border-border bg-surface-2 px-3 py-1.5 font-mono text-xs text-text-secondary shadow-sm lg:flex">
             <div className="flex items-center gap-1.5" title="机房当前平均温度">
-              <Thermometer className="w-3.5 h-3.5 text-purple-400" />
+              <Thermometer className="h-3.5 w-3.5 text-rose-400" />
               <span>{currentRoom.currentTemp || 22.5}°C</span>
             </div>
-            <div className="w-px h-3 bg-slate-700" />
+            <div className="h-3 w-px bg-border" />
             <div className="flex items-center gap-1.5" title="机房当前湿度">
-              <Droplets className="w-3.5 h-3.5 text-blue-400" />
+              <Droplets className="h-3.5 w-3.5 text-sky-400" />
               <span>{currentRoom.currentHumidity || 48}%</span>
             </div>
-            <div className="w-px h-3 bg-slate-700" />
+            <div className="h-3 w-px bg-border" />
             <div className="flex items-center gap-1.5" title="能源效率 PUE">
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <Zap className="h-3.5 w-3.5 text-amber-400" />
               <span>PUE {currentRoom.pue || 1.32}</span>
             </div>
           </div>
         )}
 
-        {/* 新增机柜按钮 */}
-        <button
-          onClick={onAddRack}
-          className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-900 border border-slate-700 hover:border-purple-500/60 hover:text-purple-300 hover:bg-slate-800 transition-all flex items-center gap-1.5 shadow-sm"
-        >
-          <Server className="w-3.5 h-3.5 text-purple-400" />
+        <button type="button" onClick={onAddRack} className="btn btn-ghost h-8 text-xs">
+          <Server className="h-3.5 w-3.5 text-primary" />
           <span>新增机柜</span>
         </button>
 
-        {/* 新增机房按钮 */}
-        <button
-          onClick={onAddRoom}
-          className="px-4 py-1.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 shadow-md shadow-purple-500/25 transition-all flex items-center gap-1.5"
-        >
-          <Plus className="w-3.5 h-3.5" />
+        <button type="button" onClick={onAddRoom} className="btn btn-primary h-8 text-xs">
+          <Plus className="h-3.5 w-3.5" />
           <span>新增机房</span>
         </button>
       </div>

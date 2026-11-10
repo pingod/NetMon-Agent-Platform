@@ -86,7 +86,7 @@ export default function DataRoom3D() {
 
   if (loading) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-[#0a1520]">
+      <div className="viz-dark w-full h-full flex items-center justify-center bg-[#0a1520]">
         <div className="flex flex-col items-center gap-4">
           <div className="relative w-20 h-20">
             <div className="absolute inset-0 border-2 border-t-[#00f5ff] border-r-[#00f5ff] rounded-full animate-spin" />
@@ -102,7 +102,7 @@ export default function DataRoom3D() {
   }
 
   return (
-    <div className="w-full h-full relative bg-[#0a1520] overflow-hidden"
+    <div className="viz-dark w-full h-full relative bg-[#0a1520] overflow-hidden"
       style={{
         backgroundImage:
           'radial-gradient(ellipse at 20% 50%, rgba(0,80,150,0.08) 0%, transparent 60%), radial-gradient(ellipse at 80% 30%, rgba(123,97,255,0.05) 0%, transparent 60%)',

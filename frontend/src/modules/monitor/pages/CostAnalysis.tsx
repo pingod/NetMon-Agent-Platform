@@ -202,7 +202,7 @@ export default function CostAnalysis() {
               precision={2}
               prefix={<Package size={16} className="text-blue-400 inline-block mr-1" />}
               suffix="¥"
-              valueStyle={{ color: '#60a5fa', fontSize: 24, fontWeight: 700 }}
+              valueStyle={{ color: 'var(--info)', fontSize: 24, fontWeight: 700 }}
             />
           </Card>
         </Col>
@@ -214,7 +214,7 @@ export default function CostAnalysis() {
               precision={2}
               prefix={<Cpu size={16} className="text-purple-400 inline-block mr-1" />}
               suffix="¥"
-              valueStyle={{ color: '#a78bfa', fontSize: 24, fontWeight: 700 }}
+              valueStyle={{ color: 'var(--primary)', fontSize: 24, fontWeight: 700 }}
             />
           </Card>
         </Col>
@@ -226,7 +226,7 @@ export default function CostAnalysis() {
               precision={2}
               prefix={<TrendingUp size={16} className="text-green-400 inline-block mr-1" />}
               suffix="¥"
-              valueStyle={{ color: '#34d399', fontSize: 24, fontWeight: 700 }}
+              valueStyle={{ color: 'var(--success)', fontSize: 24, fontWeight: 700 }}
             />
           </Card>
         </Col>
@@ -238,7 +238,7 @@ export default function CostAnalysis() {
               precision={2}
               prefix={<TrendingDown size={16} className="text-orange-400 inline-block mr-1" />}
               suffix="¥"
-              valueStyle={{ color: '#fb923c', fontSize: 24, fontWeight: 700 }}
+              valueStyle={{ color: 'var(--warning)', fontSize: 24, fontWeight: 700 }}
             />
           </Card>
         </Col>

@@ -649,30 +649,175 @@ body:not([data-theme='light']) {
     var(--bg-app);
 }
 
-/* ---------- 浅色模式兼容：归一化历史页面里硬编码的深色 slate 工具类 ---------- */
-[data-theme='light'] [class*='bg-slate-8'],
-[data-theme='light'] [class*='bg-slate-9'] {
+/* ==========================================================================
+   历史页面兼容层
+   规则必须使用“精确类名”，不能用 [class*='text-slate-4']：
+   后者会命中 hover:/group-hover: 变体，导致非悬停状态也被强制改色。
+   ========================================================================== */
+
+/* 浅色模式：深色 slate 表面 → 主题表面 */
+[data-theme='light'] .bg-slate-800,
+[data-theme='light'] .bg-slate-900,
+[data-theme='light'] .bg-slate-950 {
   background-color: var(--surface-2) !important;
 }
 
-[data-theme='light'] [class*='border-slate-6'],
-[data-theme='light'] [class*='border-slate-7'] {
+[data-theme='light'] .border-slate-600,
+[data-theme='light'] .border-slate-700,
+[data-theme='light'] .border-slate-800,
+[data-theme='light'] .border-slate-900 {
   border-color: var(--border-subtle) !important;
 }
 
-[data-theme='light'] [class*='text-slate-1'],
-[data-theme='light'] [class*='text-slate-2'],
-[data-theme='light'] [class*='text-slate-3'],
-[data-theme='light'] [class*='text-slate-4'] {
-  color: var(--text-2) !important;
-}
-
-[data-theme='light'] [class*='bg-slate-8'] [class*='text-white'],
-[data-theme='light'] [class*='bg-slate-9'] [class*='text-white'] {
+[data-theme='light'] .text-slate-100,
+[data-theme='light'] .text-slate-200 {
   color: var(--text-1) !important;
 }
 
-/* 认证卡片：比普通卡片更明确的分层与描边 */
+[data-theme='light'] .text-slate-300,
+[data-theme='light'] .text-slate-400,
+[data-theme='light'] .text-slate-500,
+[data-theme='light'] .text-slate-600 {
+  color: var(--text-2) !important;
+}
+
+/* 浅色模式：品牌与语义文字加深 */
+[data-theme='light'] .text-purple-300,
+[data-theme='light'] .text-purple-400,
+[data-theme='light'] .text-violet-300,
+[data-theme='light'] .text-violet-400 {
+  color: var(--primary) !important;
+}
+
+[data-theme='light'] .bg-purple-900,
+[data-theme='light'] .bg-purple-950,
+[data-theme='light'] .bg-violet-900,
+[data-theme='light'] .bg-violet-950 {
+  background-color: var(--primary-soft) !important;
+}
+
+[data-theme='light'] .border-purple-500,
+[data-theme='light'] .border-violet-500 {
+  border-color: rgba(90, 74, 232, 0.35) !important;
+}
+
+[data-theme='light'] .text-sky-300,
+[data-theme='light'] .text-sky-400 {
+  color: #0369a1 !important;
+}
+
+[data-theme='light'] .text-cyan-300,
+[data-theme='light'] .text-cyan-400,
+[data-theme='light'] .text-cyan-500,
+[data-theme='light'] .text-teal-300,
+[data-theme='light'] .text-teal-400,
+[data-theme='light'] .text-teal-500 {
+  color: #0f766e !important;
+}
+
+[data-theme='light'] .text-emerald-300,
+[data-theme='light'] .text-emerald-400,
+[data-theme='light'] .text-emerald-500,
+[data-theme='light'] .text-green-300,
+[data-theme='light'] .text-green-400,
+[data-theme='light'] .text-green-500 {
+  color: #15803d !important;
+}
+
+[data-theme='light'] .text-amber-300,
+[data-theme='light'] .text-amber-400,
+[data-theme='light'] .text-amber-500,
+[data-theme='light'] .text-yellow-400,
+[data-theme='light'] .text-yellow-500 {
+  color: #b45309 !important;
+}
+
+[data-theme='light'] .text-orange-300,
+[data-theme='light'] .text-orange-400 {
+  color: #c2410c !important;
+}
+
+[data-theme='light'] .text-blue-300,
+[data-theme='light'] .text-blue-400,
+[data-theme='light'] .text-indigo-300,
+[data-theme='light'] .text-indigo-400 {
+  color: #1d4ed8 !important;
+}
+
+[data-theme='light'] .text-red-300,
+[data-theme='light'] .text-red-400,
+[data-theme='light'] .text-rose-300,
+[data-theme='light'] .text-rose-400 {
+  color: #b91c1c !important;
+}
+
+[data-theme='light'] .text-pink-300,
+[data-theme='light'] .text-pink-400 {
+  color: #be185d !important;
+}
+
+[data-theme='light'] .text-gray-300,
+[data-theme='light'] .text-gray-400,
+[data-theme='light'] .text-gray-500 {
+  color: #4b5563 !important;
+}
+
+[data-theme='light'] .text-status-success {
+  color: #15803d !important;
+}
+
+[data-theme='light'] .text-status-warning {
+  color: #b45309 !important;
+}
+
+[data-theme='light'] .text-status-failed {
+  color: #b91c1c !important;
+}
+
+[data-theme='light'] .text-status-running {
+  color: #1d4ed8 !important;
+}
+
+[data-theme='light'] .text-status-pending {
+  color: #475569 !important;
+}
+
+/* 浅色模式：历史页面固定深色卡片底转主题面 */
+[data-theme='light'] [class~='bg-[#111836]'],
+[data-theme='light'] [class~='bg-[#0d1225]'],
+[data-theme='light'] [class~='bg-[#090d1a]'],
+[data-theme='light'] [class~='bg-[#0f1422]'],
+[data-theme='light'] [class~='bg-[#0e1322]'] {
+  background-color: var(--surface-2) !important;
+}
+
+/* 深色模式：历史页面固定浅色面转主题面 */
+[data-theme='dark'] .bg-white {
+  background-color: var(--surface-1) !important;
+}
+
+[data-theme='dark'] .bg-gray-50,
+[data-theme='dark'] .bg-gray-100 {
+  background-color: var(--surface-2) !important;
+}
+
+[data-theme='dark'] .text-gray-900,
+[data-theme='dark'] .text-gray-800,
+[data-theme='dark'] .text-gray-700 {
+  color: var(--text-1) !important;
+}
+
+[data-theme='dark'] .text-gray-600,
+[data-theme='dark'] .text-gray-500 {
+  color: var(--text-2) !important;
+}
+
+[data-theme='dark'] .border-gray-200,
+[data-theme='dark'] .border-gray-300 {
+  border-color: var(--border-subtle) !important;
+}
+
+/* 认证卡片 */
 .auth-card {
   background: var(--surface-2);
   border: 1px solid var(--border-strong);
@@ -682,10 +827,196 @@ body:not([data-theme='light']) {
 
 .input-base::placeholder {
   color: var(--text-2);
-  opacity: 0.72;
+  opacity: 0.95;
 }
 
-.input-base::placeholder {
-  color: var(--text-2);
-  opacity: 0.95;
+/* 2D 机架画布 */
+.rack-canvas {
+  --rack-grid: rgba(148, 163, 184, 0.09);
+  color: var(--text-1);
+  background-color: var(--bg-app);
+  background-image:
+    linear-gradient(to right, var(--rack-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--rack-grid) 1px, transparent 1px);
+  background-size: 4rem 4rem;
+}
+
+[data-theme='light'] .rack-canvas {
+  --rack-grid: rgba(15, 23, 42, 0.055);
+}
+
+/* 深色可视化区域：作为浅色主题中的大屏/孪生/机柜金属件，内部保持高对比 */
+.viz-dark {
+  color-scheme: dark;
+  color: #eef2fa;
+}
+
+.viz-dark .text-slate-300 { color: #cbd5e1 !important; }
+.viz-dark .text-slate-400 { color: #94a3b8 !important; }
+.viz-dark .text-slate-500 { color: #64748b !important; }
+.viz-dark .text-slate-600 { color: #475569 !important; }
+.viz-dark .text-slate-700 { color: #334155 !important; }
+.viz-dark .text-slate-800,
+.viz-dark .text-slate-900 { color: #e2e8f0 !important; }
+.viz-dark .text-gray-300 { color: #cbd5e1 !important; }
+.viz-dark .text-gray-400 { color: #94a3b8 !important; }
+.viz-dark .text-gray-500 { color: #64748b !important; }
+.viz-dark .text-sky-300,
+.viz-dark .text-sky-400 { color: #38bdf8 !important; }
+.viz-dark .text-cyan-300,
+.viz-dark .text-cyan-400,
+.viz-dark .text-cyan-500 { color: #22d3ee !important; }
+.viz-dark .text-emerald-300,
+.viz-dark .text-emerald-400,
+.viz-dark .text-emerald-500 { color: #34d399 !important; }
+.viz-dark .text-amber-300,
+.viz-dark .text-amber-400,
+.viz-dark .text-amber-500 { color: #fbbf24 !important; }
+.viz-dark .text-orange-300,
+.viz-dark .text-orange-400 { color: #fb923c !important; }
+.viz-dark .text-yellow-400,
+.viz-dark .text-yellow-500 { color: #eab308 !important; }
+.viz-dark .text-blue-300,
+.viz-dark .text-blue-400 { color: #60a5fa !important; }
+.viz-dark .text-indigo-300,
+.viz-dark .text-indigo-400 { color: #818cf8 !important; }
+.viz-dark .text-red-300,
+.viz-dark .text-red-400 { color: #f87171 !important; }
+.viz-dark .text-green-300,
+.viz-dark .text-green-400,
+.viz-dark .text-green-500 { color: #4ade80 !important; }
+.viz-dark .text-teal-300,
+.viz-dark .text-teal-400,
+.viz-dark .text-teal-500 { color: #2dd4bf !important; }
+.viz-dark .text-pink-300,
+.viz-dark .text-pink-400 { color: #f472b6 !important; }
+.viz-dark .text-rose-300,
+.viz-dark .text-rose-400 { color: #fb7185 !important; }
+.viz-dark .text-purple-300,
+.viz-dark .text-purple-400,
+.viz-dark .text-violet-300,
+.viz-dark .text-violet-400 { color: #a78bfa !important; }
+.viz-dark .text-status-success { color: #34d399 !important; }
+.viz-dark .text-status-warning { color: #fbbf24 !important; }
+.viz-dark .text-status-failed { color: #fb7185 !important; }
+.viz-dark .text-status-running { color: #60a5fa !important; }
+.viz-dark .text-status-pending { color: #94a3b8 !important; }
+
+.viz-dark .bg-slate-800,
+.viz-dark .bg-slate-900,
+.viz-dark .bg-slate-950 { background-color: #16223a !important; }
+.viz-dark .bg-gray-800,
+.viz-dark .bg-gray-900 { background-color: #16223a !important; }
+.viz-dark .bg-purple-900,
+.viz-dark .bg-purple-950 { background-color: rgba(76, 29, 149, 0.55) !important; }
+.viz-dark .border-purple-500 { border-color: rgba(139, 92, 246, 0.5) !important; }
+
+.viz-dark [class~='bg-[#111836]'] { background-color: #111836 !important; }
+.viz-dark [class~='bg-[#0d1225]'] { background-color: #0d1225 !important; }
+.viz-dark [class~='bg-[#090d1a]'] { background-color: #090d1a !important; }
+
+/* 浅色模式：深色半透明表面转主题面（含透明度变体） */
+[data-theme='light'] .bg-slate-800\/20,
+[data-theme='light'] .bg-slate-800\/30,
+[data-theme='light'] .bg-slate-800\/40,
+[data-theme='light'] .bg-slate-800\/50,
+[data-theme='light'] .bg-slate-800\/60,
+[data-theme='light'] .bg-slate-800\/70,
+[data-theme='light'] .bg-slate-800\/80,
+[data-theme='light'] .bg-slate-800\/90,
+[data-theme='light'] .bg-slate-900\/30,
+[data-theme='light'] .bg-slate-900\/40,
+[data-theme='light'] .bg-slate-900\/50,
+[data-theme='light'] .bg-slate-900\/60,
+[data-theme='light'] .bg-slate-900\/70,
+[data-theme='light'] .bg-slate-900\/80,
+[data-theme='light'] .bg-slate-900\/85,
+[data-theme='light'] .bg-slate-900\/90,
+[data-theme='light'] .bg-slate-900\/95,
+[data-theme='light'] .bg-slate-950\/20,
+[data-theme='light'] .bg-slate-950\/40,
+[data-theme='light'] .bg-slate-950\/50,
+[data-theme='light'] .bg-slate-950\/60,
+[data-theme='light'] .bg-slate-950\/70,
+[data-theme='light'] .bg-slate-950\/80,
+[data-theme='light'] .bg-slate-950\/90 {
+  background-color: var(--surface-2) !important;
+}
+
+[data-theme='light'] .border-slate-700\/50,
+[data-theme='light'] .border-slate-700\/60,
+[data-theme='light'] .border-slate-700\/80,
+[data-theme='light'] .border-slate-800\/60,
+[data-theme='light'] .border-slate-800\/70,
+[data-theme='light'] .border-slate-800\/80 {
+  border-color: var(--border-subtle) !important;
+}
+
+/* 深色可视化容器内部：恢复深色半透明表面 */
+.viz-dark .bg-slate-800\/20,
+.viz-dark .bg-slate-800\/30,
+.viz-dark .bg-slate-800\/40,
+.viz-dark .bg-slate-800\/50,
+.viz-dark .bg-slate-800\/60,
+.viz-dark .bg-slate-800\/70,
+.viz-dark .bg-slate-800\/80,
+.viz-dark .bg-slate-800\/90 { background-color: rgba(22, 34, 58, 0.6) !important; }
+
+.viz-dark .bg-slate-900\/30,
+.viz-dark .bg-slate-900\/40,
+.viz-dark .bg-slate-900\/50,
+.viz-dark .bg-slate-900\/60,
+.viz-dark .bg-slate-900\/70,
+.viz-dark .bg-slate-900\/80,
+.viz-dark .bg-slate-900\/85,
+.viz-dark .bg-slate-900\/90,
+.viz-dark .bg-slate-900\/95 { background-color: rgba(11, 18, 32, 0.7) !important; }
+
+.viz-dark .bg-slate-950\/20,
+.viz-dark .bg-slate-950\/40,
+.viz-dark .bg-slate-950\/50,
+.viz-dark .bg-slate-950\/60,
+.viz-dark .bg-slate-950\/70,
+.viz-dark .bg-slate-950\/80,
+.viz-dark .bg-slate-950\/90 { background-color: rgba(6, 10, 18, 0.75) !important; }
+
+.viz-dark .border-slate-700\/50,
+.viz-dark .border-slate-700\/60,
+.viz-dark .border-slate-700\/80,
+.viz-dark .border-slate-800\/60,
+.viz-dark .border-slate-800\/70,
+.viz-dark .border-slate-800\/80 { border-color: rgba(148, 163, 184, 0.18) !important; }
+
+/* 深色可视化内的主题文字 token 复位 */
+.viz-dark .text-text-primary { color: #eef2fa !important; }
+.viz-dark .text-text-secondary { color: #9aa8bf !important; }
+.viz-dark .text-text-tertiary { color: #67758d !important; }
+.viz-dark .text-slate-100,
+.viz-dark .text-slate-200 { color: #eef2fa !important; }
+
+/* 浅色模式：原本深色卡片被转为主题浅面后，白色标题改为主文字色 */
+[data-theme='light'] [class*='bg-slate-8'] .text-white,
+[data-theme='light'] [class*='bg-slate-9'] .text-white,
+[data-theme='light'] [class*='bg-slate-8'].text-white,
+[data-theme='light'] [class*='bg-slate-9'].text-white,
+[data-theme='light'] [class~='bg-[#0f1422]'] .text-white,
+[data-theme='light'] [class~='bg-[#0e1322]'] .text-white,
+[data-theme='light'] [class~='bg-[#111836]'] .text-white,
+[data-theme='light'] [class~='bg-[#0d1225]'] .text-white {
+  color: var(--text-1) !important;
+}
+
+/* 深色可视化内的白色保持白色 */
+.viz-dark .text-white {
+  color: #ffffff !important;
+}
+
+/* 深色可视化内的 slate-500/600 提升可读性 */
+.viz-dark .text-slate-500,
+.viz-dark .text-slate-600 {
+  color: #94a3b8 !important;
+}
+
+[data-theme='light'] .viz-dark .text-white {
+  color: #ffffff !important;
 }
