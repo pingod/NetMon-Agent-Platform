@@ -167,7 +167,7 @@ export const RackCabinet2D: React.FC<RackCabinet2DProps> = ({
         }}
       >
         {/* 机柜头部状态栏（R1 · [在线] · [37U / 42U]） */}
-        <div className="flex items-center justify-between pb-3.5 mb-2.5 border-b border-slate-800 px-1">
+        <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-slate-800 px-1">
           <div className="flex items-center gap-2">
             <h2 className="text-2xl font-black tracking-wider text-white font-mono">
               {rack.name}
@@ -188,17 +188,36 @@ export const RackCabinet2D: React.FC<RackCabinet2DProps> = ({
           </div>
         </div>
 
+        {/* 占用进度条 + 空机柜引导 */}
+        <div className="px-1 mb-3">
+          <div className="h-1.5 w-full rounded-full bg-slate-800/80 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-[#6d5efc] via-[#8b5cf6] to-cyan-400 rounded-full transition-[width] duration-500"
+              style={{ width: `${Math.max(0, Math.min(100, (usedU / totalU) * 100))}%` }}
+            />
+          </div>
+        </div>
+
+        {usedU === 0 && (
+          <div className="mb-3 px-1 flex items-center justify-center gap-2 rounded-xl border border-dashed border-slate-700/80 bg-slate-900/40 py-2.5 text-xs text-slate-400">
+            <Server className="w-3.5 h-3.5 text-purple-400" />
+            <span>
+              机柜为空 · 点击任意 U 位或从左侧「设备库」拖拽设备上架
+            </span>
+          </div>
+        )}
+
         {/* 机柜立柱外框架与 U 位槽位 */}
-        <div className="relative w-full bg-[#05080e] border-2 border-slate-800 rounded-xl overflow-hidden shadow-[inset_0_0_20px_rgba(0,0,0,0.9)] flex">
+        <div className="relative w-full bg-[#070d18] border-2 border-slate-800 rounded-xl overflow-hidden shadow-[inset_0_0_20px_rgba(0,0,0,0.9)] flex">
           {/* 左侧 U 标尺立柱 */}
-          <div className="w-9 bg-gradient-to-r from-[#172033] via-[#101726] to-[#0c121e] border-r border-slate-800 flex flex-col justify-between select-none py-1 flex-shrink-0 z-20 shadow-md">
+          <div className="w-9 bg-gradient-to-r from-[#192235] via-[#111a2c] to-[#0d1526] border-r border-slate-800 flex flex-col justify-between select-none py-1 flex-shrink-0 z-20 shadow-md">
             {uNumbersDesc.map(u => (
               <div
                 key={`left-u-${u}`}
                 style={{ height: `${scaledSlotHeightPx}px` }}
-                className="flex items-center justify-center border-b border-slate-900/70"
+                className="flex items-center justify-center border-b border-slate-800/50"
               >
-                <span className="text-[10px] font-mono font-bold text-slate-400 tracking-tight">
+                <span className="text-[10.5px] font-mono font-bold text-slate-300/80 tracking-tight">
                   {u}
                 </span>
               </div>
@@ -230,14 +249,14 @@ export const RackCabinet2D: React.FC<RackCabinet2DProps> = ({
           </div>
 
           {/* 右侧 U 标尺立柱 */}
-          <div className="w-9 bg-gradient-to-l from-[#172033] via-[#101726] to-[#0c121e] border-l border-slate-800 flex flex-col justify-between select-none py-1 flex-shrink-0 z-20 shadow-md">
+          <div className="w-9 bg-gradient-to-l from-[#192235] via-[#111a2c] to-[#0d1526] border-l border-slate-800 flex flex-col justify-between select-none py-1 flex-shrink-0 z-20 shadow-md">
             {uNumbersDesc.map(u => (
               <div
                 key={`right-u-${u}`}
                 style={{ height: `${scaledSlotHeightPx}px` }}
-                className="flex items-center justify-center border-b border-slate-900/70"
+                className="flex items-center justify-center border-b border-slate-800/50"
               >
-                <span className="text-[10px] font-mono font-bold text-slate-400 tracking-tight">
+                <span className="text-[10.5px] font-mono font-bold text-slate-300/80 tracking-tight">
                   {u}
                 </span>
               </div>

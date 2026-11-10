@@ -1062,3 +1062,29 @@ main .flex > * {
     scroll-behavior: auto !important;
   }
 }
+
+/* 侧边栏分组标题：浅色主题下加深，避免白底灰字发虚 */
+:root {
+  --nav-group-color: #94a3b8;
+}
+
+[data-theme='light'] {
+  --nav-group-color: #475569;
+}
+
+.nav-group-label {
+  color: var(--nav-group-color);
+  font-size: 12.5px;
+}
+
+.nav-group-label:hover {
+  color: var(--text-1);
+}
+
+[data-theme='light'] .nav-item {
+  color: #475569;
+}
+
+[data-theme='light'] .nav-item:hover {
+  color: #0f172a;
+}

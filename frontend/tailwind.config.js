@@ -27,6 +27,7 @@ export default {
         accent: 'var(--color-accent)',
         background: 'var(--color-background)',
         surface: 'var(--color-surface)',
+        'surface-1': 'var(--surface-1)',
         'surface-2': 'var(--surface-2)',
         'surface-3': 'var(--surface-3)',
         'surface-hover': 'var(--surface-hover)',

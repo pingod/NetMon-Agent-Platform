@@ -68,6 +68,7 @@ export const RackSlotUnit: React.FC<RackSlotUnitProps> = ({
   }
 
   // 2. 空闲槽位 (Empty 1U Slot)
+  const zebra = uNumber % 2 === 0 ? 'bg-[#0d1526]' : 'bg-[#0a111f]';
   return (
     <div
       style={{ height: `${slotHeightPx}px` }}
@@ -78,24 +79,32 @@ export const RackSlotUnit: React.FC<RackSlotUnitProps> = ({
       }}
       onDragLeave={onDragLeave}
       onDrop={e => onDrop && onDrop(e, uNumber)}
-      className={`w-full relative border-b border-slate-900 transition-all flex items-center justify-between px-3 cursor-pointer group ${
+      className={`w-full relative border-b border-slate-800/60 transition-all flex items-center justify-between px-3 cursor-pointer group ${
         isDragOver
-          ? 'bg-purple-500/20 border-purple-400 shadow-[inset_0_0_12px_rgba(139,92,246,0.4)]'
-          : 'bg-[#090d16] hover:bg-slate-800/60'
+          ? 'bg-[rgba(109,94,252,0.25)] border-primary shadow-[inset_0_0_14px_rgba(109,94,252,0.45)]'
+          : `${zebra} hover:bg-[rgba(109,94,252,0.10)]`
       }`}
     >
-      {/* 槽位深色百叶窗横纹 */}
-      <div className="absolute inset-x-0 inset-y-[3px] bg-gradient-to-b from-transparent via-slate-900/40 to-transparent pointer-events-none opacity-50" />
+      {/* 槽位顶部高光线，营造金属反光 */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-700/70 to-transparent pointer-events-none" />
 
       {/* 左右两侧螺丝孔示意 */}
-      <div className="w-1.5 h-1.5 rounded-full bg-slate-950 border border-slate-800 flex-shrink-0" />
+      <div className="w-1.5 h-1.5 rounded-full bg-slate-700 border border-slate-500/50 flex-shrink-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]" />
 
-      {/* 鼠标悬浮提示 */}
-      <span className="text-[9px] font-mono text-slate-500 group-hover:text-purple-300 transition-colors">
-        + 上架 (U{uNumber})
+      {/* 鼠标悬浮才显示的上架提示 */}
+      <span
+        className={`text-[10px] font-mono text-slate-400 transition-opacity flex items-center gap-1 select-none ${
+          isDragOver ? 'opacity-100 text-primary' : 'opacity-0 group-hover:opacity-100 group-hover:text-primary'
+        }`}
+      >
+        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"
+          strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        上架 U{uNumber}
       </span>
 
-      <div className="w-1.5 h-1.5 rounded-full bg-slate-950 border border-slate-800 flex-shrink-0" />
+      <div className="w-1.5 h-1.5 rounded-full bg-slate-700 border border-slate-500/50 flex-shrink-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]" />
     </div>
   );
 };
