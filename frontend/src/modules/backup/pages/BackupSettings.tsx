@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { message, Modal } from 'antd';
 import { Database, Loader2, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../../lib/api';
@@ -9,8 +10,16 @@ interface Backup {
   id: string;
   filename: string;
   size: number;
+  source?: string;
+  created_by?: string;
   createdAt: string;
 }
+
+const SOURCE_LABELS: Record<string, string> = {
+  manual: '手动创建',
+  upload: '上传',
+  'pre-restore': '恢复前自动',
+};
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -29,11 +38,11 @@ export default function BackupSettings() {
       return res.data;
     },
     onSuccess: () => {
-      alert('备份创建成功！');
+      message.success('备份创建成功');
       queryClient.invalidateQueries({ queryKey: ['backupHistory'] });
     },
     onError: (err: unknown) => {
-      alert(getAxiosErrorMessage(err, '备份创建失败'));
+      message.error(getAxiosErrorMessage(err, '备份创建失败'));
     }
   });
 
@@ -54,10 +63,10 @@ export default function BackupSettings() {
       return res.data;
     },
     onSuccess: () => {
-      alert('备份恢复成功！系统将自动重启...');
+      message.success('备份恢复成功，系统正在自动重启…');
     },
     onError: (err: unknown) => {
-      alert(getAxiosErrorMessage(err, '备份恢复失败'));
+      message.error(getAxiosErrorMessage(err, '备份恢复失败'));
     }
   });
 
@@ -68,11 +77,11 @@ export default function BackupSettings() {
       return res.data;
     },
     onSuccess: () => {
-      alert('备份删除成功！');
+      message.success('备份删除成功');
       queryClient.invalidateQueries({ queryKey: ['backupHistory'] });
     },
     onError: (err: unknown) => {
-      alert(getAxiosErrorMessage(err, '备份删除失败'));
+      message.error(getAxiosErrorMessage(err, '备份删除失败'));
     }
   });
 
@@ -87,11 +96,11 @@ export default function BackupSettings() {
       return res.data;
     },
     onSuccess: () => {
-      alert('备份上传成功！');
+      message.success('备份上传成功');
       queryClient.invalidateQueries({ queryKey: ['backupHistory'] });
     },
     onError: (err: unknown) => {
-      alert(getAxiosErrorMessage(err, '备份上传失败'));
+      message.error(getAxiosErrorMessage(err, '备份上传失败'));
     }
   });
 
@@ -115,7 +124,9 @@ export default function BackupSettings() {
 
         <div className="bg-background rounded-lg p-4">
           <h4 className="font-medium text-text-primary mb-2">数据路径</h4>
-          <p className="text-sm text-text-secondary">./data/app.db</p>
+          <p className="text-sm text-text-secondary">
+            由服务端 DATABASE_PATH 环境变量指定；备份文件保存在同目录的 backups/ 下
+          </p>
         </div>
 
         <div className="bg-background rounded-lg p-4">
@@ -127,7 +138,7 @@ export default function BackupSettings() {
                 上传备份
                 <input 
                   type="file" 
-                  accept=".db,.db.gz"
+                  accept=".db"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
@@ -158,6 +169,8 @@ export default function BackupSettings() {
                     <p className="text-sm font-medium text-text-primary">{backup.filename}</p>
                     <p className="text-xs text-text-secondary">
                       {new Date(backup.createdAt).toLocaleString()} • {formatFileSize(backup.size)}
+                      {backup.source ? ` • ${SOURCE_LABELS[backup.source] || backup.source}` : ''}
+                      {backup.created_by ? ` • ${backup.created_by}` : ''}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -165,7 +178,7 @@ export default function BackupSettings() {
                       onClick={async () => {
                         try {
                           const token = localStorage.getItem('token');
-                          const response = await fetch(`/api/backups/download/${backup.id}`, {
+                          const response = await fetch(`/api/v1/backups/download/${backup.id}`, {
                             headers: {
                               'Authorization': `Bearer ${token}`
                             }
@@ -185,24 +198,42 @@ export default function BackupSettings() {
                           window.URL.revokeObjectURL(url);
                           document.body.removeChild(a);
                         } catch (err) {
-                          alert('下载失败：' + (err as Error).message);
+                          message.error('下载失败：' + (err as Error).message);
                         }
                       }}
-                      className="px-3 py-1 text-xs bg-green-500/10 text-green-400 hover:bg-green-500/20 rounded transition-colors"
+                      className="px-3 py-1 text-xs bg-green-500/10 text-green-600 hover:bg-green-500/20 rounded transition-colors"
                     >
                       下载
                     </button>
                     <button
-                      onClick={() => restoreBackupMutation.mutate(backup.id)}
+                      onClick={() => {
+                        Modal.confirm({
+                          title: '确认恢复备份',
+                          content: `恢复 "${backup.filename}" 将覆盖当前数据库并自动重启系统。恢复前会自动创建一份当前库的安全备份。确定继续？`,
+                          okText: '恢复并重启',
+                          okType: 'danger',
+                          cancelText: '取消',
+                          onOk: () => restoreBackupMutation.mutateAsync(backup.id),
+                        });
+                      }}
                       disabled={restoreBackupMutation.isPending}
-                      className="px-3 py-1 text-xs bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded transition-colors"
+                      className="px-3 py-1 text-xs bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 rounded transition-colors"
                     >
                       恢复
                     </button>
                     <button
-                      onClick={() => deleteBackupMutation.mutate(backup.id)}
+                      onClick={() => {
+                        Modal.confirm({
+                          title: '确认删除备份',
+                          content: `确定删除备份文件 "${backup.filename}" 吗？此操作不可撤销。`,
+                          okText: '删除',
+                          okType: 'danger',
+                          cancelText: '取消',
+                          onOk: () => deleteBackupMutation.mutateAsync(backup.id),
+                        });
+                      }}
                       disabled={deleteBackupMutation.isPending}
-                      className="px-3 py-1 text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded transition-colors"
+                      className="px-3 py-1 text-xs bg-red-500/10 text-red-600 hover:bg-red-500/20 rounded transition-colors"
                     >
                       删除
                     </button>

@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Modal, message } from 'antd';
 import { Search, Plus, Play, Eye, Trash2, AlertTriangle, CheckCircle, Clock, Zap, Lightbulb } from 'lucide-react';
 import api from '../../../lib/api';
+import { getAxiosErrorMessage } from '../../../lib/errorHandler';
 
 interface RootCauseAnalysis {
   id: string;
@@ -10,6 +13,7 @@ interface RootCauseAnalysis {
   description?: string;
   status: 'pending' | 'analyzing' | 'completed' | 'failed';
   root_cause?: string;
+  confidence?: number;
   symptoms: string[];
   timeline: Array<{ time: string; event: string }>;
   evidence: string[];
@@ -29,14 +33,35 @@ export default function RootCauseAnalysisPage() {
     description: '',
     alert_id: ''
   });
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // 从告警页跳转而来：预填关联告警并直接打开创建弹窗
+  useEffect(() => {
+    const alertId = searchParams.get('alertId');
+    if (!alertId) return;
+    setCreateForm((f) => ({ ...f, alert_id: alertId, title: f.title || `告警 ${alertId.slice(0, 8)} 根因分析` }));
+    setShowCreateModal(true);
+    searchParams.delete('alertId');
+    setSearchParams(searchParams, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { data: rcas, isLoading } = useQuery({
     queryKey: ['rootCauseAnalyses'],
     queryFn: async () => {
       const res = await api.get('/root-cause-analysis');
       return res.data.data || [];
-    }
+    },
+    refetchInterval: (query) =>
+      (query.state.data as RootCauseAnalysis[] | undefined)?.some((r) => r.status === 'analyzing') ? 3000 : false,
   });
+
+  // 列表刷新后同步详情弹窗里的快照，分析完成时弹窗内容自动更新
+  useEffect(() => {
+    if (!selectedRca || !rcas) return;
+    const fresh = (rcas as RootCauseAnalysis[]).find((r) => r.id === selectedRca.id);
+    if (fresh && fresh !== selectedRca) setSelectedRca(fresh);
+  }, [rcas, selectedRca]);
 
   const createMutation = useMutation({
     mutationFn: async (rca: Record<string, unknown>) => {
@@ -47,7 +72,8 @@ export default function RootCauseAnalysisPage() {
       queryClient.invalidateQueries({ queryKey: ['rootCauseAnalyses'] });
       setShowCreateModal(false);
       setCreateForm({ title: '', description: '', alert_id: '' });
-    }
+    },
+    onError: (err: unknown) => message.error(getAxiosErrorMessage(err, '创建失败')),
   });
 
   const analyzeMutation = useMutation({
@@ -57,7 +83,8 @@ export default function RootCauseAnalysisPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rootCauseAnalyses'] });
-    }
+    },
+    onError: (err: unknown) => message.error(getAxiosErrorMessage(err, '触发分析失败')),
   });
 
   const deleteMutation = useMutation({
@@ -66,8 +93,20 @@ export default function RootCauseAnalysisPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rootCauseAnalyses'] });
-    }
+    },
+    onError: (err: unknown) => message.error(getAxiosErrorMessage(err, '删除失败')),
   });
+
+  const confirmDelete = (rca: RootCauseAnalysis) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定删除根因分析 "${rca.title}" 吗？`,
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: () => deleteMutation.mutateAsync(rca.id),
+    });
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -141,11 +180,19 @@ export default function RootCauseAnalysisPage() {
                         <div className="flex items-center gap-2 text-sm font-medium text-text-primary mb-1">
                           <Lightbulb className="w-4 h-4 text-yellow-600" />
                           根本原因
+                          {typeof rca.confidence === 'number' && rca.confidence > 0 && (
+                            <span className="text-xs font-normal text-text-tertiary">
+                              置信度 {Math.round(rca.confidence * 100)}%（启发式估算）
+                            </span>
+                          )}
                         </div>
                         <p className="text-text-secondary text-sm bg-background p-3 rounded-lg">
                           {rca.root_cause}
                         </p>
                       </div>
+                    )}
+                    {rca.status === 'failed' && rca.root_cause && (
+                      <p className="text-red-600 text-sm bg-red-50 p-3 rounded-lg mb-3">{rca.root_cause}</p>
                     )}
                     <div className="text-xs text-text-secondary">
                       创建于 {new Date(rca.created_at).toLocaleString('zh-CN')}
@@ -162,18 +209,18 @@ export default function RootCauseAnalysisPage() {
                     >
                       <Eye className="w-4 h-4" />
                     </button>
-                    {rca.status === 'pending' && (
+                    {(rca.status === 'pending' || rca.status === 'failed') && (
                       <button
                         onClick={() => analyzeMutation.mutate(rca.id)}
                         disabled={analyzeMutation.isPending}
                         className="p-2 text-text-secondary hover:text-primary hover:bg-background rounded-lg disabled:opacity-50"
-                        title="开始分析"
+                        title={rca.status === 'failed' ? '重新分析' : '开始分析'}
                       >
                         <Play className="w-4 h-4" />
                       </button>
                     )}
                     <button
-                      onClick={() => deleteMutation.mutate(rca.id)}
+                      onClick={() => confirmDelete(rca)}
                       disabled={deleteMutation.isPending}
                       className="p-2 text-text-secondary hover:text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50"
                       title="删除"
@@ -226,6 +273,19 @@ export default function RootCauseAnalysisPage() {
                   rows={3}
                   placeholder="描述要分析的问题"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">关联告警 ID（可选）</label>
+                <input
+                  type="text"
+                  value={createForm.alert_id}
+                  onChange={(e) => setCreateForm({ ...createForm, alert_id: e.target.value.trim() })}
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-text-primary"
+                  placeholder="告警中心里的告警 ID"
+                />
+                <p className="text-xs text-text-tertiary mt-1">
+                  填写后分析时自动收集该告警、同设备近 24 小时告警与相关指标作为证据
+                </p>
               </div>
               <div className="flex justify-end gap-3 pt-4">
                 <button
@@ -283,6 +343,11 @@ export default function RootCauseAnalysisPage() {
                       <h4 className="font-medium text-text-primary mb-2 flex items-center gap-2">
                         <Lightbulb className="w-5 h-5 text-yellow-600" />
                         根本原因
+                        {typeof selectedRca.confidence === 'number' && selectedRca.confidence > 0 && (
+                          <span className="text-xs font-normal text-text-tertiary">
+                            置信度 {Math.round(selectedRca.confidence * 100)}%（启发式估算）
+                          </span>
+                        )}
                       </h4>
                       <p className="text-text-secondary bg-background p-4 rounded-lg">{selectedRca.root_cause}</p>
                     </div>
@@ -337,7 +402,18 @@ export default function RootCauseAnalysisPage() {
                 </>
               )}
 
-              {selectedRca.status === 'pending' && (
+              {selectedRca.status === 'failed' && selectedRca.root_cause && (
+                <p className="text-red-600 text-sm bg-red-50 p-4 rounded-lg">{selectedRca.root_cause}</p>
+              )}
+
+              {selectedRca.status === 'analyzing' && (
+                <div className="text-center py-6 text-text-secondary">
+                  <Zap className="w-6 h-6 animate-pulse mx-auto mb-2 text-primary" />
+                  正在收集证据并分析，请稍候…
+                </div>
+              )}
+
+              {(selectedRca.status === 'pending' || selectedRca.status === 'failed') && (
                 <div className="text-center py-6">
                   <button
                     onClick={() => {
@@ -346,7 +422,7 @@ export default function RootCauseAnalysisPage() {
                     disabled={analyzeMutation.isPending}
                     className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
                   >
-                    {analyzeMutation.isPending ? '分析中...' : '开始分析'}
+                    {analyzeMutation.isPending ? '分析中...' : selectedRca.status === 'failed' ? '重新分析' : '开始分析'}
                   </button>
                 </div>
               )}

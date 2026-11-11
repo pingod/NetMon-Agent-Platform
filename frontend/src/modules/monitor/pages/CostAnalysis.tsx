@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Card, Table, Tabs, Row, Col, Tag, Button, Spin, Empty, Statistic } from 'antd';
+import { Card, Table, Tabs, Row, Col, Tag, Button, Spin, Empty, Statistic, message } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import { AlertCircle, Zap, DollarSign, TrendingDown, TrendingUp, Package, Cpu } from 'lucide-react';
 import api from '../../../lib/api';
@@ -50,9 +50,9 @@ const RATE_VM_DISK = 0.0002;        // ¥/GB/小时
 
 // ==================== 图标映射 ====================
 const recommendationIcons: Record<string, React.ReactNode> = {
-  idle: <AlertCircle size={28} className="text-orange-400" />,
-  downsize: <Zap size={28} className="text-blue-400" />,
-  reserved: <DollarSign size={28} className="text-green-400" />,
+  idle: <AlertCircle size={28} className="text-status-warning" />,
+  downsize: <Zap size={28} className="text-status-running" />,
+  reserved: <DollarSign size={28} className="text-status-success" />,
 };
 
 const recommendationColors: Record<string, string> = {
@@ -78,7 +78,7 @@ export default function CostAnalysis() {
     try {
       const res = await api.get('/cost-analysis/containers');
       setContainers(res.data.data || []);
-    } catch { /* ignore */ }
+    } catch { message.error('获取容器成本失败'); }
     finally { setLoading(false); }
   }, []);
 
@@ -87,7 +87,7 @@ export default function CostAnalysis() {
     try {
       const res = await api.get('/cost-analysis/vms');
       setVms(res.data.data || []);
-    } catch { /* ignore */ }
+    } catch { message.error('获取 VM 成本失败'); }
     finally { setLoading(false); }
   }, []);
 
@@ -96,7 +96,7 @@ export default function CostAnalysis() {
     try {
       const res = await api.get('/cost-analysis/recommendations');
       setRecommendations(res.data.data || []);
-    } catch { /* ignore */ }
+    } catch { message.error('获取优化建议失败'); }
     finally { setLoading(false); }
   }, []);
 
@@ -131,10 +131,8 @@ export default function CostAnalysis() {
       render: (v: number) => `¥${(v || 0).toFixed(2)}` },
     { title: '30日估算', dataIndex: 'monthlyEstimate', key: 'monthlyEstimate', width: 110,
       render: (v: number) => (
-        <span className="font-medium text-blue-400">¥{(v || 0).toFixed(2)}</span>
+        <span className="font-medium text-blue-600">¥{(v || 0).toFixed(2)}</span>
       )},
-    { title: '操作', key: 'actions', width: 80,
-      render: () => <Button size="small" type="link">详情</Button> },
   ];
 
   const vmColumns = [
@@ -147,7 +145,7 @@ export default function CostAnalysis() {
       render: (v: number) => `¥${(v || 0).toFixed(4)}` },
     { title: '30日估算', dataIndex: 'monthlyEstimate', key: 'monthlyEstimate', width: 110,
       render: (v: number) => (
-        <span className="font-medium text-blue-400">¥{(v || 0).toFixed(2)}</span>
+        <span className="font-medium text-blue-600">¥{(v || 0).toFixed(2)}</span>
       )},
   ];
 
@@ -158,15 +156,15 @@ export default function CostAnalysis() {
 
   const containerFooter = () => (
     <div className="flex justify-end pr-4 py-1">
-      <span className="text-slate-400 text-sm">容器月度合计：</span>
-      <span className="font-bold text-blue-400 ml-2">¥{containerTotal.toFixed(2)}</span>
+      <span className="text-text-secondary text-sm">容器月度合计：</span>
+      <span className="font-bold text-blue-600 ml-2">¥{containerTotal.toFixed(2)}</span>
     </div>
   );
 
   const vmFooter = () => (
     <div className="flex justify-end pr-4 py-1">
-      <span className="text-slate-400 text-sm">VM 月度合计：</span>
-      <span className="font-bold text-blue-400 ml-2">¥{vmTotal.toFixed(2)}</span>
+      <span className="text-text-secondary text-sm">VM 月度合计：</span>
+      <span className="font-bold text-blue-600 ml-2">¥{vmTotal.toFixed(2)}</span>
     </div>
   );
 
@@ -175,68 +173,71 @@ export default function CostAnalysis() {
       {/* 页面标题 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <DollarSign size={28} className="text-green-400" />
-          <h1 className="text-2xl font-bold text-white">成本分析</h1>
+          <DollarSign size={28} className="text-status-success" />
+          <h1 className="text-2xl font-bold text-text-primary">成本分析</h1>
         </div>
         <Button icon={<ReloadOutlined />} onClick={refreshCurrentTab}>刷新</Button>
       </div>
 
       {/* 费率说明 */}
-      <Card size="small" className="bg-slate-800/50 border-slate-700">
-        <div className="flex flex-wrap gap-x-8 gap-y-2 text-xs text-slate-400">
-          <span>容器 CPU：<span className="text-slate-300 font-mono">¥{RATE_CONTAINER_CPU}/核/h</span></span>
-          <span>容器内存：<span className="text-slate-300 font-mono">¥{RATE_CONTAINER_MEM}/MB/h</span></span>
-          <span>VM CPU：<span className="text-slate-300 font-mono">¥{RATE_VM_CPU}/核/h</span></span>
-          <span>VM 内存：<span className="text-slate-300 font-mono">¥{RATE_VM_MEM}/MB/h</span></span>
-          <span>VM 磁盘：<span className="text-slate-300 font-mono">¥{RATE_VM_DISK}/GB/h</span></span>
+      <Card size="small" className="bg-surface border-border">
+        <div className="flex flex-wrap gap-x-8 gap-y-2 text-xs text-text-secondary">
+          <span>容器 CPU：<span className="text-text-primary font-mono">¥{RATE_CONTAINER_CPU}/核/h</span></span>
+          <span>容器内存：<span className="text-text-primary font-mono">¥{RATE_CONTAINER_MEM}/MB/h</span></span>
+          <span>VM CPU：<span className="text-text-primary font-mono">¥{RATE_VM_CPU}/核/h</span></span>
+          <span>VM 内存：<span className="text-text-primary font-mono">¥{RATE_VM_MEM}/MB/h</span></span>
+          <span>VM 磁盘：<span className="text-text-primary font-mono">¥{RATE_VM_DISK}/GB/h</span></span>
         </div>
+        <p className="text-xs text-text-tertiary mt-2">
+          按纳管规格 × 固定费率估算（月度按 720 小时计），非实际账单；容器成本基于实时用量，VM 成本基于登记规格。
+        </p>
       </Card>
 
       {/* 统计卡片行 */}
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-surface border-border">
             <Statistic
-              title={<span className="text-slate-400 text-xs">容器月成本估算</span>}
+              title={<span className="text-text-secondary text-xs">容器月成本估算</span>}
               value={summary.containerMonthly}
               precision={2}
-              prefix={<Package size={16} className="text-blue-400 inline-block mr-1" />}
+              prefix={<Package size={16} className="text-status-running inline-block mr-1" />}
               suffix="¥"
               valueStyle={{ color: 'var(--info)', fontSize: 24, fontWeight: 700 }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-surface border-border">
             <Statistic
-              title={<span className="text-slate-400 text-xs">VM 月成本估算</span>}
+              title={<span className="text-text-secondary text-xs">VM 月成本估算</span>}
               value={summary.vmMonthly}
               precision={2}
-              prefix={<Cpu size={16} className="text-purple-400 inline-block mr-1" />}
+              prefix={<Cpu size={16} className="text-primary inline-block mr-1" />}
               suffix="¥"
               valueStyle={{ color: 'var(--primary)', fontSize: 24, fontWeight: 700 }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-surface border-border">
             <Statistic
-              title={<span className="text-slate-400 text-xs">总月成本</span>}
+              title={<span className="text-text-secondary text-xs">总月成本</span>}
               value={summary.totalMonthly}
               precision={2}
-              prefix={<TrendingUp size={16} className="text-green-400 inline-block mr-1" />}
+              prefix={<TrendingUp size={16} className="text-status-success inline-block mr-1" />}
               suffix="¥"
               valueStyle={{ color: 'var(--success)', fontSize: 24, fontWeight: 700 }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-surface border-border">
             <Statistic
-              title={<span className="text-slate-400 text-xs">闲置资源浪费</span>}
+              title={<span className="text-text-secondary text-xs">闲置资源浪费</span>}
               value={summary.idleWaste}
               precision={2}
-              prefix={<TrendingDown size={16} className="text-orange-400 inline-block mr-1" />}
+              prefix={<TrendingDown size={16} className="text-status-warning inline-block mr-1" />}
               suffix="¥"
               valueStyle={{ color: 'var(--warning)', fontSize: 24, fontWeight: 700 }}
             />
@@ -245,7 +246,7 @@ export default function CostAnalysis() {
       </Row>
 
       {/* Tab 面板 */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-surface border-border">
         <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
           {
             key: 'containers',
@@ -253,7 +254,7 @@ export default function CostAnalysis() {
             children: (
               <Spin spinning={loading}>
                 {containers.length === 0 && !loading ? (
-                  <Empty description="暂无容器成本数据" />
+                  <Empty description="暂无容器成本数据（接入 Docker 主机后自动采集实时用量）" />
                 ) : (
                   <Table
                     dataSource={containers}
@@ -274,7 +275,7 @@ export default function CostAnalysis() {
             children: (
               <Spin spinning={loading}>
                 {vms.length === 0 && !loading ? (
-                  <Empty description="暂无 VM 成本数据" />
+                  <Empty description="暂无 VM 成本数据（登记虚拟机后按规格自动估算）" />
                 ) : (
                   <Table
                     dataSource={vms}
@@ -304,23 +305,20 @@ export default function CostAnalysis() {
                         <Card
                           key={rec.id}
                           size="small"
-                          className={`border ${recommendationColors[rec.type] || 'border-slate-700'} bg-slate-800/30`}
+                          className={`border ${recommendationColors[rec.type] || 'border-border'} bg-surface`}
                         >
                           <div className="flex items-start gap-4">
                             <div className="flex-shrink-0 mt-1">
-                              {recommendationIcons[rec.type] || <AlertCircle size={28} className="text-slate-400" />}
+                              {recommendationIcons[rec.type] || <AlertCircle size={28} className="text-text-tertiary" />}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between">
-                                <h3 className="text-white font-medium text-sm">{rec.title}</h3>
+                                <h3 className="text-text-primary font-medium text-sm">{rec.title}</h3>
                                 <Tag color="green" className="text-xs">
                                   月省 ¥{rec.monthlySavings?.toFixed(2)}
                                 </Tag>
                               </div>
-                              <p className="text-slate-400 text-xs mt-1">{rec.description}</p>
-                              <div className="mt-2">
-                                <Button size="small" type="link" className="p-0 h-auto text-xs">查看详情</Button>
-                              </div>
+                              <p className="text-text-secondary text-xs mt-1">{rec.description}</p>
                             </div>
                           </div>
                         </Card>
@@ -333,11 +331,11 @@ export default function CostAnalysis() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                          <DollarSign size={20} className="text-green-400" />
+                          <DollarSign size={20} className="text-green-600" />
                         </div>
                         <div>
-                          <p className="text-slate-400 text-xs">月度潜在节省总额</p>
-                          <p className="text-2xl font-bold text-green-400">
+                          <p className="text-text-secondary text-xs">月度潜在节省总额</p>
+                          <p className="text-2xl font-bold text-green-600">
                             ¥{recommendationsTotalSavings.toFixed(2)}
                           </p>
                         </div>

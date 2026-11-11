@@ -127,8 +127,8 @@ export default function AutoScale() {
   };
 
   const saveRule = async () => {
-    if (!ruleForm.name || !ruleForm.threshold) {
-      message.warning('请填写必填字段');
+    if (!ruleForm.name || !ruleForm.targetName || !ruleForm.threshold) {
+      message.warning('请填写规则名称、目标名称和阈值');
       return;
     }
     try {
@@ -142,7 +142,10 @@ export default function AutoScale() {
       setRuleModalVisible(false);
       fetchRules();
       fetchSummary();
-    } catch { message.error('保存失败'); }
+    } catch (err) {
+      const detail = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data;
+      message.error(detail?.message || detail?.error || '保存失败');
+    }
   };
 
   const deleteRule = (rule: ScaleRule) => {
@@ -224,8 +227,8 @@ export default function AutoScale() {
       {/* 页面标题 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <TrendingUp size={28} className="text-purple-400" />
-          <h1 className="text-2xl font-bold text-white">自动伸缩</h1>
+          <TrendingUp size={28} className="text-primary" />
+          <h1 className="text-2xl font-bold text-text-primary">自动伸缩</h1>
         </div>
         <Button icon={<ReloadOutlined />} onClick={() => { if (activeTab === 'rules') fetchRules(); else fetchHistory(); }}>
           刷新
@@ -235,41 +238,41 @@ export default function AutoScale() {
       {/* 统计卡片行 */}
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-surface border-border">
             <Statistic
-              title={<span className="text-slate-400 text-xs">活跃规则数</span>}
+              title={<span className="text-text-secondary text-xs">活跃规则数</span>}
               value={summary.activeRules}
-              prefix={<Zap size={16} className="text-yellow-400 inline-block mr-1" />}
+              prefix={<Zap size={16} className="text-status-warning inline-block mr-1" />}
               valueStyle={{ color: 'var(--warning)', fontSize: 24, fontWeight: 700 }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-surface border-border">
             <Statistic
-              title={<span className="text-slate-400 text-xs">今日扩容次数</span>}
+              title={<span className="text-text-secondary text-xs">今日扩容次数</span>}
               value={summary.todayScaleUp}
-              prefix={<ArrowUpRight size={16} className="text-green-400 inline-block mr-1" />}
+              prefix={<ArrowUpRight size={16} className="text-status-success inline-block mr-1" />}
               valueStyle={{ color: 'var(--success)', fontSize: 24, fontWeight: 700 }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-surface border-border">
             <Statistic
-              title={<span className="text-slate-400 text-xs">今日缩容次数</span>}
+              title={<span className="text-text-secondary text-xs">今日缩容次数</span>}
               value={summary.todayScaleDown}
-              prefix={<ArrowDownRight size={16} className="text-orange-400 inline-block mr-1" />}
+              prefix={<ArrowDownRight size={16} className="text-status-warning inline-block mr-1" />}
               valueStyle={{ color: 'var(--warning)', fontSize: 24, fontWeight: 700 }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-surface border-border">
             <Statistic
-              title={<span className="text-slate-400 text-xs">管理实例总数</span>}
+              title={<span className="text-text-secondary text-xs">管理实例总数</span>}
               value={summary.totalManagedInstances}
-              prefix={<Server size={16} className="text-blue-400 inline-block mr-1" />}
+              prefix={<Server size={16} className="text-status-running inline-block mr-1" />}
               valueStyle={{ color: 'var(--info)', fontSize: 24, fontWeight: 700 }}
             />
           </Card>
@@ -277,7 +280,7 @@ export default function AutoScale() {
       </Row>
 
       {/* Tab 面板 */}
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="bg-surface border-border">
         <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
           {
             key: 'rules',
@@ -312,7 +315,7 @@ export default function AutoScale() {
             children: (
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <span className="text-slate-400 text-sm">时间范围：</span>
+                  <span className="text-text-secondary text-sm">时间范围：</span>
                   <DatePicker.RangePicker
                     showTime
                     onChange={(dates) => {
@@ -369,7 +372,7 @@ export default function AutoScale() {
       >
         <div className="space-y-4 py-4">
           <div className="flex items-center gap-3">
-            <span className="text-slate-300 w-24 text-right text-sm">名称：</span>
+            <span className="text-text-secondary w-24 text-right text-sm">名称：</span>
             <Input
               value={ruleForm.name}
               onChange={(e) => setRuleForm({ ...ruleForm, name: e.target.value })}
@@ -379,44 +382,48 @@ export default function AutoScale() {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-slate-300 w-24 text-right text-sm">目标类型：</span>
+            <span className="text-text-secondary w-24 text-right text-sm">目标类型：</span>
             <Select
               value={ruleForm.targetType}
               onChange={(v) => setRuleForm({ ...ruleForm, targetType: v, targetId: '', targetName: '' })}
               options={[
                 { label: '容器', value: 'container' },
-                { label: 'VM', value: 'vm' },
+                { label: 'VM（待接入虚拟化平台）', value: 'vm', disabled: true },
               ]}
-              style={{ width: 160 }}
+              style={{ width: 220 }}
             />
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-slate-300 w-24 text-right text-sm">目标名称：</span>
+            <span className="text-text-secondary w-24 text-right text-sm">目标名称：</span>
             <Input
               value={ruleForm.targetName}
               onChange={(e) => setRuleForm({ ...ruleForm, targetName: e.target.value })}
-              placeholder="输入目标标识或名称"
+              placeholder="Compose 项目名/服务名，如 web/api"
               style={{ flex: 1 }}
             />
           </div>
+          <div className="flex items-center gap-3">
+            <span className="w-24" />
+            <span className="text-text-tertiary text-xs">目标必须是已纳管 Compose 项目中的服务，可在「容器管理 → Compose」查看</span>
+          </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-slate-300 w-24 text-right text-sm">指标类型：</span>
+            <span className="text-text-secondary w-24 text-right text-sm">指标类型：</span>
             <Select
               value={ruleForm.metricType}
               onChange={(v) => setRuleForm({ ...ruleForm, metricType: v })}
               options={[
                 { label: 'CPU', value: 'cpu' },
                 { label: '内存', value: 'memory' },
-                { label: 'Pod 数量', value: 'pod_count' },
+                { label: 'Pod 数量（待接入 K8s）', value: 'pod_count', disabled: true },
               ]}
-              style={{ width: 160 }}
+              style={{ width: 220 }}
             />
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-slate-300 w-24 text-right text-sm">阈值 (%)：</span>
+            <span className="text-text-secondary w-24 text-right text-sm">阈值 (%)：</span>
             <InputNumber
               value={ruleForm.threshold}
               onChange={(v) => setRuleForm({ ...ruleForm, threshold: v || 0 })}
@@ -425,11 +432,11 @@ export default function AutoScale() {
               style={{ width: 120 }}
               addonAfter="%"
             />
-            <span className="text-slate-500 text-xs">触发伸缩的指标百分比</span>
+            <span className="text-text-tertiary text-xs">触发伸缩的指标百分比</span>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-slate-300 w-24 text-right text-sm">目标值 (%)：</span>
+            <span className="text-text-secondary w-24 text-right text-sm">目标值 (%)：</span>
             <InputNumber
               value={ruleForm.targetValue}
               onChange={(v) => setRuleForm({ ...ruleForm, targetValue: v || 0 })}
@@ -438,11 +445,11 @@ export default function AutoScale() {
               style={{ width: 120 }}
               addonAfter="%"
             />
-            <span className="text-slate-500 text-xs">伸缩后的目标值</span>
+            <span className="text-text-tertiary text-xs">伸缩后的目标值</span>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-slate-300 w-24 text-right text-sm">最小实例数：</span>
+            <span className="text-text-secondary w-24 text-right text-sm">最小实例数：</span>
             <InputNumber
               value={ruleForm.minInstances}
               onChange={(v) => setRuleForm({ ...ruleForm, minInstances: v || 1 })}
@@ -450,7 +457,7 @@ export default function AutoScale() {
               max={100}
               style={{ width: 120 }}
             />
-            <span className="text-slate-300 w-16 text-right text-sm">最大：</span>
+            <span className="text-text-secondary w-16 text-right text-sm">最大：</span>
             <InputNumber
               value={ruleForm.maxInstances}
               onChange={(v) => setRuleForm({ ...ruleForm, maxInstances: v || 1 })}
@@ -461,7 +468,7 @@ export default function AutoScale() {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-slate-300 w-24 text-right text-sm">扩容冷却(s)：</span>
+            <span className="text-text-secondary w-24 text-right text-sm">扩容冷却(s)：</span>
             <InputNumber
               value={ruleForm.scaleUpCooldown}
               onChange={(v) => setRuleForm({ ...ruleForm, scaleUpCooldown: v || 300 })}
@@ -470,7 +477,7 @@ export default function AutoScale() {
               style={{ width: 120 }}
               addonAfter="s"
             />
-            <span className="text-slate-300 w-16 text-right text-sm">缩容：</span>
+            <span className="text-text-secondary w-16 text-right text-sm">缩容：</span>
             <InputNumber
               value={ruleForm.scaleDownCooldown}
               onChange={(v) => setRuleForm({ ...ruleForm, scaleDownCooldown: v || 600 })}
@@ -482,7 +489,7 @@ export default function AutoScale() {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-slate-300 w-24 text-right text-sm">启用：</span>
+            <span className="text-text-secondary w-24 text-right text-sm">启用：</span>
             <Switch
               checked={ruleForm.enabled}
               onChange={(v) => setRuleForm({ ...ruleForm, enabled: v })}
