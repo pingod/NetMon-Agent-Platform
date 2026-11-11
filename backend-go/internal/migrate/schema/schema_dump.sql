@@ -1296,10 +1296,27 @@ CREATE TABLE root_cause_analyses (
         evidence TEXT,
         recommendations TEXT,
         confidence REAL DEFAULT 0,
+        false_positive INTEGER NOT NULL DEFAULT 0,
         created_at DATETIME DEFAULT (datetime('now','localtime')),
         updated_at DATETIME DEFAULT (datetime('now','localtime')),
         completed_at DATETIME,
         FOREIGN KEY (alert_id) REFERENCES alerts(id)
+      );
+
+-- [table] alert_silences
+CREATE TABLE alert_silences (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        match_source TEXT DEFAULT '',
+        match_severity TEXT DEFAULT '',
+        match_keywords TEXT DEFAULT '',
+        match_device_id TEXT DEFAULT '',
+        starts_at TEXT NOT NULL,
+        ends_at TEXT NOT NULL,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        created_by TEXT DEFAULT '',
+        created_at TEXT,
+        updated_at TEXT
       );
 
 -- [table] platform_backups
@@ -1318,14 +1335,12 @@ CREATE TABLE scheduled_tasks (
         name TEXT NOT NULL,
         description TEXT,
         workflow_id TEXT NOT NULL,
-        schedule TEXT NOT NULL,
+        cron_expression TEXT NOT NULL DEFAULT '',
         enabled INTEGER DEFAULT 1,
-        last_run DATETIME,
-        next_run DATETIME,
-        last_status TEXT DEFAULT 'unknown',
-        context TEXT,
-        created_at DATETIME DEFAULT (datetime('now','localtime')),
-        updated_at DATETIME DEFAULT (datetime('now','localtime')),
+        last_run_at TEXT,
+        next_run_at TEXT,
+        created_at TEXT,
+        updated_at TEXT,
         FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
       );
 

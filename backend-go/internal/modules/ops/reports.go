@@ -16,6 +16,7 @@ import (
 	"itops-backend/internal/appdb"
 	"itops-backend/internal/httpx"
 	"itops-backend/internal/middleware"
+	"itops-backend/internal/utils"
 )
 
 // Report 报告实体
@@ -504,7 +505,153 @@ func ReportRoutes() chi.Router {
 	r.Get("/{id}/export", handleExportReport)
 	r.Get("/{id}/download-zip", handleExportReportZip)
 
+	// 9. 定时报告 CRUD（执行器见 schedule_engine.go）
+	r.With(middleware.RequireRole("admin")).Post("/scheduled", handleCreateReportSchedule)
+	r.With(middleware.RequireRole("admin")).Put("/scheduled/{id}", handleUpdateReportSchedule)
+	r.With(middleware.RequireRole("admin")).Delete("/scheduled/{id}", handleDeleteReportSchedule)
+	r.With(middleware.RequireRole("admin")).Post("/scheduled/{id}/toggle", handleToggleReportSchedule)
+
 	return r
+}
+
+type reportScheduleBody struct {
+	Name           string   `json:"name"`
+	TemplateID     string   `json:"template_id"`
+	CronExpression string   `json:"cron_expression"`
+	Recipients     []string `json:"recipients"`
+	Format         string   `json:"format"`
+	Enabled        *bool    `json:"enabled"`
+}
+
+func validateReportSchedule(w http.ResponseWriter, b *reportScheduleBody, isCreate bool) bool {
+	if isCreate && (strings.TrimSpace(b.Name) == "" || b.TemplateID == "") {
+		httpx.RespondError(w, "名称与模板必填", http.StatusBadRequest)
+		return false
+	}
+	if b.CronExpression != "" || isCreate {
+		if _, err := utils.ParseCron(strings.TrimSpace(b.CronExpression)); err != nil {
+			httpx.RespondError(w, "Cron 表达式非法: "+err.Error(), http.StatusBadRequest)
+			return false
+		}
+	}
+	if b.TemplateID != "" {
+		var n int
+		appdb.DB().QueryRow(`SELECT COUNT(*) FROM reports WHERE id = ? AND type = 'template'`, b.TemplateID).Scan(&n)
+		if n == 0 {
+			httpx.RespondError(w, "报告模板不存在", http.StatusBadRequest)
+			return false
+		}
+	}
+	for _, to := range b.Recipients {
+		if to != "" && !strings.Contains(to, "@") {
+			httpx.RespondError(w, "接收人邮箱格式非法: "+to, http.StatusBadRequest)
+			return false
+		}
+	}
+	return true
+}
+
+func handleCreateReportSchedule(w http.ResponseWriter, r *http.Request) {
+	var b reportScheduleBody
+	if !parseJSON(w, r, &b) {
+		return
+	}
+	if !validateReportSchedule(w, &b, true) {
+		return
+	}
+	if b.Format == "" {
+		b.Format = "markdown"
+	}
+	enabled := 1
+	if b.Enabled != nil && !*b.Enabled {
+		enabled = 0
+	}
+	recipientsJSON, _ := json.Marshal(b.Recipients)
+	id := uuid.NewString()
+	now := time.Now().Format("2006-01-02 15:04:05")
+	_, err := appdb.DB().Exec(`INSERT INTO report_schedules (id, name, template_id, cron_expression, enabled, recipients, format, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		id, strings.TrimSpace(b.Name), b.TemplateID, strings.TrimSpace(b.CronExpression), enabled, string(recipientsJSON), b.Format, now, now)
+	if err != nil {
+		httpx.RespondError(w, "创建定时报告失败: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	httpx.RespondStatus(w, http.StatusCreated, map[string]interface{}{"id": id, "name": b.Name})
+}
+
+func handleUpdateReportSchedule(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var b reportScheduleBody
+	if !parseJSON(w, r, &b) {
+		return
+	}
+	if !validateReportSchedule(w, &b, false) {
+		return
+	}
+	var recipientsJSON *string
+	if b.Recipients != nil {
+		s, _ := json.Marshal(b.Recipients)
+		str := string(s)
+		recipientsJSON = &str
+	}
+	var enabledVal *int
+	if b.Enabled != nil {
+		v := 0
+		if *b.Enabled {
+			v = 1
+		}
+		enabledVal = &v
+	}
+	res, err := appdb.DB().Exec(`UPDATE report_schedules SET
+		name = COALESCE(NULLIF(?,''), name),
+		template_id = COALESCE(NULLIF(?,''), template_id),
+		cron_expression = COALESCE(NULLIF(?,''), cron_expression),
+		recipients = COALESCE(?, recipients),
+		format = COALESCE(NULLIF(?,''), format),
+		enabled = COALESCE(?, enabled),
+		updated_at = ? WHERE id = ?`,
+		b.Name, b.TemplateID, b.CronExpression, recipientsJSON, b.Format, enabledVal,
+		time.Now().Format("2006-01-02 15:04:05"), id)
+	if err != nil {
+		httpx.RespondError(w, "更新定时报告失败: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		httpx.RespondError(w, "定时报告不存在", http.StatusNotFound)
+		return
+	}
+	httpx.Respond(w, map[string]interface{}{"id": id, "updated": true})
+}
+
+func handleDeleteReportSchedule(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	res, err := appdb.DB().Exec(`DELETE FROM report_schedules WHERE id = ?`, id)
+	if err != nil {
+		httpx.RespondError(w, "删除定时报告失败", http.StatusInternalServerError)
+		return
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		httpx.RespondError(w, "定时报告不存在", http.StatusNotFound)
+		return
+	}
+	httpx.RespondMessage(w, "定时报告已删除")
+}
+
+func handleToggleReportSchedule(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	res, err := appdb.DB().Exec(`UPDATE report_schedules SET enabled = 1 - enabled, updated_at = ? WHERE id = ?`,
+		time.Now().Format("2006-01-02 15:04:05"), id)
+	if err != nil {
+		httpx.RespondError(w, "切换状态失败", http.StatusInternalServerError)
+		return
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		httpx.RespondError(w, "定时报告不存在", http.StatusNotFound)
+		return
+	}
+	var enabled int
+	appdb.DB().QueryRow(`SELECT enabled FROM report_schedules WHERE id = ?`, id).Scan(&enabled)
+	httpx.Respond(w, map[string]interface{}{"id": id, "enabled": enabled == 1})
 }
 
 // handleExportReportZip 专门导出 ZIP 压缩包端点
@@ -512,7 +659,7 @@ func handleExportReportZip(w http.ResponseWriter, r *http.Request) {
 	exportReportAsZip(w, r, chi.URLParam(r, "id"))
 }
 
-// handleExportReport 处理报告导出（Markdown / ZIP；PDF、Word 尚未实现）
+// handleExportReport 处理报告导出（Markdown / ZIP / Word；PDF 因服务端无中文字体暂不支持）
 func handleExportReport(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	format := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("format")))
@@ -521,8 +668,23 @@ func handleExportReport(w http.ResponseWriter, r *http.Request) {
 	case "zip":
 		exportReportAsZip(w, r, id)
 		return
-	case "pdf", "word", "docx":
-		httpx.RespondFailStatus(w, http.StatusBadRequest, "暂不支持导出为 "+format+" 格式，请使用 markdown 或 zip")
+	case "word", "docx":
+		var name, content string
+		if err := appdb.DB().QueryRow("SELECT name, content FROM reports WHERE id = ?", id).Scan(&name, &content); err != nil {
+			httpx.RespondError(w, "报告不存在", http.StatusNotFound)
+			return
+		}
+		data, err := buildDocx(name, content)
+		if err != nil {
+			httpx.RespondError(w, "生成 Word 文档失败: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", fmt.Sprintf("report-%s.docx", sanitizeFilename(id))))
+		w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+		_, _ = w.Write(data)
+		return
+	case "pdf":
+		httpx.RespondFailStatus(w, http.StatusBadRequest, "暂不支持导出为 PDF（服务端缺少中文字体），请使用 word、markdown 或 zip")
 		return
 	case "", "md", "markdown":
 		// 默认按 Markdown 输出

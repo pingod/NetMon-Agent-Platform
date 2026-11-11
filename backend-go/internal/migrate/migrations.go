@@ -107,6 +107,9 @@ var migrationNames = map[int]string{
 	70: "scripts_center_columns",
 	71: "remediation_verification_task",
 	72: "rca_confidence_and_platform_backups",
+	73: "rca_false_positive",
+	74: "alert_silences",
+	75: "scheduled_tasks_cron_columns",
 }
 
 // 迁移版本号升序序列（v11、v21 在 TS 中即为空洞）
@@ -118,7 +121,7 @@ var migrationVersions = []int{
 	42, 43, 44, 45, 46, 47, 48, 49, 50,
 	51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
 	61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
-	71, 72,
+	71, 72, 73, 74, 75,
 }
 
 // execScript 在事务上执行多语句 SQL 脚本。
@@ -263,6 +266,66 @@ CREATE TABLE IF NOT EXISTS platform_backups (
 	created_at DATETIME DEFAULT (datetime('now','localtime'))
 )`)
 				return err
+			}
+		} else if v == 73 {
+			m.Description = "Add false_positive flag to root_cause_analyses"
+			m.Up = func(tx *sql.Tx) error {
+				return addColumnIfMissing(tx, "ALTER TABLE root_cause_analyses ADD COLUMN false_positive INTEGER NOT NULL DEFAULT 0")
+			}
+		} else if v == 74 {
+			m.Description = "Create alert_silences table for maintenance-window alert suppression"
+			m.Up = func(tx *sql.Tx) error {
+				_, err := tx.Exec(`
+CREATE TABLE IF NOT EXISTS alert_silences (
+	id TEXT PRIMARY KEY,
+	name TEXT NOT NULL,
+	match_source TEXT DEFAULT '',
+	match_severity TEXT DEFAULT '',
+	match_keywords TEXT DEFAULT '',
+	match_device_id TEXT DEFAULT '',
+	starts_at TEXT NOT NULL,
+	ends_at TEXT NOT NULL,
+	enabled INTEGER NOT NULL DEFAULT 1,
+	created_by TEXT DEFAULT '',
+	created_at TEXT,
+	updated_at TEXT
+)`)
+				return err
+			}
+		} else if v == 75 {
+			m.Description = "Rebuild scheduled_tasks with cron_expression/last_run_at/next_run_at (schedule engine)"
+			m.Up = func(tx *sql.Tx) error {
+				var hasCron int
+				if err := tx.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('scheduled_tasks') WHERE name = 'cron_expression'`).Scan(&hasCron); err != nil {
+					return err
+				}
+				if hasCron > 0 {
+					return nil
+				}
+				// 旧 TS schema：schedule/last_run/next_run；逐列拷贝保留既有任务
+				if err := execScript(tx, `
+CREATE TABLE scheduled_tasks_new (
+	id TEXT PRIMARY KEY,
+	name TEXT NOT NULL,
+	description TEXT,
+	workflow_id TEXT NOT NULL,
+	cron_expression TEXT NOT NULL DEFAULT '',
+	enabled INTEGER DEFAULT 1,
+	last_run_at TEXT,
+	next_run_at TEXT,
+	created_at TEXT,
+	updated_at TEXT,
+	FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
+);
+INSERT INTO scheduled_tasks_new (id, name, description, workflow_id, cron_expression, enabled, last_run_at, next_run_at, created_at, updated_at)
+	SELECT id, name, description, workflow_id, COALESCE(schedule, ''), enabled, last_run, next_run, created_at, updated_at FROM scheduled_tasks;
+DROP TABLE scheduled_tasks;
+ALTER TABLE scheduled_tasks_new RENAME TO scheduled_tasks;
+CREATE INDEX IF NOT EXISTS idx_scheduled_enabled ON scheduled_tasks(enabled);
+`); err != nil {
+					return err
+				}
+				return nil
 			}
 		}
 		migs = append(migs, m)

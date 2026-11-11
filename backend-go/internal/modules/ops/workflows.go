@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -12,6 +13,7 @@ import (
 	"itops-backend/internal/appdb"
 	"itops-backend/internal/httpx"
 	"itops-backend/internal/middleware"
+	"itops-backend/internal/utils"
 )
 
 // WorkflowRoutes 工作流路由 (/api/v1/workflows)
@@ -432,6 +434,20 @@ func ScheduledTaskRoutes() chi.Router {
 			httpx.RespondError(w, "无效的请求", http.StatusBadRequest)
 			return
 		}
+		if strings.TrimSpace(req.Name) == "" || req.WorkflowID == "" {
+			httpx.RespondError(w, "名称与 workflow_id 必填", http.StatusBadRequest)
+			return
+		}
+		if _, err := utils.ParseCron(strings.TrimSpace(req.CronExpression)); err != nil {
+			httpx.RespondError(w, "Cron 表达式非法: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		var wfCount int
+		appdb.DB().QueryRow(`SELECT COUNT(*) FROM workflows WHERE id = ?`, req.WorkflowID).Scan(&wfCount)
+		if wfCount == 0 {
+			httpx.RespondError(w, "工作流不存在", http.StatusBadRequest)
+			return
+		}
 		enabledInt := 1
 		if req.Enabled != nil && !*req.Enabled {
 			enabledInt = 0
@@ -463,6 +479,12 @@ func ScheduledTaskRoutes() chi.Router {
 			httpx.RespondError(w, "无效的请求", http.StatusBadRequest)
 			return
 		}
+		if req.CronExpression != nil {
+			if _, err := utils.ParseCron(strings.TrimSpace(*req.CronExpression)); err != nil {
+				httpx.RespondError(w, "Cron 表达式非法: "+err.Error(), http.StatusBadRequest)
+				return
+			}
+		}
 		var enabledVal *int
 		if req.Enabled != nil {
 			v := 0
@@ -493,6 +515,24 @@ func ScheduledTaskRoutes() chi.Router {
 		id := chi.URLParam(r, "id")
 		_, _ = appdb.DB().Exec(`DELETE FROM scheduled_tasks WHERE id = ?`, id)
 		httpx.RespondMessage(w, "定时任务已删除")
+	})
+
+	// POST /{id}/toggle — 切换启用状态（前端 ScheduledTasks 页调用）
+	r.With(middleware.RequireRole("admin")).Post("/{id}/toggle", func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		res, err := appdb.DB().Exec(`UPDATE scheduled_tasks SET enabled = 1 - enabled, updated_at = ? WHERE id = ?`,
+			time.Now().Format("2006-01-02 15:04:05"), id)
+		if err != nil {
+			httpx.RespondError(w, "切换状态失败", http.StatusInternalServerError)
+			return
+		}
+		if n, _ := res.RowsAffected(); n == 0 {
+			httpx.RespondError(w, "定时任务不存在", http.StatusNotFound)
+			return
+		}
+		var enabled int
+		appdb.DB().QueryRow(`SELECT enabled FROM scheduled_tasks WHERE id = ?`, id).Scan(&enabled)
+		httpx.Respond(w, map[string]interface{}{"id": id, "enabled": enabled == 1})
 	})
 
 	return r

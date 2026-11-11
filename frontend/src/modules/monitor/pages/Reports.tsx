@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Modal } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FileText, Plus, Download, Clock, Trash2, Edit2, Eye, X, FolderArchive, RefreshCw, Sparkles, CheckCircle2, Search } from 'lucide-react';
+import { FileText, Plus, Download, Clock, Trash2, Edit2, Eye, X, FolderArchive, RefreshCw, Sparkles, CheckCircle2, Search, Power } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { logger } from '@/lib/logger';
 import api from '../../../lib/api';
@@ -30,6 +30,7 @@ interface GeneratedReport {
 interface ScheduledReport {
   id: string;
   name: string;
+  template_id?: string;
   format: string;
   enabled: boolean;
   cron_expression: string;
@@ -111,6 +112,77 @@ export default function Reports() {
       return Array.isArray(d) ? d : [];
     }
   });
+
+  // ── 定时报告管理 ──
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
+  const [scheduleForm, setScheduleForm] = useState({ name: '', template_id: '', cron_expression: '', recipients: '', enabled: true });
+
+  const openScheduleModal = (s?: ScheduledReport) => {
+    if (s) {
+      setEditingScheduleId(s.id);
+      setScheduleForm({
+        name: s.name,
+        template_id: s.template_id || '',
+        cron_expression: s.cron_expression,
+        recipients: (s.recipients || []).join(', '),
+        enabled: s.enabled,
+      });
+    } else {
+      setEditingScheduleId(null);
+      setScheduleForm({ name: '', template_id: '', cron_expression: '0 8 * * 1', recipients: '', enabled: true });
+    }
+    setScheduleModalOpen(true);
+  };
+
+  const saveScheduleMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        name: scheduleForm.name.trim(),
+        template_id: scheduleForm.template_id,
+        cron_expression: scheduleForm.cron_expression.trim(),
+        recipients: scheduleForm.recipients.split(/[,，\s]+/).map(s => s.trim()).filter(Boolean),
+        enabled: scheduleForm.enabled,
+      };
+      if (editingScheduleId) {
+        await api.put(`/reports/scheduled/${editingScheduleId}`, payload);
+      } else {
+        await api.post('/reports/scheduled', payload);
+      }
+    },
+    onSuccess: () => {
+      toast.success(editingScheduleId ? '定时报告已更新' : '定时报告已创建');
+      setScheduleModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['scheduledReports'] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || e?.response?.data?.message || '保存失败'),
+  });
+
+  const toggleScheduleMutation = useMutation({
+    mutationFn: (id: string) => api.post(`/reports/scheduled/${id}/toggle`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledReports'] }),
+    onError: () => toast.error('切换状态失败'),
+  });
+
+  const deleteScheduleMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/reports/scheduled/${id}`),
+    onSuccess: () => {
+      toast.success('定时报告已删除');
+      queryClient.invalidateQueries({ queryKey: ['scheduledReports'] });
+    },
+    onError: () => toast.error('删除失败'),
+  });
+
+  const confirmDeleteSchedule = (s: ScheduledReport) => {
+    Modal.confirm({
+      title: '删除定时报告',
+      content: `确定删除「${s.name}」？删除后不再按周期生成报告。`,
+      okText: '删除',
+      okButtonProps: { danger: true },
+      cancelText: '取消',
+      onOk: () => deleteScheduleMutation.mutateAsync(s.id),
+    });
+  };
 
   const handleSyncReports = async () => {
     setIsSyncing(true);
@@ -210,7 +282,7 @@ export default function Reports() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const fileExtension = format === 'pdf' ? 'pdf' : format === 'word' ? 'doc' : format === 'zip' ? 'zip' : 'md';
+      const fileExtension = format === 'pdf' ? 'pdf' : format === 'word' ? 'docx' : format === 'zip' ? 'zip' : 'md';
       a.download = `report-${reportId}.${fileExtension}`;
       document.body.appendChild(a);
       a.click();
@@ -449,6 +521,14 @@ export default function Reports() {
                               <span>预览</span>
                             </button>
                             <button
+                              onClick={() => handleDownloadReport(report.id, 'word')}
+                              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-lg transition-colors"
+                              title="下载 Word 文档（.docx）"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              <span>Word</span>
+                            </button>
+                            <button
                               onClick={() => handleDownloadReport(report.id, 'markdown')}
                               className="p-1.5 text-text-secondary hover:text-text-primary bg-background hover:bg-surface border border-border rounded-lg transition-colors"
                               title="下载 Markdown 文件"
@@ -482,8 +562,29 @@ export default function Reports() {
         )}
 
         {activeTab === 'scheduled' && (
-          <div className="grid gap-4">
-            {(scheduledReports as ScheduledReport[])?.map((report) => (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm text-text-secondary">
+                按 Cron 周期自动生成报告并邮件发送给接收人（需先在「系统设置 → 通知」配置 SMTP）。
+              </p>
+              <button
+                onClick={() => openScheduleModal()}
+                className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                新建定时报告
+              </button>
+            </div>
+            {(scheduledReports as ScheduledReport[])?.length === 0 ? (
+              <div className="bg-surface border border-border rounded-lg p-12 text-center text-text-secondary">
+                <Clock className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                暂无定时报告，点击右上角「新建定时报告」创建
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {(scheduledReports as ScheduledReport[])?.map((report) => {
+                  const tpl = (templates as ReportTemplate[])?.find((t) => t.id === report.template_id);
+                  return (
               <div key={report.id} className="bg-surface border border-border rounded-lg p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -496,6 +597,11 @@ export default function Reports() {
                       <span className="px-2 py-1 text-xs bg-background text-text-secondary rounded">
                         {report.format}
                       </span>
+                      {tpl && (
+                        <span className="px-2 py-1 text-xs bg-background text-text-secondary rounded">
+                          模板: {tpl.name}
+                        </span>
+                      )}
                     </div>
                     <h3 className="text-lg font-semibold text-text-primary mb-1">{report.name}</h3>
                     <div className="flex items-center gap-4 text-sm text-text-secondary">
@@ -513,12 +619,35 @@ export default function Reports() {
                       </span>
                     </div>
                   </div>
-                  <button className="text-primary hover:text-primary/80 p-2" title="编辑">
-                    <Edit2 className="w-5 h-5" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => toggleScheduleMutation.mutate(report.id)}
+                      className={`p-2 ${report.enabled ? 'text-yellow-400 hover:text-yellow-300' : 'text-green-400 hover:text-green-300'}`}
+                      title={report.enabled ? '停用' : '启用'}
+                    >
+                      <Power className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => openScheduleModal(report)}
+                      className="text-primary hover:text-primary/80 p-2"
+                      title="编辑"
+                    >
+                      <Edit2 className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => confirmDeleteSchedule(report)}
+                      className="text-rose-400 hover:text-rose-300 p-2"
+                      title="删除"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            ))}
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -762,12 +891,106 @@ export default function Reports() {
                   下载 ZIP 压缩包 (各设备独立文件)
                 </button>
                 <button
+                  onClick={() => handleDownloadReport(selectedReport.id, 'word')}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center gap-1.5"
+                >
+                  <Download className="w-4 h-4" />
+                  下载 Word
+                </button>
+                <button
                   onClick={() => handleDownloadReport(selectedReport.id, 'markdown')}
                   className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg flex items-center gap-1.5"
                 >
                   <FileText className="w-4 h-4" />
                   下载 Markdown
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {scheduleModalOpen && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-surface border border-border rounded-lg w-full max-w-xl max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <h2 className="text-xl font-bold text-text-primary mb-4">
+                  {editingScheduleId ? '编辑定时报告' : '新建定时报告'}
+                </h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-text-primary mb-1">名称</label>
+                    <input
+                      type="text"
+                      value={scheduleForm.name}
+                      onChange={(e) => setScheduleForm({ ...scheduleForm, name: e.target.value })}
+                      className="w-full bg-background border border-border rounded-lg p-2 text-text-primary"
+                      placeholder="如：每周网络巡检报告"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-text-primary mb-1">报告模板</label>
+                    <select
+                      value={scheduleForm.template_id}
+                      onChange={(e) => setScheduleForm({ ...scheduleForm, template_id: e.target.value })}
+                      className="w-full bg-background border border-border rounded-lg p-2 text-text-primary"
+                    >
+                      <option value="">请选择模板</option>
+                      {(templates as ReportTemplate[])?.map((t) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-text-primary mb-1">Cron 表达式（分 时 日 月 周）</label>
+                    <input
+                      type="text"
+                      value={scheduleForm.cron_expression}
+                      onChange={(e) => setScheduleForm({ ...scheduleForm, cron_expression: e.target.value })}
+                      className="w-full bg-background border border-border rounded-lg p-2 text-text-primary font-mono"
+                      placeholder="0 8 * * 1"
+                    />
+                    <p className="text-xs text-text-secondary mt-1">
+                      示例：<code className="font-mono">0 8 * * 1</code> 每周一 08:00；
+                      <code className="font-mono">0 9 * * *</code> 每天 09:00；
+                      <code className="font-mono">*/30 * * * *</code> 每 30 分钟
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-text-primary mb-1">接收人邮箱（逗号分隔，可留空）</label>
+                    <input
+                      type="text"
+                      value={scheduleForm.recipients}
+                      onChange={(e) => setScheduleForm({ ...scheduleForm, recipients: e.target.value })}
+                      className="w-full bg-background border border-border rounded-lg p-2 text-text-primary"
+                      placeholder="ops@example.com, admin@example.com"
+                    />
+                    <p className="text-xs text-text-secondary mt-1">留空则仅生成报告，不发送邮件。</p>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm text-text-primary cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={scheduleForm.enabled}
+                      onChange={(e) => setScheduleForm({ ...scheduleForm, enabled: e.target.checked })}
+                      className="w-4 h-4 accent-primary"
+                    />
+                    创建后立即启用
+                  </label>
+                </div>
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => setScheduleModalOpen(false)}
+                    className="flex-1 bg-background hover:bg-surface text-text-primary py-2 rounded-lg border border-border"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={() => saveScheduleMutation.mutate()}
+                    disabled={saveScheduleMutation.isPending || !scheduleForm.name.trim() || !scheduleForm.template_id || !scheduleForm.cron_expression.trim()}
+                    className="flex-1 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white py-2 rounded-lg"
+                  >
+                    {saveScheduleMutation.isPending ? '保存中...' : '保存'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

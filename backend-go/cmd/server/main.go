@@ -215,10 +215,15 @@ func main() {
 	services.DeviceStatusProberInstance.Start()
 	services.SnmpPollerInstance.Start()
 	services.StartAlertRuleEvaluator()
+	services.StartCollectScheduler()
+	services.SnmpTrapListenerInstance.Restore()
 	logger.Infof("Network services initialized")
 
 	// ── 自愈引擎（告警匹配/审批/工作流执行/验证/回滚）──
 	ops.StartRemediationEngine()
+
+	// ── 定时调度引擎（工作流定时任务 + 定时报告）──
+	ops.StartScheduleEngine()
 
 	// ── 容器自动伸缩引擎（docker stats → compose --scale）──
 	ops.StartAutoScaleEngine()
@@ -272,6 +277,7 @@ func main() {
 		services.DeviceStatusProberInstance.Shutdown()
 		services.SnmpPollerInstance.Shutdown()
 		services.StopAlertRuleEvaluator()
+		services.StopCollectScheduler()
 		planning.Stop()
 
 		if err := appdb.Close(); err != nil {
