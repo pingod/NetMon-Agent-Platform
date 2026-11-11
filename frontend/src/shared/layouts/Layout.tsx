@@ -16,6 +16,7 @@ import api from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUIPreferences } from '../../contexts/UIPreferencesContext';
 import ChatWidget from '../../modules/ai/components/ChatWidget';
+import ThemeSwitcher from '../components/ThemeSwitcher';
 import { buildVisibleNavigation, findActiveNav } from '../../lib/navigation';
 
 export default function Layout() {
@@ -302,6 +303,8 @@ export default function Layout() {
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
             <span className="text-[11px] font-medium text-text-secondary">{t('app.systemNormal')}</span>
           </button>
+
+          <ThemeSwitcher />
 
           {user && (
             <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-2 py-1 pl-1 pr-1.5">

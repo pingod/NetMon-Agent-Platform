@@ -7,7 +7,7 @@ import enUS from 'antd/locale/en_US';
 import { useTranslation } from 'react-i18next';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { UIPreferencesProvider } from './contexts/UIPreferencesContext';
 import ErrorBoundary from './shared/components/ErrorBoundary';
 import ProtectedRoute from './shared/components/ProtectedRoute';
@@ -16,6 +16,7 @@ import Layout from './shared/layouts/Layout';
 // 模块路由聚合
 import { protectedRoutes, publicRoutes } from './modules/_routes.tsx';
 import { lazyRetry } from './lib/lazyRetry';
+import { getThemeMeta } from './lib/themes';
 
 const NotFound = lazyRetry(() => import('./shared/pages/NotFound'));
 
@@ -55,44 +56,14 @@ function SuspenseRoute({ children, isInner = false }: { children: React.ReactNod
 
 function ThemedConfigProvider({ children }: { children: React.ReactNode }) {
   const { i18n } = useTranslation();
+  const { theme } = useTheme();
+  const meta = getThemeMeta(theme);
   return (
     <ConfigProvider
       locale={i18n.language?.startsWith('zh') ? zhCN : enUS}
       theme={{
-        algorithm: antdTheme.defaultAlgorithm,
-        token: {
-          colorPrimary: '#6d5efc',
-          colorInfo: '#6d5efc',
-          colorBgBase: '#f4f6fb',
-          colorBgContainer: '#ffffff',
-          colorBgElevated: '#ffffff',
-          colorBorder: '#e3e8f2',
-          colorBorderSecondary: '#e3e8f2',
-          colorSplit: '#e3e8f2',
-          colorText: '#0f172a',
-          colorTextSecondary: '#51607a',
-          borderRadius: 10,
-          borderRadiusLG: 14,
-          controlHeight: 36,
-          fontSize: 13,
-          fontFamily:
-            "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif",
-          boxShadowSecondary: '0 24px 60px -28px rgba(0,0,0,0.35)',
-        },
-        components: {
-          Button: { primaryShadow: 'none', fontWeight: 500 },
-          Card: { colorBgContainer: '#ffffff', colorBorderSecondary: '#e3e8f2' },
-          Modal: { borderRadiusLG: 16 },
-          Table: {
-            headerBg: '#f7f9fd',
-            headerColor: '#51607a',
-            borderColor: '#e3e8f2',
-            rowHoverBg: 'rgba(15,23,42,0.035)',
-          },
-          Tabs: { itemSelectedColor: '#6d5efc', inkBarColor: '#6d5efc' },
-          Tooltip: { colorBgSpotlight: '#0f172a' },
-          Select: { optionSelectedBg: 'rgba(109,94,252,0.14)' },
-        },
+        algorithm: meta.dark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+        ...meta.antd,
       }}
     >
       {children}

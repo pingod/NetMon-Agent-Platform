@@ -1,26 +1,43 @@
 import type { ReactNode } from 'react';
-import { createContext, useContext, useEffect } from 'react';
-
-type ThemeType = 'light';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { DEFAULT_THEME, getThemeMeta, isThemeId, type ThemeId } from '../lib/themes';
 
 interface ThemeContextType {
-  theme: ThemeType;
+  theme: ThemeId;
+  setTheme: (t: ThemeId) => void;
+  isDark: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-// 深色主题已移除：整体强制浅色，data-theme 恒为 light。
+const STORAGE_KEY = 'theme';
+
+function readStoredTheme(): ThemeId {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return isThemeId(stored) ? stored : DEFAULT_THEME;
+}
+
+function applyTheme(id: ThemeId) {
+  const root = document.documentElement;
+  const meta = getThemeMeta(id);
+  root.setAttribute('data-theme', id);
+  root.classList.toggle('dark', meta.dark);
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [theme, setThemeState] = useState<ThemeId>(readStoredTheme);
+
   useEffect(() => {
-    const root = document.documentElement;
-    root.setAttribute('data-theme', 'light');
-    root.classList.remove('dark');
-    localStorage.setItem('theme', 'light');
-    document.body.style.removeProperty('background');
-  }, []);
+    applyTheme(theme);
+    localStorage.setItem(STORAGE_KEY, theme);
+  }, [theme]);
+
+  const setTheme = (t: ThemeId) => {
+    if (isThemeId(t)) setThemeState(t);
+  };
 
   return (
-    <ThemeContext.Provider value={{ theme: 'light' }}>
+    <ThemeContext.Provider value={{ theme, setTheme, isDark: getThemeMeta(theme).dark }}>
       {children}
     </ThemeContext.Provider>
   );

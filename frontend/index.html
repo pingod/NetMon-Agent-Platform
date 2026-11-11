@@ -6,19 +6,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NetMon 网络监控平台</title>
     <script>
-      // 全局固定浅色主题：清除历史残留的 dark class，避免首屏闪烁
+      // 首屏前应用已存主题，避免闪烁；持久化由 ThemeContext 负责
       (function () {
+        var dark = { dark: 1, ocean: 1 };
+        var bg = { light: '#f4f6fb', dark: '#10141d', ocean: '#081222', sepia: '#f5f1e8', contrast: '#ffffff' };
+        var id = 'light';
+        try { var s = localStorage.getItem('theme'); if (s && bg[s]) id = s; } catch (e) {}
         var root = document.documentElement;
-        root.setAttribute('data-theme', 'light');
-        root.classList.remove('dark');
-        try { localStorage.setItem('theme', 'light'); } catch (e) {}
+        root.setAttribute('data-theme', id);
+        root.classList.toggle('dark', !!dark[id]);
+        root.style.background = bg[id];
+        root.style.colorScheme = dark[id] ? 'dark' : 'light';
       })();
     </script>
     <style>
       body {
         margin: 0;
         padding: 0;
-        background: #f4f6fb;
+        background: transparent;
         color: #0f172a;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }

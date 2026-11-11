@@ -1,0 +1,228 @@
+/* ==========================================================================
+   多主题体系 —— 在浅色设计令牌之上扩展 4 套主题
+   light(默认,见 theme.css :root) / dark 石墨 / ocean 深海 / sepia 护眼纸 / contrast 高对比
+   规则:组件只依赖变量;本文件只覆盖变量与历史硬编码类的映射。
+   深色映射用 :where()降低优先级,保证 viz-dark 可视化区的精调不被覆盖。
+   ========================================================================== */
+
+/* ---------- 石墨深色 ---------- */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg-app: #10141d;
+  --bg-deep: #0b0e15;
+  --surface-1: #171c28;
+  --surface-2: #1d2331;
+  --surface-3: #252c3d;
+  --surface-hover: rgba(255, 255, 255, 0.05);
+  --border-subtle: #2a3245;
+  --border-strong: #3a4358;
+
+  --text-1: #e8ecf4;
+  --text-2: #9aa5b8;
+  --text-3: #6b7690;
+
+  --primary: #8f83ff;
+  --primary-strong: #a79fff;
+  --primary-soft: rgba(143, 131, 255, 0.14);
+  --primary-ring: rgba(143, 131, 255, 0.35);
+  --accent: #22d3ee;
+  --accent-soft: rgba(34, 211, 238, 0.12);
+
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #fb7185;
+  --info: #60a5fa;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 30px -22px rgba(0, 0, 0, 0.6);
+  --shadow-2: 0 24px 60px -30px rgba(0, 0, 0, 0.7);
+  --shadow-glow: 0 0 0 1px rgba(143, 131, 255, 0.25), 0 18px 48px -26px rgba(143, 131, 255, 0.4);
+
+  --header-bg: rgba(16, 20, 29, 0.82);
+  --sidebar-bg: linear-gradient(180deg, #151a26, #10141d);
+  --bg-glow-1: rgba(143, 131, 255, 0.07);
+  --bg-glow-2: rgba(34, 211, 238, 0.05);
+
+  --color-primary-light: #a79fff;
+}
+
+/* ---------- 深海蓝 ---------- */
+[data-theme='ocean'] {
+  color-scheme: dark;
+
+  --bg-app: #081222;
+  --bg-deep: #060d1a;
+  --surface-1: #0e1c33;
+  --surface-2: #132441;
+  --surface-3: #1a2f52;
+  --surface-hover: rgba(148, 197, 255, 0.06);
+  --border-subtle: #1e3a5f;
+  --border-strong: #2d4d78;
+
+  --text-1: #e6f0fa;
+  --text-2: #93a9c4;
+  --text-3: #647d9c;
+
+  --primary: #38bdf8;
+  --primary-strong: #7dd3fc;
+  --primary-soft: rgba(56, 189, 248, 0.14);
+  --primary-ring: rgba(56, 189, 248, 0.35);
+  --accent: #2dd4bf;
+  --accent-soft: rgba(45, 212, 191, 0.12);
+
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #fb7185;
+  --info: #38bdf8;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 30px -22px rgba(0, 0, 0, 0.6);
+  --shadow-2: 0 24px 60px -30px rgba(0, 0, 0, 0.7);
+  --shadow-glow: 0 0 0 1px rgba(56, 189, 248, 0.25), 0 18px 48px -26px rgba(56, 189, 248, 0.4);
+
+  --header-bg: rgba(8, 18, 34, 0.82);
+  --sidebar-bg: linear-gradient(180deg, #0c1a30, #081222);
+  --bg-glow-1: rgba(56, 189, 248, 0.08);
+  --bg-glow-2: rgba(45, 212, 191, 0.05);
+
+  --color-primary-light: #7dd3fc;
+}
+
+/* ---------- 护眼纸 ---------- */
+[data-theme='sepia'] {
+  color-scheme: light;
+
+  --bg-app: #f5f1e8;
+  --bg-deep: #efe9dc;
+  --surface-1: #fffdf7;
+  --surface-2: #f8f4ea;
+  --surface-3: #f0e9da;
+  --surface-hover: rgba(90, 70, 40, 0.05);
+  --border-subtle: #e4dcc8;
+  --border-strong: #cfc4a8;
+
+  --text-1: #3d362a;
+  --text-2: #6f6450;
+  --text-3: #948a72;
+
+  --primary: #b45309;
+  --primary-strong: #92400e;
+  --primary-soft: rgba(180, 83, 9, 0.1);
+  --primary-ring: rgba(180, 83, 9, 0.25);
+  --accent: #0f766e;
+  --accent-soft: rgba(15, 118, 110, 0.1);
+
+  --success: #15803d;
+  --warning: #b45309;
+  --danger: #b91c1c;
+  --info: #1d4ed8;
+
+  --shadow-1: 0 1px 2px rgba(90, 70, 40, 0.06), 0 12px 30px -22px rgba(90, 70, 40, 0.3);
+  --shadow-2: 0 24px 60px -30px rgba(90, 70, 40, 0.3);
+  --shadow-glow: 0 0 0 1px rgba(180, 83, 9, 0.18), 0 18px 48px -26px rgba(180, 83, 9, 0.3);
+
+  --header-bg: rgba(255, 253, 247, 0.85);
+  --sidebar-bg: linear-gradient(180deg, #fffdf7, #f8f4ea);
+  --bg-glow-1: rgba(180, 83, 9, 0.05);
+  --bg-glow-2: rgba(15, 118, 110, 0.04);
+
+  --color-primary-light: #d97706;
+}
+
+/* ---------- 高对比(无障碍) ---------- */
+[data-theme='contrast'] {
+  color-scheme: light;
+
+  --bg-app: #ffffff;
+  --bg-deep: #f2f2f2;
+  --surface-1: #ffffff;
+  --surface-2: #f5f5f5;
+  --surface-3: #e8e8e8;
+  --surface-hover: rgba(0, 0, 0, 0.08);
+  --border-subtle: #555555;
+  --border-strong: #1a1a1a;
+
+  --text-1: #000000;
+  --text-2: #1f1f1f;
+  --text-3: #404040;
+
+  --primary: #1d4ed8;
+  --primary-strong: #1e40af;
+  --primary-soft: rgba(29, 78, 216, 0.12);
+  --primary-ring: rgba(29, 78, 216, 0.4);
+  --accent: #0e7490;
+  --accent-soft: rgba(14, 116, 144, 0.12);
+
+  --success: #166534;
+  --warning: #92400e;
+  --danger: #b91c1c;
+  --info: #1d4ed8;
+
+  --shadow-1: 0 0 0 1px rgba(0, 0, 0, 0.2);
+  --shadow-2: 0 0 0 2px rgba(0, 0, 0, 0.35);
+  --shadow-glow: 0 0 0 2px rgba(29, 78, 216, 0.5);
+
+  --header-bg: rgba(255, 255, 255, 0.95);
+  --sidebar-bg: linear-gradient(180deg, #ffffff, #f5f5f5);
+  --bg-glow-1: transparent;
+  --bg-glow-2: transparent;
+
+  --color-primary-light: #3b82f6;
+}
+
+/* ==========================================================================
+   深色族主题:历史浅色硬编码类 → 主题变量
+   :where() 保持低优先级,viz-dark 区内的精调规则(更高优先级)继续生效。
+   ========================================================================== */
+
+:is([data-theme='dark'], [data-theme='ocean'], [data-theme='contrast']) :where(.bg-white) {
+  background-color: var(--surface-1) !important;
+}
+
+:is([data-theme='dark'], [data-theme='ocean'], [data-theme='contrast']) :where(.bg-slate-50, .bg-slate-100, .bg-gray-50, .bg-gray-100) {
+  background-color: var(--surface-2) !important;
+}
+
+:is([data-theme='dark'], [data-theme='ocean'], [data-theme='contrast']) :where(.bg-slate-200, .bg-gray-200) {
+  background-color: var(--surface-3) !important;
+}
+
+:is([data-theme='dark'], [data-theme='ocean'], [data-theme='contrast']) :where([class~='bg-[#f2f6fb]']) {
+  background-color: var(--surface-2) !important;
+}
+
+:is([data-theme='dark'], [data-theme='ocean'], [data-theme='contrast']) :where(.text-slate-900, .text-slate-800, .text-slate-700, .text-gray-900, .text-gray-800, .text-gray-700, [class~='text-[#0f172a]']) {
+  color: var(--text-1) !important;
+}
+
+:is([data-theme='dark'], [data-theme='ocean'], [data-theme='contrast']) :where(.text-slate-600, .text-slate-500, .text-gray-600, .text-gray-500) {
+  color: var(--text-2) !important;
+}
+
+:is([data-theme='dark'], [data-theme='ocean'], [data-theme='contrast']) :where(.text-slate-400, .text-slate-300, .text-gray-400, .text-gray-300) {
+  color: var(--text-3) !important;
+}
+
+:is([data-theme='dark'], [data-theme='ocean'], [data-theme='contrast']) :where(.border-slate-100, .border-slate-200, .border-gray-100, .border-gray-200, .border-gray-300) {
+  border-color: var(--border-subtle) !important;
+}
+
+/* 高对比主题:语义色进一步加深,保证白底对比度 */
+[data-theme='contrast'] :where(.text-status-success, .text-emerald-600, .text-green-600) { color: #166534 !important; }
+[data-theme='contrast'] :where(.text-status-warning, .text-amber-600) { color: #92400e !important; }
+[data-theme='contrast'] :where(.text-status-failed, .text-rose-600, .text-red-600) { color: #b91c1c !important; }
+[data-theme='contrast'] :where(.text-status-running, .text-blue-600) { color: #1d4ed8 !important; }
+
+/* ==========================================================================
+   浅色族(light/sepia):hover 变体修复
+   精确类映射命中不了 hover: 变体,这里单独补。
+   ========================================================================== */
+
+:is([data-theme='light'], [data-theme='sepia']) .hover\:text-slate-200:hover,
+:is([data-theme='light'], [data-theme='sepia']) .hover\:text-slate-300:hover {
+  color: var(--text-1) !important;
+}
+
+:is([data-theme='light'], [data-theme='sepia']) .hover\:bg-slate-100:hover,
+:is([data-theme='light'], [data-theme='sepia']) .hover\:bg-gray-100:hover {
+  background-color: var(--surface-hover) !important;
+}
