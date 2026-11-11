@@ -183,7 +183,7 @@ export function App(): JSX.Element {
         </span>
         <span className="subtle">
           导出 24 列逐格保真 · 体检 {meta ? `${meta.cables.computed} 行已计算` : '—'} ·
-          离线单机运行
+          {embedded ? 'NetMon 内置引擎' : '离线单机运行'}
         </span>
       </footer>
     </div>

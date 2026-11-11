@@ -56,6 +56,7 @@
  */
 
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { openAuthenticated } from '../api/client';
 import type { JSX, PointerEvent as ReactPointerEvent } from 'react';
 
 import {
@@ -492,15 +493,17 @@ export function RackView(): JSX.Element {
           >
             {editMode ? '退出编辑' : '编辑 U 位'}
           </button>
-          <a
+          <button
+            type="button"
             className="rack-export"
-            href={`/api/draw/racks.html?channel=${rack.channelNo}&rack=${rack.seqNo}`}
-            target="_blank"
-            rel="noreferrer"
+            onClick={() => {
+              void openAuthenticated(`/api/draw/racks.html?channel=${rack.channelNo}&rack=${rack.seqNo}`)
+                .catch((e) => window.alert(String(e)));
+            }}
             title="导出本柜 U 位图（白底、A3 横向、可直接打印）"
           >
             导出本柜
-          </a>
+          </button>
         </div>
       </header>
 

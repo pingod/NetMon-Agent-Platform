@@ -16,6 +16,11 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
 import './styles.css';
 
+// AG Grid 36 起社区功能也需显式注册；否则 getRowClass / cellClass 会被忽略，
+// 布线表的行高亮与单元格样式全部失效（控制台 error #200）。
+import { CellStyleModule, ModuleRegistry, RowStyleModule } from 'ag-grid-community';
+ModuleRegistry.registerModules([RowStyleModule, CellStyleModule]);
+
 const root = document.getElementById('root');
 if (!root) throw new Error('#root not found');
 

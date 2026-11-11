@@ -530,6 +530,72 @@ async function getJson<T>(path: string, params?: Record<string, unknown>): Promi
 }
 
 /**
+ * 生成带 API 前缀的绝对路径。用于下载/新窗口打开等不走 getJson 的场景。
+ */
+function apiPath(path: string): string {
+  return `${BASE}${path}`;
+}
+
+async function fetchAuthenticated(path: string): Promise<Blob> {
+  const res = await fetch(apiPath(path), {
+    headers: authHeaders({ Accept: '*/*' }),
+  });
+  if (!res.ok) {
+    redirectIfUnauthorized(res.status);
+    let detail = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { detail?: string; error?: string };
+      if (body.detail) detail = body.detail;
+      else if (body.error) detail = body.error;
+    } catch {
+      /* 非 JSON 响应 */
+    }
+    throw new ApiError(detail, res.status);
+  }
+  return res.blob();
+}
+
+/**
+ * 用 JWT 打开服务端生成的文件（SVG/A3 HTML）。
+ *
+ * 直接写 `<a href="/api/...">` 在嵌入 NetMon 后有两个问题：
+ * 1. 路径没有 `/api/v1/planning` 前缀；
+ * 2. 浏览器导航不会带 Authorization 头，必然 401。
+ * 所以先 fetch 成 blob，再把新窗口指向 blob URL。
+ */
+export async function openAuthenticated(path: string): Promise<void> {
+  const win = window.open('', '_blank');
+  try {
+    const blob = await fetchAuthenticated(path);
+    const url = URL.createObjectURL(blob);
+    if (win) {
+      win.location.replace(url);
+    } else {
+      // 弹窗被拦截时退化为下载，绝不把当前 iframe 导航到 blob（会丢掉整个应用）
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = path.includes('.svg') ? 'racks.svg' : 'racks.html';
+      a.click();
+    }
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch (e) {
+    win?.close();
+    throw e;
+  }
+}
+
+/** 用 JWT 下载服务端生成的文件（txt 标签等）。 */
+export async function downloadAuthenticated(path: string, filename: string): Promise<void> {
+  const blob = await fetchAuthenticated(path);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/**
  * POST / PUT 用。与 getJson 分开是为了让「写」这个动作在调用处显眼 ——
  * 一个只读页面上出现写请求通常是 bug。
  */
@@ -741,12 +807,6 @@ export const api = {
     }),
   labels: (params?: { limit?: number; numberMissing?: boolean }) =>
     getJson<LabelsPayload>('/api/labels', params),
-  labelsTextUrl: (params?: { limit?: number; numberMissing?: boolean }) => {
-    const q = new URLSearchParams({ format: 'text' });
-    if (params?.limit) q.set('limit', String(params.limit));
-    if (params?.numberMissing) q.set('numberMissing', 'true');
-    return `/api/labels?${q.toString()}`;
-  },
   models: (params?: { project?: string; ports?: boolean }) =>
     getJson<ModelsPayload>('/api/models', params),
   modelsImport: (project: string, doc: unknown) =>

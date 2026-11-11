@@ -28,6 +28,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import type { JSX } from 'react';
 
 import type { RackSlot, RoomEntry } from '../api/client';
+import { openAuthenticated } from '../api/client';
 import { useAppStore } from '../store/appStore';
 import { rackDropClass, useDragStore } from '../store/dragStore';
 
@@ -158,12 +159,20 @@ export function FloorView(): JSX.Element {
         {/* 导出机柜 U 位图施工版（含全部有设备的机柜）。
             平面图本身是按屏幕深色主题画的，直接打印是一整片黑，
             所以导出走服务端重绘的白底版本，见 domain/exporting/svg.py。 */}
-        <a className="legend-link" href="/api/draw/racks.html" target="_blank" rel="noreferrer">
+        <button
+          type="button"
+          className="legend-link"
+          onClick={() => { void openAuthenticated('/api/draw/racks.html').catch((e) => window.alert(String(e))); }}
+        >
           导出机柜图（A3 打印版）
-        </a>
-        <a className="legend-link" href="/api/draw/racks.svg" target="_blank" rel="noreferrer">
+        </button>
+        <button
+          type="button"
+          className="legend-link"
+          onClick={() => { void openAuthenticated('/api/draw/racks.svg').catch((e) => window.alert(String(e))); }}
+        >
           SVG
-        </a>
+        </button>
       </div>
 
       <div className="floor-canvas">

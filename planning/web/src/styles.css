@@ -2464,6 +2464,13 @@ td.cell-warn .cell-input {
   white-space: nowrap;
 }
 
+button.legend-link,
+button.rack-export {
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
 .legend-link:hover,
 .rack-export:hover {
   background: var(--bg-elevated);
@@ -4060,4 +4067,24 @@ td.cell-warn .cell-input {
 .app.is-embedded .app-tabs {
   background: #f7f9fd;
   border-bottom-color: var(--border);
+}
+
+
+/* 嵌入模式的表格细分隔线与 AG Grid 行背景（原样式为深色硬编码） */
+.app.is-embedded .ag-theme-quartz {
+  --ag-odd-row-background-color: #f7f9fd;
+  --ag-row-border-color: #e8edf6;
+  --ag-row-hover-color: #eef2ff;
+  --ag-selected-row-background-color: #ece9ff;
+}
+
+.app.is-embedded .health-rules td,
+.app.is-embedded .finding-item,
+.app.is-embedded .port-table td,
+.app.is-embedded .consume-table td {
+  border-bottom-color: var(--border);
+}
+
+.app.is-embedded .coverage-track {
+  background: #e6ebf4;
 }

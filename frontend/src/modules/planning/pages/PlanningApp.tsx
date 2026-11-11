@@ -33,8 +33,11 @@ export default function PlanningApp() {
       setChecking(false);
       return data?.state === 'up';
     } catch (err) {
+      const resp = (err as { response?: { data?: { error?: string; message?: string } } })?.response;
       const message =
-        err instanceof Error ? err.message : '无法连接规划引擎状态接口';
+        resp?.data?.error ||
+        resp?.data?.message ||
+        (err instanceof Error ? err.message : '无法连接规划引擎状态接口');
       setEngine({ enabled: true, state: 'down', error: message });
       setChecking(false);
       return false;
@@ -116,9 +119,9 @@ export default function PlanningApp() {
             </Button>
           </div>
           <p className="mt-4 text-[11px] leading-relaxed text-text-tertiary">
-            开发环境：在 <code>planning/backend</code> 创建 venv 并安装
-            <code> -e ".[infra,api]"</code>；或设置 <code>PLANNING_PYTHON</code> 指向可用的
-            Python 3.12。生产镜像已内置引擎。
+            开发环境：执行 <code>bash planning/scripts/dev_setup.sh</code>；生产 Docker
+            镜像已内置 Python 3.12 与引擎依赖。也可用 <code>PLANNING_PYTHON</code>
+            指向已有的解释器。
           </p>
         </div>
       </div>

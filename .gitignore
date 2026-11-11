@@ -112,6 +112,7 @@ planning/backend/.pytest_cache/
 planning/backend/.import_linter_cache/
 planning/backend/.out/
 planning/web/node_modules/
+planning/web/dist/
 planning/.scratch/
 backend-go/internal/modules/planning/dist/*
 !backend-go/internal/modules/planning/dist/placeholder.html

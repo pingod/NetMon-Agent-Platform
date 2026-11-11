@@ -22,7 +22,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactElement } from 'react';
 
-import { api } from '../api/client';
+import { api, downloadAuthenticated } from '../api/client';
 import type { LabelsPayload } from '../api/client';
 
 const PAGE_ROWS = 300;
@@ -95,13 +95,19 @@ export function LabelsView(): ReactElement {
               <span className="labels-gap">（{missingCodes.toLocaleString('zh-CN')} 张缺编码）</span>
             )}
           </label>
-          <a
+          <button
+            type="button"
             className="btn-mini"
-            href={api.labelsTextUrl({ limit: 20000, numberMissing })}
-            download
+            disabled={busy}
+            onClick={() => {
+              const q = new URLSearchParams({ format: 'text', limit: '20000' });
+              if (numberMissing) q.set('numberMissing', 'true');
+              void downloadAuthenticated(`/api/labels?${q.toString()}`, 'labels.txt')
+                .catch((e) => window.alert(String(e)));
+            }}
           >
             下载 txt（给打印机）
-          </a>
+          </button>
         </div>
       </section>
 

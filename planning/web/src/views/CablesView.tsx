@@ -250,6 +250,9 @@ export function CablesView(): JSX.Element {
       <div className="ag-theme-quartz cables-grid">
         <AgGridReact<CableRow>
           ref={gridRef}
+          // v33+ 默认 Theming API 与 main.tsx 的 legacy CSS 主题二选一；
+          // 项目自定义了 .ag-* 变量，显式走 legacy，消除 error #239。
+          theme="legacy"
           rowData={cables.rows}
           columnDefs={columnDefs}
           getRowId={(p) => p.data.stableKey}
