@@ -40,7 +40,7 @@ FROM python:3.12-slim AS runtime
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates tzdata curl \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd -r itops && useradd -r -g itops -d /app -s /sbin/nologin itops \
+    && groupadd -r -g 101 itops && useradd -r -u 100 -g 101 -d /app -s /sbin/nologin itops \
     && mkdir -p /app/data /app/logs \
     && chown -R itops:itops /app
 
