@@ -1,6 +1,7 @@
 // 数据中心（DC）数据访问层 — 对应前端 modules/dc
 // 表：dc_rooms / dc_racks / dc_rack_slots / dc_pdus / device_manufacturers /
-//     device_types / dc_power_panels / dc_power_feeds / dc_cables / dc_device_lifecycle
+//
+//	device_types / dc_power_panels / dc_power_feeds / dc_cables / dc_device_lifecycle
 package repos
 
 import (
@@ -20,24 +21,24 @@ import (
 
 // DcRoom 机房实体
 type DcRoom struct {
-	ID               string   `json:"id"`
-	Name             string   `json:"name"`
-	Label            *string  `json:"label,omitempty"`
-	Description      *string  `json:"description,omitempty"`
-	WidthM           *float64 `json:"width_m,omitempty"`
-	DepthM           *float64 `json:"depth_m,omitempty"`
-	MaxTemperature   *float64 `json:"max_temperature,omitempty"`
-	MinTemperature   *float64 `json:"min_temperature,omitempty"`
-	MaxHumidity      *float64 `json:"max_humidity,omitempty"`
-	MinHumidity      *float64 `json:"min_humidity,omitempty"`
-	LayoutConfig     *string  `json:"layout_config,omitempty"`
-	SortOrder        int      `json:"sort_order"`
-	CurrentTemp      *float64 `json:"current_temperature,omitempty"`
-	CurrentHumidity  *float64 `json:"current_humidity,omitempty"`
-	Pue              *float64 `json:"pue,omitempty"`
-	TotalPowerKw     *float64 `json:"total_power_kw,omitempty"`
-	CreatedAt        string   `json:"created_at"`
-	UpdatedAt        string   `json:"updated_at"`
+	ID              string   `json:"id"`
+	Name            string   `json:"name"`
+	Label           *string  `json:"label,omitempty"`
+	Description     *string  `json:"description,omitempty"`
+	WidthM          *float64 `json:"width_m,omitempty"`
+	DepthM          *float64 `json:"depth_m,omitempty"`
+	MaxTemperature  *float64 `json:"max_temperature,omitempty"`
+	MinTemperature  *float64 `json:"min_temperature,omitempty"`
+	MaxHumidity     *float64 `json:"max_humidity,omitempty"`
+	MinHumidity     *float64 `json:"min_humidity,omitempty"`
+	LayoutConfig    *string  `json:"layout_config,omitempty"`
+	SortOrder       int      `json:"sort_order"`
+	CurrentTemp     *float64 `json:"current_temperature,omitempty"`
+	CurrentHumidity *float64 `json:"current_humidity,omitempty"`
+	Pue             *float64 `json:"pue,omitempty"`
+	TotalPowerKw    *float64 `json:"total_power_kw,omitempty"`
+	CreatedAt       string   `json:"created_at"`
+	UpdatedAt       string   `json:"updated_at"`
 }
 
 // DcRoomCreateInput 机房创建输入
@@ -536,6 +537,7 @@ func (r *DcRackRepo) Delete(id string) error {
 // DcSlot 机位实体（含设备联查信息）
 type DcSlot struct {
 	ID           string   `json:"id"`
+	SlotID       string   `json:"slot_id"` // 3D 机房/设备页使用 slot_id，管理页使用 id，两者同时返回
 	RackID       string   `json:"rack_id"`
 	DeviceID     *string  `json:"device_id,omitempty"`
 	DeviceName   *string  `json:"device_name,omitempty"`
@@ -595,6 +597,16 @@ const dcSlotQuery = `
 	LEFT JOIN servers srv ON s.device_type = 'server' AND srv.id = s.device_id
 	LEFT JOIN network_devices nd ON s.device_type = 'network_device' AND nd.id = s.device_id`
 
+// ListAll 返回全部机位（3D 机房首屏一次取全，避免每柜一个请求）。
+func (r *DcSlotRepo) ListAll() ([]DcSlot, error) {
+	rows, err := appdb.DB().Query(dcSlotQuery + ` ORDER BY s.rack_id, s.start_u ASC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanDcSlots(rows)
+}
+
 func (r *DcSlotRepo) ListByRack(rackID string) ([]DcSlot, error) {
 	rows, err := appdb.DB().Query(dcSlotQuery+` WHERE s.rack_id = ? ORDER BY s.start_u ASC`, rackID)
 	if err != nil {
@@ -630,6 +642,7 @@ func scanDcSlots(rows *sql.Rows) ([]DcSlot, error) {
 			&s.CreatedAt, &s.UpdatedAt, &deviceName, &deviceStatus, &serverStatus, &cpu, &mem, &osType, &ipAddr); err != nil {
 			continue
 		}
+		s.SlotID = s.ID
 		s.DeviceID = ns(deviceID)
 		s.DeviceType = ns(deviceType)
 		s.DeviceName = ns(deviceName)
@@ -1782,18 +1795,18 @@ func (r *DcCableRepo) Delete(id string) error {
 
 // DcDeviceGroupItem 设备分布按机房→机柜分组
 type DcDeviceGroupItem struct {
-	RoomID    string                          `json:"room_id"`
-	RoomName  string                          `json:"room_name"`
-	RoomLabel string                          `json:"room_label"`
-	Racks     map[string]DcRackDeviceGroup    `json:"racks"`
+	RoomID    string                       `json:"room_id"`
+	RoomName  string                       `json:"room_name"`
+	RoomLabel string                       `json:"room_label"`
+	Racks     map[string]DcRackDeviceGroup `json:"racks"`
 }
 
 // DcRackDeviceGroup 机柜下的设备列表
 type DcRackDeviceGroup struct {
-	RackID   string        `json:"rack_id"`
-	RackName string        `json:"rack_name"`
+	RackID    string       `json:"rack_id"`
+	RackName  string       `json:"rack_name"`
 	RackLabel string       `json:"rack_label"`
-	Devices  []DcSlotMini  `json:"devices"`
+	Devices   []DcSlotMini `json:"devices"`
 }
 
 // DcSlotMini 简化机位（设备分布用）

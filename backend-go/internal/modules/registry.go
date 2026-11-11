@@ -17,6 +17,7 @@ import (
 	"itops-backend/internal/logger"
 	"itops-backend/internal/middleware"
 	authmod "itops-backend/internal/modules/auth"
+	"itops-backend/internal/modules/configmgmt"
 	"itops-backend/internal/modules/copilot"
 	dbroutes "itops-backend/internal/modules/database/routes"
 	dcroutes "itops-backend/internal/modules/dc/routes"
@@ -25,6 +26,7 @@ import (
 	"itops-backend/internal/modules/network/services"
 	"itops-backend/internal/modules/ops"
 	"itops-backend/internal/modules/planning"
+	"itops-backend/internal/modules/registries"
 	srvroutes "itops-backend/internal/modules/server/routes"
 )
 
@@ -111,6 +113,12 @@ func NewRouter() chi.Router {
 
 		// ── 数据中心模块（机房/机柜/机位/PDU/NetBox） ──
 		r.Mount("/api/v1/dc", dcroutes.Routes())
+
+		// ── 配置模板中心 / 镜像仓库 / Compose 编排 ──
+		r.Mount("/api/v1/config-templates", configmgmt.Routes())
+		r.Mount("/api/v1/registries", registries.Routes())
+		r.Mount("/api/v1/compose", ops.ComposeRoutes())
+		r.Mount("/api/v1/snapshot-policies", ops.SnapshotPolicyRoutes())
 
 		// ── IDC 上架规划与布线引擎（原 IDCBoxLine） ──
 		r.Mount("/api/v1/planning", planning.Routes())

@@ -355,6 +355,12 @@ docker compose down -v
 数据库、上传文件与日志分别持久化在 `itops-data`、`itops-logs` 命名卷中。
 Compose 项目名固定为 `most_agent`（见 `name:` 字段），即使仓库目录改名也继续复用原有 `most_agent_itops-data` / `most_agent_itops-logs` 卷；如需迁移到新卷，先备份 `/app/data` 再执行 `docker compose down -v`。
 生产部署必须显式设置 `JWT_SECRET`（≥32 字符，`openssl rand -hex 32`）；建议同时设置 `ENCRYPTION_KEY` 用于凭据加密。
+
+容器管理模块通过挂载的 `/var/run/docker.sock` 操作宿主机 Docker（镜像内已带 Docker CLI）。
+Compose 项目的编辑、YAML 校验、服务解析已内置；`启动/停止/重启` 需要 Docker Compose 插件
+（`docker compose version` 可用时才会真正执行，否则返回明确的 502 并在页面提示）。
+Linux 宿主机上 socket 属组通常不是 0，需按实际值设置 `DOCKER_GID=$(stat -c %g /var/run/docker.sock)`
+后重启；若不允许该权限，删除 compose 中的 socket 挂载与 `group_add` 即可，页面会提示未配置宿主机。
 首次启动（users 表为空）会生成随机 admin 口令并写入 `<数据库目录>/initial-admin-password.txt`（0600），日志只打印该路径，登录后需立即修改。
 
 

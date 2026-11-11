@@ -44,6 +44,7 @@ func Routes() chi.Router {
 	})
 
 	// ── 机位 ──
+	r.Get("/batch-slots", handleSlotListAll)
 	r.Route("/slots", func(r chi.Router) {
 		r.With(middleware.RequireRole("admin", "operator")).Post("/", handleSlotCreate)
 		r.With(middleware.RequireRole("admin", "operator")).Put("/{id}", handleSlotUpdate)

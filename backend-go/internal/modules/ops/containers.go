@@ -23,6 +23,13 @@ import (
 	"itops-backend/internal/repos"
 )
 
+// dockerCommandClient 抽象 SSH 远端与本机 socket 两种 Docker 执行方式。
+type dockerCommandClient interface {
+	Close() error
+	ExecCommand(cmd string, timeout time.Duration) (string, string, error)
+	ExecCommandInput(cmd string, input string, timeout time.Duration) (string, string, error)
+}
+
 type dockerSSHClient struct {
 	client *ssh.Client
 }
@@ -53,6 +60,31 @@ func (c *dockerSSHClient) ExecCommand(cmd string, timeout time.Duration) (string
 		done <- sess.Run(cmd)
 	}()
 
+	select {
+	case <-time.After(timeout):
+		_ = sess.Signal(ssh.SIGKILL)
+		return stdoutBuf.String(), stderrBuf.String(), fmt.Errorf("command timed out after %v", timeout)
+	case err := <-done:
+		return stdoutBuf.String(), stderrBuf.String(), err
+	}
+}
+
+// ExecCommandInput 与 ExecCommand 相同，但把 input 写入远端命令的 stdin。
+func (c *dockerSSHClient) ExecCommandInput(cmd string, input string, timeout time.Duration) (string, string, error) {
+	if c.client == nil {
+		return "", "", fmt.Errorf("ssh client is nil")
+	}
+	sess, err := c.client.NewSession()
+	if err != nil {
+		return "", "", err
+	}
+	defer sess.Close()
+	var stdoutBuf, stderrBuf bytes.Buffer
+	sess.Stdout = &stdoutBuf
+	sess.Stderr = &stderrBuf
+	sess.Stdin = strings.NewReader(input)
+	done := make(chan error, 1)
+	go func() { done <- sess.Run(cmd) }()
 	select {
 	case <-time.After(timeout):
 		_ = sess.Signal(ssh.SIGKILL)
@@ -153,11 +185,16 @@ func splitDockerPair(s string) (int64, int64, bool) {
 	return used, limit, true
 }
 
-// getDockerSSHClient 获取目标 Docker 宿主机的 SSH 连接
-func getDockerSSHClient(endpointID string) (*dockerSSHClient, string, error) {
+// getDockerSSHClient 获取目标 Docker 宿主机连接。
+// 未指定/未纳管任何服务器时，若容器内挂载了 /var/run/docker.sock，则退化到本机 Docker。
+func getDockerSSHClient(endpointID string) (dockerCommandClient, string, error) {
 	db := appdb.DB()
 	if db == nil {
 		return nil, "", fmt.Errorf("数据库未初始化")
+	}
+	// 未显式指定远端端点时，优先使用本机 socket（容器化部署的默认形态）。
+	if (endpointID == "" || endpointID == "local") && ensureLocalDocker() == nil {
+		return &localDockerClient{}, "local", nil
 	}
 
 	var serverID, host string
@@ -194,7 +231,12 @@ func getDockerSSHClient(endpointID string) (*dockerSSHClient, string, error) {
 	}
 
 	if host == "" {
-		return nil, "", fmt.Errorf("未找到可用的 Docker 宿主机")
+		if err := ensureLocalDocker(); err == nil {
+			return &localDockerClient{}, "local", nil
+		} else if endpointID == "local" {
+			return nil, "", err
+		}
+		return nil, "", fmt.Errorf("未找到可用的 Docker 宿主机（可在 compose 中挂载 /var/run/docker.sock）")
 	}
 	if port <= 0 {
 		port = 22
@@ -231,6 +273,10 @@ func getDockerSSHClient(endpointID string) (*dockerSSHClient, string, error) {
 	addr := net.JoinHostPort(host, strconv.Itoa(port))
 	conn, err := ssh.Dial("tcp", addr, sshConfig)
 	if err != nil {
+		// 优先尝试本机 socket：容器化部署通常没有可 SSH 的宿主机。
+		if localErr := ensureLocalDocker(); localErr == nil {
+			return &localDockerClient{}, "local", nil
+		}
 		return nil, host, fmt.Errorf("连接宿主机 SSH 失败 (%s:%d): %v", host, port, err)
 	}
 	return &dockerSSHClient{client: conn}, host, nil
@@ -386,6 +432,12 @@ func DockerHostsRoute(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	if ensureLocalDocker() == nil {
+		list = append(list, map[string]interface{}{
+			"id": "local", "name": "本机 Docker", "host": "127.0.0.1", "port": 0,
+			"protocol": "local", "status": "active",
+		})
+	}
 	if list == nil {
 		list = []map[string]interface{}{}
 	}
@@ -448,6 +500,12 @@ func FullContainerRoutes() chi.Router {
 					}
 				}
 			}
+		}
+		if ensureLocalDocker() == nil {
+			list = append(list, map[string]interface{}{
+				"id": "local", "name": "本机 Docker", "host": "127.0.0.1", "port": 0,
+				"protocol": "local", "status": "active",
+			})
 		}
 		if list == nil {
 			list = []map[string]interface{}{}

@@ -35,7 +35,10 @@ RUN rm -rf internal/modules/planning/dist \
 COPY --from=planning-web /build/planning-web/dist/ ./internal/modules/planning/dist/
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/itops-server ./cmd/server
 
-# ── Stage 3: 运行时（Go 主服务 + 规划引擎） ──
+# ── Stage 2b: Docker CLI + Compose 插件（容器管理模块通过挂载的 docker.sock 操作宿主机） ──
+FROM docker:27-cli AS dockercli
+
+# ── Stage 3: 运行时（Go 主服务 + 规划引擎 + Docker CLI） ──
 FROM python:3.12-slim AS runtime
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates tzdata curl \
@@ -56,6 +59,7 @@ RUN pip install --no-cache-dir --retries 10 --timeout 120 \
     openpyxl==3.1.5
 
 WORKDIR /app
+COPY --from=dockercli /usr/local/bin/docker /usr/local/bin/docker
 COPY --from=backend --chown=itops:itops /out/itops-server /app/itops-server
 
 # 引擎源码与数据资产；前端由 Go 二进制内嵌，不再单独提供

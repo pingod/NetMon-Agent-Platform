@@ -157,6 +157,15 @@ func handleRackDelete(w http.ResponseWriter, r *http.Request) {
 // 机位
 // ───────────────────────────────────────────────
 
+func handleSlotListAll(w http.ResponseWriter, r *http.Request) {
+	slots, err := repos.DcSlots.ListAll()
+	if err != nil {
+		httpx.RespondError(w, "获取机位列表失败", http.StatusInternalServerError)
+		return
+	}
+	httpx.Respond(w, slots)
+}
+
 func handleSlotListByRack(w http.ResponseWriter, r *http.Request) {
 	slots, err := repos.DcSlots.ListByRack(chi.URLParam(r, "rackId"))
 	if err != nil {

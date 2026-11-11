@@ -29,9 +29,14 @@ services:
       DOUBAO_API_KEY: ${DOUBAO_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       LOCAL_AI_API_BASE: ${LOCAL_AI_API_BASE:-}
+    # 容器管理模块需要访问宿主 Docker；如不接受该权限，删除下面两行即可（页面会提示未配置宿主机）
+    # docker.sock 属组：Linux 用 DOCKER_GID=$(stat -c %g /var/run/docker.sock)；Docker Desktop 默认 0
+    group_add:
+      - "${DOCKER_GID:-0}"
     volumes:
       - itops-data:/app/data
       - itops-logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8088/api/health"]
       interval: 30s
