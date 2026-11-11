@@ -240,6 +240,13 @@ func (r *UserRepo) CountAll() int {
 	return c
 }
 
+// CountEnabledAdmins 启用状态的管理员数量（最后管理员保护用）
+func (r *UserRepo) CountEnabledAdmins() int {
+	var c int
+	_ = appdb.DB().QueryRow(`SELECT COUNT(*) FROM users WHERE role = 'admin' AND enabled = 1`).Scan(&c)
+	return c
+}
+
 // UserCreateInput 创建用户输入
 type UserCreateInput struct {
 	ID             string

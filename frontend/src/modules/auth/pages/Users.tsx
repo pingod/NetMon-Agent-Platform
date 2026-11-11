@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
+import { Modal } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Edit, Trash2, UserPlus } from 'lucide-react';
 import clsx from 'clsx';
@@ -30,7 +31,7 @@ export default function Users() {
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  const { data: usersData, isLoading: usersLoading } = useQuery({
+  const { data: usersData, isLoading: usersLoading, isError: usersError, error: usersErr } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
       const res = await api.get('/users');
@@ -174,6 +175,12 @@ export default function Users() {
                       加载中...
                     </td>
                   </tr>
+                ) : usersError ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-red-500">
+                      {getAxiosErrorMessage(usersErr, '用户列表加载失败')}
+                    </td>
+                  </tr>
                 ) : usersData?.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-8 text-center text-text-secondary">
@@ -215,7 +222,16 @@ export default function Users() {
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => deleteMutation.mutate(user.id)}
+                            onClick={() => {
+                              Modal.confirm({
+                                title: '确认删除用户',
+                                content: `确定要删除用户「${user.username}」吗？此操作无法撤销。`,
+                                okText: '删除',
+                                okType: 'danger',
+                                cancelText: '取消',
+                                onOk: () => deleteMutation.mutateAsync(user.id),
+                              });
+                            }}
                             disabled={deleteMutation.isPending}
                             className="p-2 hover:bg-red-500/10 rounded-lg transition-colors text-red-500"
                             title="删除"
@@ -274,6 +290,7 @@ export default function Users() {
                   className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary"
                   placeholder="输入密码"
                 />
+                <p className="mt-1 text-xs text-text-tertiary">至少 8 位，需包含大小写字母、数字和特殊字符</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1">邮箱</label>
