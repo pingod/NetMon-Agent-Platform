@@ -353,6 +353,12 @@ func (r *CollectTaskRepo) UpdateRunResult(id, status string) error {
 	return err
 }
 
+// SetNextRun 更新调度器计算的下次触发时间（仅展示用）
+func (r *CollectTaskRepo) SetNextRun(id, next string) error {
+	_, err := appdb.DB().Exec(`UPDATE snmp_collect_tasks SET next_run_at = ? WHERE id = ?`, next, id)
+	return err
+}
+
 func (r *CollectTaskRepo) Delete(id string) error {
 	tx, err := appdb.DB().Begin()
 	if err != nil {
@@ -520,4 +526,14 @@ func (r *CollectResultRepo) InsertBatch(results []CollectResult) error {
 func (r *CollectResultRepo) Delete(id string) error {
 	_, err := appdb.DB().Exec(`DELETE FROM snmp_collect_results WHERE id = ?`, id)
 	return err
+}
+
+// DeleteOlderThan 删除任务超过保留期的采集结果，返回删除条数
+func (r *CollectResultRepo) DeleteOlderThan(taskID string, days int) (int64, error) {
+	res, err := appdb.DB().Exec(`DELETE FROM snmp_collect_results WHERE task_id = ? AND sampled_at < datetime('now','localtime',?)`,
+		taskID, fmt.Sprintf("-%d days", days))
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }

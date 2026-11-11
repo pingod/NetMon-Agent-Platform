@@ -10,6 +10,7 @@ const NetworkDashboard = lazyRetry(() => import('./pages/NetworkDashboard'));
 const DeviceMetricsDashboard = lazyRetry(() => import('./pages/DeviceMetricsDashboard'));
 const MetricTags = lazyRetry(() => import('./pages/MetricTags'));
 const SnmpCommunities = lazyRetry(() => import('./pages/SnmpCommunities'));
+const SnmpTraps = lazyRetry(() => import('./pages/SnmpTraps'));
 
 export const networkRoutes = [
   { path: 'network-devices', element: NetworkDevices },
@@ -19,6 +20,7 @@ export const networkRoutes = [
   { path: 'config-backup', element: ConfigBackup },
   { path: 'snmp-collect', element: SnmpCollect },
   { path: 'snmp-communities', element: SnmpCommunities },
+  { path: 'snmp-traps', element: SnmpTraps },
   { path: 'metric-tags', element: MetricTags },
   { path: 'network-dashboard', element: NetworkDashboard },
   { path: 'device-metrics/:deviceId', element: DeviceMetricsDashboard },

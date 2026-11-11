@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	"itops-backend/internal/appdb"
 	"itops-backend/internal/httpx"
@@ -19,6 +20,75 @@ import (
 	"itops-backend/internal/modules/network/services"
 	"itops-backend/internal/repos"
 )
+
+// collectOidInput 兼容两种入参：纯字符串 OID 或 {oid, name} 对象（前端表单格式）
+type collectOidInput struct {
+	OID  string `json:"oid"`
+	Name string `json:"name"`
+}
+
+func (e *collectOidInput) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err == nil {
+		e.OID = s
+		return nil
+	}
+	var v struct {
+		OID  string `json:"oid"`
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+	e.OID, e.Name = v.OID, v.Name
+	return nil
+}
+
+type collectTaskRequest struct {
+	Name            string            `json:"name"`
+	Description     string            `json:"description"`
+	DeviceType      string            `json:"device_type"`
+	DeviceIDs       []string          `json:"device_ids"`
+	OIDs            []collectOidInput `json:"oids"`
+	ScheduleType    string            `json:"schedule_type"`
+	CronExpression  string            `json:"cron_expression"`
+	IntervalSeconds int               `json:"interval_seconds"`
+	SnmpVersion     string            `json:"snmp_version"`
+	Community       string            `json:"community"`
+	TimeoutMs       int               `json:"timeout_ms"`
+	Retries         int               `json:"retries"`
+	Enabled         *bool             `json:"enabled"`
+	RetentionDays   int               `json:"retention_days"`
+}
+
+func (req *collectTaskRequest) toTask() repos.CollectTask {
+	deviceIDsJSON, _ := json.Marshal(req.DeviceIDs)
+	oidsJSON, _ := json.Marshal(req.OIDs)
+	if req.SnmpVersion == "" {
+		req.SnmpVersion = "v2c"
+	}
+	if req.Community == "" {
+		req.Community = "public"
+	}
+	if req.ScheduleType == "" {
+		req.ScheduleType = "manual"
+	}
+	return repos.CollectTask{
+		Name:            req.Name,
+		Description:     &req.Description,
+		DeviceType:      &req.DeviceType,
+		DeviceIDs:       string(deviceIDsJSON),
+		OIDs:            string(oidsJSON),
+		ScheduleType:    req.ScheduleType,
+		CronExpression:  &req.CronExpression,
+		IntervalSeconds: req.IntervalSeconds,
+		SnmpVersion:     req.SnmpVersion,
+		Community:       &req.Community,
+		TimeoutMs:       req.TimeoutMs,
+		Retries:         req.Retries,
+		RetentionDays:   req.RetentionDays,
+	}
+}
 
 // SnmpCollectRoutes SNMP 采集路由
 func SnmpCollectRoutes() chi.Router {
@@ -536,20 +606,7 @@ func SnmpCollectRoutes() chi.Router {
 
 	// POST /tasks — 创建采集任务
 	r.With(middleware.RequireRole("admin")).Post("/tasks", func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			Name            string   `json:"name"`
-			DeviceIDs       []string `json:"device_ids"`
-			OIDs            []string `json:"oids"`
-			ScheduleType    string   `json:"schedule_type"`
-			CronExpression  string   `json:"cron_expression"`
-			IntervalSeconds int      `json:"interval_seconds"`
-			SnmpVersion     string   `json:"snmp_version"`
-			Community       string   `json:"community"`
-			TimeoutMs       int      `json:"timeout_ms"`
-			Retries         int      `json:"retries"`
-			Enabled         bool     `json:"enabled"`
-			RetentionDays   int      `json:"retention_days"`
-		}
+		var req collectTaskRequest
 		if !parseJSON(w, r, &req) {
 			return
 		}
@@ -558,37 +615,11 @@ func SnmpCollectRoutes() chi.Router {
 			return
 		}
 
-		deviceIDsJSON, _ := json.Marshal(req.DeviceIDs)
-		oidsJSON, _ := json.Marshal(req.OIDs)
-
-		if req.SnmpVersion == "" {
-			req.SnmpVersion = "v2c"
-		}
-		if req.Community == "" {
-			req.Community = "public"
-		}
-		if req.ScheduleType == "" {
-			req.ScheduleType = "manual"
-		}
-
-		enabled := 0
-		if req.Enabled {
-			enabled = 1
-		}
-
-		task := repos.CollectTask{
-			Name:            req.Name,
-			DeviceIDs:       string(deviceIDsJSON),
-			OIDs:            string(oidsJSON),
-			ScheduleType:    req.ScheduleType,
-			CronExpression:  &req.CronExpression,
-			IntervalSeconds: req.IntervalSeconds,
-			SnmpVersion:     req.SnmpVersion,
-			Community:       &req.Community,
-			TimeoutMs:       req.TimeoutMs,
-			Retries:         req.Retries,
-			Enabled:         enabled,
-			RetentionDays:   req.RetentionDays,
+		task := req.toTask()
+		task.ID = uuid.NewString()
+		task.Enabled = 1
+		if req.Enabled != nil && !*req.Enabled {
+			task.Enabled = 0
 		}
 
 		if err := repos.CollectTasks.Create(task); err != nil {
@@ -600,12 +631,26 @@ func SnmpCollectRoutes() chi.Router {
 
 	// PUT /tasks/:id — 更新采集任务
 	r.With(middleware.RequireRole("admin")).Put("/tasks/{id}", func(w http.ResponseWriter, r *http.Request) {
-		var req repos.CollectTask
+		id := chi.URLParam(r, "id")
+		existing, err := repos.CollectTasks.GetByID(id)
+		if err != nil || existing == nil {
+			httpx.RespondError(w, "任务不存在", http.StatusNotFound)
+			return
+		}
+		var req collectTaskRequest
 		if !parseJSON(w, r, &req) {
 			return
 		}
-
-		if err := repos.CollectTasks.Update(chi.URLParam(r, "id"), req); err != nil {
+		task := req.toTask()
+		task.ID = id
+		task.Enabled = existing.Enabled
+		if req.Enabled != nil {
+			task.Enabled = 0
+			if *req.Enabled {
+				task.Enabled = 1
+			}
+		}
+		if err := repos.CollectTasks.Update(id, task); err != nil {
 			httpx.RespondError(w, "更新采集任务失败", http.StatusInternalServerError)
 			return
 		}
@@ -641,10 +686,15 @@ func SnmpCollectRoutes() chi.Router {
 		httpx.Respond(w, task)
 	})
 
-	// POST /tasks/:id/execute — 手动执行采集任务
+	// POST /tasks/:id/execute — 手动执行采集任务（真实采集并入库）
 	r.With(middleware.RequireRole("admin")).Post("/tasks/{id}/execute", func(w http.ResponseWriter, r *http.Request) {
-		// 简化实现：获取任务信息并执行
-		httpx.RespondError(w, "Task execution not implemented in Go backend yet", http.StatusNotImplemented)
+		task, err := repos.CollectTasks.GetByID(chi.URLParam(r, "id"))
+		if err != nil || task == nil {
+			httpx.RespondError(w, "任务不存在", http.StatusNotFound)
+			return
+		}
+		summary := services.ExecuteCollectTask(task)
+		httpx.Respond(w, summary)
 	})
 
 	// ============================================================

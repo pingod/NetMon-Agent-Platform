@@ -674,15 +674,33 @@ func SnmpRoutes() chi.Router {
 		httpx.Respond(w, map[string]string{"id": id, "message": "测试 Trap 已生成"})
 	})
 
-	// POST /trap/start — 启动 Trap 监听
+	// POST /trap/start — 启动 Trap 监听（真实 UDP 监听器，配置持久化）
 	r.With(middleware.RequireRole("admin")).Post("/trap/start", func(w http.ResponseWriter, r *http.Request) {
-		// Go 版暂未实现 Trap 监听器，返回占位
-		httpx.RespondMessage(w, "Trap listener not implemented in Go backend yet")
+		var req struct {
+			Port int `json:"port"`
+		}
+		if r.Body != nil {
+			_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 4*1024)).Decode(&req)
+		}
+		if err := services.SnmpTrapListenerInstance.Start(req.Port); err != nil {
+			httpx.RespondError(w, err.Error(), http.StatusConflict)
+			return
+		}
+		httpx.Respond(w, services.SnmpTrapListenerInstance.Status())
 	})
 
 	// POST /trap/stop — 停止 Trap 监听
 	r.With(middleware.RequireRole("admin")).Post("/trap/stop", func(w http.ResponseWriter, r *http.Request) {
-		httpx.RespondMessage(w, "Trap listener not implemented in Go backend yet")
+		if err := services.SnmpTrapListenerInstance.Stop(); err != nil {
+			httpx.RespondError(w, err.Error(), http.StatusConflict)
+			return
+		}
+		httpx.Respond(w, services.SnmpTrapListenerInstance.Status())
+	})
+
+	// GET /trap/status — Trap 监听器状态
+	r.Get("/trap/status", func(w http.ResponseWriter, r *http.Request) {
+		httpx.Respond(w, services.SnmpTrapListenerInstance.Status())
 	})
 
 	// ================================================================
