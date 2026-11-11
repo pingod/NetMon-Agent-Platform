@@ -129,6 +129,8 @@ func evaluateActiveAlertRules(ctx context.Context) {
 				// 触发告警记录插入
 				triggerAlertRecord(db, rule, sample, nowTs)
 				_ = repos.AlertRules.UpdateLastTriggered(rule.ID, nowTs)
+				// 同一评估周期内立即进入静默：否则 N 个超阈值样本会各插一条告警（风暴）
+				rule.LastTriggered = nowTs
 			}
 		}
 	}
@@ -173,23 +175,37 @@ func parseMetricValue(raw string) (float64, bool) {
 	return v, true
 }
 
+// sampleFreshnessWindow 样本新鲜度窗口：超过该时长未更新的样本不参与阈值判定，
+// 防止采集停止后历史值在每个静默期结束后重复触发告警
+const sampleFreshnessWindow = 5 * time.Minute
+
+// isSampleFresh 判断样本时间戳是否在新鲜度窗口内（无法解析的时间戳视为不新鲜）
+func isSampleFresh(ts string, nowTs int64) bool {
+	t, err := appdb.ParseDBTime(ts)
+	if err != nil {
+		return false
+	}
+	return nowTs-t.UnixMilli() <= sampleFreshnessWindow.Milliseconds()
+}
+
 // CollectMetricCurrentSamples 收集当前指标的所有设备采样值（仅返回真实采集到的样本）
 func CollectMetricCurrentSamples(metricName string) []SampleEvaluationItem {
 	var items []SampleEvaluationItem
 	seenMap := make(map[string]bool)
 	devices := loadDeviceInfoMap()
+	nowTs := time.Now().UnixMilli()
 
 	// 1. 从 custom_dashboard_metrics 查询（用户自定义指标与标签，位于指标库）
 	custRows, err := appdb.DBForTable("custom_dashboard_metrics").Query(`
 		SELECT m.id, m.oid, m.custom_name, m.device_id, m.last_value, m.unit,
-		       COALESCE(m.metric_name, ''), COALESCE(m.tags, '')
+		       COALESCE(m.metric_name, ''), COALESCE(m.tags, ''), COALESCE(m.last_sampled_at, '')
 		FROM custom_dashboard_metrics m
 	`)
 	if err == nil {
 		defer custRows.Close()
 		for custRows.Next() {
-			var mId, mOid, cName, devId, lastVal, unit, mName, cTags string
-			if err := custRows.Scan(&mId, &mOid, &cName, &devId, &lastVal, &unit, &mName, &cTags); err != nil {
+			var mId, mOid, cName, devId, lastVal, unit, mName, cTags, lastSampled string
+			if err := custRows.Scan(&mId, &mOid, &cName, &devId, &lastVal, &unit, &mName, &cTags, &lastSampled); err != nil {
 				continue
 			}
 			info := devices[devId]
@@ -212,6 +228,10 @@ func CollectMetricCurrentSamples(metricName string) []SampleEvaluationItem {
 			// 无法解析为数值说明没有真实采样，直接跳过（禁止用占位值参与阈值判定）
 			val, ok := parseMetricValue(lastVal)
 			if !ok {
+				continue
+			}
+			// 采集已停止的指标不再参与判定，避免历史值反复触发
+			if !isSampleFresh(lastSampled, nowTs) {
 				continue
 			}
 
@@ -293,19 +313,48 @@ func CollectMetricCurrentSamples(metricName string) []SampleEvaluationItem {
 	// 3. SNMP metric samples（指标库，不与 app 库网络设备表做跨库 JOIN）
 	if metricName != "" && metricName != "device_status" {
 		rows, err := appdb.DBForTable("snmp_metric_samples").Query(`
-			SELECT s.device_id, s.metric_name, s.value, s.unit, s.tag_name, s.created_at
+			SELECT s.device_id, s.metric_name, s.value, s.tags_json, s.collected_at
 			FROM snmp_metric_samples s
 			WHERE s.metric_name = ?
-			ORDER BY s.created_at DESC LIMIT 200`, metricName)
+			ORDER BY s.collected_at DESC LIMIT 200`, metricName)
 		if err == nil {
 			defer rows.Close()
+			seenSeries := make(map[string]bool)
 			for rows.Next() {
-				var devID, mName, unit, tagName, cAt string
+				var devID, mName, tagsJSON, cAt string
 				var val float64
-				if err := rows.Scan(&devID, &mName, &val, &unit, &tagName, &cAt); err != nil {
+				if err := rows.Scan(&devID, &mName, &val, &tagsJSON, &cAt); err != nil {
 					continue
 				}
+				if !isSampleFresh(cAt, nowTs) {
+					continue
+				}
+				var sampleTags map[string]string
+				if json.Unmarshal([]byte(tagsJSON), &sampleTags) != nil {
+					sampleTags = nil
+				}
+				ifName := sampleTags["ifDescr"]
+				if ifName == "" {
+					ifName = sampleTags["ifName"]
+				}
+				// 同一设备同一序列只取最新一条（查询已按时间倒序）
+				seriesKey := devID + "|" + mName + "|" + ifName
+				if seenSeries[seriesKey] {
+					continue
+				}
+				seenSeries[seriesKey] = true
+
 				info := devices[devID]
+				tags := map[string]string{
+					"device_id":   devID,
+					"device_ip":   info.IP,
+					"device_name": info.Name,
+					"vendor":      info.Vendor,
+					"if_name":     ifName,
+				}
+				for k, v := range sampleTags {
+					tags[k] = v
+				}
 				items = append(items, SampleEvaluationItem{
 					Value:       val,
 					DeviceID:    devID,
@@ -313,17 +362,10 @@ func CollectMetricCurrentSamples(metricName string) []SampleEvaluationItem {
 					DeviceName:  info.Name,
 					Vendor:      info.Vendor,
 					MetricName:  mName,
-					IfName:      tagName,
+					IfName:      ifName,
 					MetricLabel: mName,
-					Unit:        unit,
-					Tags: map[string]string{
-						"device_id":   devID,
-						"device_ip":   info.IP,
-						"device_name": info.Name,
-						"vendor":      info.Vendor,
-						"if_name":     tagName,
-						"unit":        unit,
-					},
+					Unit:        sampleTags["unit"],
+					Tags:        tags,
 				})
 			}
 		}
@@ -422,28 +464,31 @@ func triggerAlertRecord(db *sql.DB, rule repos.AlertRuleRecord, sample SampleEva
 	})
 
 	_, err := db.Exec(`
-		INSERT INTO alerts (id, source, severity, title, content, metadata, status, created_at, updated_at)
-		VALUES (?, 'promql_alert', ?, ?, ?, ?, 'firing', ?, ?)`,
-		alertID, rule.Severity, title, message, string(metaBytes), nowStr, nowStr,
+		INSERT INTO alerts (id, source, severity, title, content, metadata, status, device_id, created_at, updated_at)
+		VALUES (?, 'promql_alert', ?, ?, ?, ?, 'firing', ?, ?, ?)`,
+		alertID, rule.Severity, title, message, string(metaBytes), sample.DeviceID, nowStr, nowStr,
 	)
 	if err != nil {
 		logger.Warnf("Failed to insert firing alert record: %v", err)
 	} else {
 		logger.Infof("⚡ Alert Triggered: [%s] %s - %s", rule.Severity, title, message)
+		dispatchInfo := ops.AlertDispatchInfo{
+			AlertID:    alertID,
+			Source:     "promql_alert",
+			Title:      title,
+			Message:    message,
+			Severity:   rule.Severity,
+			MetricName: sample.MetricName,
+			Value:      sample.Value,
+			DeviceID:   sample.DeviceID,
+			DeviceName: sample.DeviceName,
+			DeviceIP:   sample.DeviceIP,
+			Tags:       sample.Tags,
+			Status:     "firing",
+		}
+		ops.HandleAlertForRemediation(dispatchInfo)
 		if rule.NotifyRemote {
-			ops.DispatchAlertNotification(ops.AlertDispatchInfo{
-				AlertID:    alertID,
-				Title:      title,
-				Message:    message,
-				Severity:   rule.Severity,
-				MetricName: sample.MetricName,
-				Value:      sample.Value,
-				DeviceID:   sample.DeviceID,
-				DeviceName: sample.DeviceName,
-				DeviceIP:   sample.DeviceIP,
-				Tags:       sample.Tags,
-				Status:     "firing",
-			})
+			ops.DispatchAlertNotification(dispatchInfo)
 		}
 	}
 }

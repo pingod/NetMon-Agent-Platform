@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../lib/api';
 import { 
@@ -22,17 +23,22 @@ export default function RemediationExecutions() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const alertId = searchParams.get('alertId') || '';
   const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
   const limit = 20;
 
   const { data, isLoading } = useQuery({
-    queryKey: ['remediation-executions', statusFilter, page],
+    queryKey: ['remediation-executions', statusFilter, page, alertId],
     queryFn: async () => {
       const params: Record<string, string> = { page: String(page), limit: String(limit) };
       if (statusFilter !== 'all') {
         params.status = statusFilter;
+      }
+      if (alertId) {
+        params.alert_id = alertId;
       }
       const res = await api.get('/remediation-executions', { params });
       return res.data.data;
@@ -41,10 +47,10 @@ export default function RemediationExecutions() {
 
   const totalPages = data ? Math.max(1, Math.ceil((data.total || 0) / limit)) : 1;
 
-  // 状态筛选变化时回到第一页
+  // 状态/告警筛选变化时回到第一页
   useEffect(() => {
     setPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, alertId]);
 
   // 筛选后总页数减少时，收敛到有效页
   useEffect(() => {
@@ -138,13 +144,13 @@ export default function RemediationExecutions() {
 
   const getStatusColor = (status: string) => {
     const map: Record<string, string> = {
-      'success': 'bg-green-500/10 text-green-400 border-green-500/20',
-      'failed': 'bg-red-500/10 text-red-400 border-red-500/20',
-      'rolled_back': 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
-      'waiting_approval': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-      'running': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-      'skipped': 'bg-gray-500/10 text-gray-400 border-gray-500/20',
-      'rejected': 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+      'success': 'bg-green-500/10 text-green-600 border-green-500/20',
+      'failed': 'bg-red-500/10 text-red-600 border-red-500/20',
+      'rolled_back': 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
+      'waiting_approval': 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+      'running': 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+      'skipped': 'bg-gray-500/10 text-gray-600 border-gray-500/20',
+      'rejected': 'bg-orange-500/10 text-orange-600 border-orange-500/20'
     };
     return map[status] || 'bg-slate-500/10 text-text-secondary border-slate-500/20';
   };
@@ -192,6 +198,18 @@ export default function RemediationExecutions() {
               <option value="skipped">已跳过</option>
             </select>
           </div>
+          {alertId && (
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-sm">
+              告警 ID: {alertId.slice(0, 8)}…
+              <button
+                onClick={() => { searchParams.delete('alertId'); setSearchParams(searchParams, { replace: true }); }}
+                className="hover:text-primary/70"
+                title="清除告警筛选"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </span>
+          )}
         </div>
 
         {isLoading ? (
@@ -216,7 +234,7 @@ export default function RemediationExecutions() {
               </thead>
               <tbody>
                 {data.executions.map((execution: any) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
-                  <tr key={execution.id} className="border-b border-border/30 hover:bg-slate-700/20 transition-colors">
+                  <tr key={execution.id} className="border-b border-border/30 hover:bg-surface-hover transition-colors">
                     <td className="py-3 px-4">
                       <div className="text-sm text-text-primary">{formatTime(execution.created_at)}</div>
                     </td>
@@ -256,13 +274,13 @@ export default function RemediationExecutions() {
                           <>
                             <button
                               onClick={() => approveMutation.mutate({ id: execution.id, action: 'approve' })}
-                              className="px-2 py-1 text-xs bg-green-600/20 text-green-400 rounded hover:bg-green-600/30 transition-colors"
+                              className="px-2 py-1 text-xs bg-green-600/20 text-green-700 rounded hover:bg-green-600/30 transition-colors"
                             >
                               批准
                             </button>
                             <button
                               onClick={() => approveMutation.mutate({ id: execution.id, action: 'reject' })}
-                              className="px-2 py-1 text-xs bg-red-600/20 text-red-400 rounded hover:bg-red-600/30 transition-colors"
+                              className="px-2 py-1 text-xs bg-red-600/20 text-red-700 rounded hover:bg-red-600/30 transition-colors"
                             >
                               拒绝
                             </button>
@@ -271,7 +289,7 @@ export default function RemediationExecutions() {
                         {(execution.status === 'failed' || execution.status === 'rejected') && (
                           <button
                             onClick={() => retryMutation.mutate(execution.id)}
-                            className="p-1.5 text-text-secondary hover:text-blue-400 transition-colors"
+                            className="p-1.5 text-text-secondary hover:text-blue-600 transition-colors"
                             title="重试"
                           >
                             <RefreshCw className="w-4 h-4" />
@@ -300,7 +318,7 @@ export default function RemediationExecutions() {
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-3 py-1.5 bg-surface border border-border rounded-lg text-text-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700/50 transition-colors"
+                className="px-3 py-1.5 bg-surface border border-border rounded-lg text-text-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-hover transition-colors"
               >
                 上一页
               </button>
@@ -308,7 +326,7 @@ export default function RemediationExecutions() {
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="px-3 py-1.5 bg-surface border border-border rounded-lg text-text-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700/50 transition-colors"
+                className="px-3 py-1.5 bg-surface border border-border rounded-lg text-text-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-hover transition-colors"
               >
                 下一页
               </button>
@@ -330,7 +348,7 @@ export default function RemediationExecutions() {
               <h3 className="text-lg font-semibold text-text-primary">执行详情</h3>
               <button
                 onClick={handleCloseModal}
-                className="p-1.5 text-text-secondary hover:text-text-primary transition-colors rounded-lg hover:bg-slate-700/50"
+                className="p-1.5 text-text-secondary hover:text-text-primary transition-colors rounded-lg hover:bg-surface-hover"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -426,8 +444,8 @@ export default function RemediationExecutions() {
                   </h4>
                   <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <AlertCircle className="w-4 h-4 text-yellow-400" />
-                      <span className="text-sm text-yellow-300">已触发回滚</span>
+                      <AlertCircle className="w-4 h-4 text-yellow-600" />
+                      <span className="text-sm text-yellow-700">已触发回滚</span>
                     </div>
                     {executionDetail.rollback_completed_at && (
                       <div className="text-xs text-text-secondary mb-2">
@@ -467,7 +485,7 @@ export default function RemediationExecutions() {
                   <FileText className="w-4 h-4" />
                   完整日志
                 </h4>
-                <div className="bg-surface rounded-lg divide-y divide-slate-700/30">
+                <div className="bg-surface rounded-lg divide-y divide-border">
                   {[
                     { key: 'execution', label: '执行日志', content: executionDetail.execution_result },
                     { key: 'verification', label: '验证日志', content: executionDetail.verification_result },
@@ -500,7 +518,7 @@ export default function RemediationExecutions() {
             <div className="px-6 py-4 border-t border-border/50 flex justify-end">
               <button
                 onClick={handleCloseModal}
-                className="px-4 py-2 bg-slate-700/50 text-text-primary rounded-lg hover:bg-slate-700 transition-colors text-sm"
+                className="px-4 py-2 bg-surface-2 text-text-primary rounded-lg hover:bg-surface-hover transition-colors text-sm"
               >
                 关闭
               </button>

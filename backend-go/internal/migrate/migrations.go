@@ -104,6 +104,9 @@ var migrationNames = map[int]string{
 	67: "inspection_templates",
 	68: "servers_vendor_model",
 	69: "agent_token_and_token_invalidation",
+	70: "scripts_center_columns",
+	71: "remediation_verification_task",
+	72: "rca_confidence_and_platform_backups",
 }
 
 // 迁移版本号升序序列（v11、v21 在 TS 中即为空洞）
@@ -114,7 +117,8 @@ var migrationVersions = []int{
 	32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
 	42, 43, 44, 45, 46, 47, 48, 49, 50,
 	51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
-	61, 62, 63, 64, 65, 66, 67, 68, 69,
+	61, 62, 63, 64, 65, 66, 67, 68, 69, 70,
+	71, 72,
 }
 
 // execScript 在事务上执行多语句 SQL 脚本。
@@ -217,6 +221,48 @@ CREATE TABLE IF NOT EXISTS inspection_templates (
 					}
 				}
 				return nil
+			}
+		} else if v == 70 {
+			m.Description = "Add type/parameters/version columns to scripts for script center"
+			m.Up = func(tx *sql.Tx) error {
+				alters := []string{
+					"ALTER TABLE scripts ADD COLUMN type TEXT NOT NULL DEFAULT 'shell'",
+					"ALTER TABLE scripts ADD COLUMN parameters TEXT NOT NULL DEFAULT '[]'",
+					"ALTER TABLE scripts ADD COLUMN version INTEGER NOT NULL DEFAULT 1",
+				}
+				for _, stmt := range alters {
+					if err := addColumnIfMissing(tx, stmt); err != nil {
+						return err
+					}
+				}
+				// 旧 language 列的数据映射到新 type 列
+				if _, err := tx.Exec(`UPDATE scripts SET type = language WHERE language IN ('shell','python','powershell')`); err != nil {
+					return err
+				}
+				_, err := tx.Exec(`UPDATE scripts SET type = 'shell' WHERE language = 'bash'`)
+				return err
+			}
+		} else if v == 71 {
+			m.Description = "Add verification_task_id to remediation_executions for verification workflow linkage"
+			m.Up = func(tx *sql.Tx) error {
+				return addColumnIfMissing(tx, "ALTER TABLE remediation_executions ADD COLUMN verification_task_id TEXT")
+			}
+		} else if v == 72 {
+			m.Description = "Add confidence to root_cause_analyses; create platform_backups table"
+			m.Up = func(tx *sql.Tx) error {
+				if err := addColumnIfMissing(tx, "ALTER TABLE root_cause_analyses ADD COLUMN confidence REAL DEFAULT 0"); err != nil {
+					return err
+				}
+				_, err := tx.Exec(`
+CREATE TABLE IF NOT EXISTS platform_backups (
+	id TEXT PRIMARY KEY,
+	filename TEXT NOT NULL,
+	size_bytes INTEGER DEFAULT 0,
+	source TEXT DEFAULT 'manual',
+	created_by TEXT DEFAULT '',
+	created_at DATETIME DEFAULT (datetime('now','localtime'))
+)`)
+				return err
 			}
 		}
 		migs = append(migs, m)

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Modal } from 'antd';
 import api from '../../../lib/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Save, ArrowLeft, Trash2 } from 'lucide-react';
@@ -124,18 +125,23 @@ export default function RemediationPolicyEditor() {
   };
 
   const handleDelete = () => {
-    if (confirm('确定要删除此策略吗？')) {
-      deleteMutation.mutate();
-    }
+    Modal.confirm({
+      title: '确认删除策略',
+      content: '确定要删除此策略吗？删除后相关告警将不再触发该策略。',
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: () => deleteMutation.mutate(),
+    });
   };
 
   if (isLoadingPolicy) {
-    return <div className="flex-1 flex items-center justify-center text-slate-400">加载中...</div>;
+    return <div className="flex-1 flex items-center justify-center text-text-secondary">加载中...</div>;
   }
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="flex items-center gap-4 px-6 py-4 border-b border-slate-700/50 bg-slate-900/50 flex-shrink-0">
+      <div className="flex items-center gap-4 px-6 py-4 border-b border-border bg-surface flex-shrink-0">
         <button
           onClick={() => navigate('/remediation-policies')}
           className="p-2 text-text-secondary hover:text-text-primary transition-colors"
@@ -150,7 +156,7 @@ export default function RemediationPolicyEditor() {
         {!isNew && (
           <button
             onClick={handleDelete}
-            className="p-2 text-text-secondary hover:text-red-400 transition-colors"
+            className="p-2 text-text-secondary hover:text-red-600 transition-colors"
             title="删除"
           >
             <Trash2 className="w-5 h-5" />
@@ -168,7 +174,7 @@ export default function RemediationPolicyEditor() {
 
       <div className="flex-1 overflow-auto">
         <form onSubmit={handleSubmit} className="p-6 max-w-5xl">
-          <div className="bg-slate-800/30 border border-border rounded-xl p-4">
+          <div className="bg-surface border border-border rounded-xl p-4">
             <h3 className="text-base font-semibold text-text-primary mb-3">基本信息</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -178,7 +184,7 @@ export default function RemediationPolicyEditor() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-800/50 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
                   placeholder="例如：磁盘空间不足自动清理"
                 />
               </div>
@@ -188,14 +194,14 @@ export default function RemediationPolicyEditor() {
                   type="text"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-800/50 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
                   placeholder="策略描述"
                 />
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-800/30 border border-border rounded-xl p-4 mt-4">
+          <div className="bg-surface border border-border rounded-xl p-4 mt-4">
             <h3 className="text-base font-semibold text-text-primary mb-3">触发条件</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -204,7 +210,7 @@ export default function RemediationPolicyEditor() {
                   required
                   value={formData.alert_source}
                   onChange={(e) => setFormData({ ...formData, alert_source: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-800/50 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
                 >
                   {ALERT_SOURCES.map(source => (
                     <option key={source} value={source}>{source}</option>
@@ -216,7 +222,7 @@ export default function RemediationPolicyEditor() {
                 <select
                   value={formData.alert_severity}
                   onChange={(e) => setFormData({ ...formData, alert_severity: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-800/50 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
                 >
                   <option value="">全部</option>
                   {SEVERITY_OPTIONS.map(opt => (
@@ -230,7 +236,7 @@ export default function RemediationPolicyEditor() {
                   type="text"
                   value={formData.alert_keywords}
                   onChange={(e) => setFormData({ ...formData, alert_keywords: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-800/50 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
                   placeholder="多个关键词用逗号分隔"
                 />
               </div>
@@ -240,14 +246,14 @@ export default function RemediationPolicyEditor() {
                   type="text"
                   value={formData.alert_tags}
                   onChange={(e) => setFormData({ ...formData, alert_tags: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-800/50 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
                   placeholder="多个标签用逗号分隔"
                 />
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-800/30 border border-border rounded-xl p-4 mt-4">
+          <div className="bg-surface border border-border rounded-xl p-4 mt-4">
             <h3 className="text-base font-semibold text-text-primary mb-3">执行策略</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -256,7 +262,7 @@ export default function RemediationPolicyEditor() {
                   required
                   value={formData.execution_mode}
                   onChange={(e) => setFormData({ ...formData, execution_mode: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-800/50 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
                 >
                   {EXECUTION_MODES.map(mode => (
                     <option key={mode.value} value={mode.value}>{mode.label}</option>
@@ -268,7 +274,7 @@ export default function RemediationPolicyEditor() {
                 <select
                   value={formData.workflow_id}
                   onChange={(e) => setFormData({ ...formData, workflow_id: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-800/50 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
                 >
                   <option value="">选择工作流</option>
                   {workflows?.map((w: any) => (
@@ -282,14 +288,14 @@ export default function RemediationPolicyEditor() {
                   rows={2}
                   value={formData.workflow_params}
                   onChange={(e) => setFormData({ ...formData, workflow_params: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-800/50 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500 font-mono"
+                  className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500 font-mono"
                   placeholder='{"server_id": "{{alert.host}}"}'
                 />
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-800/30 border border-border rounded-xl p-4 mt-4">
+          <div className="bg-surface border border-border rounded-xl p-4 mt-4">
             <h3 className="text-base font-semibold text-text-primary mb-3">触发控制</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -299,7 +305,7 @@ export default function RemediationPolicyEditor() {
                   min="1"
                   value={formData.max_executions_per_hour}
                   onChange={(e) => setFormData({ ...formData, max_executions_per_hour: parseInt(e.target.value) })}
-                  className="w-full px-3 py-1.5 bg-slate-800/50 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
                 />
               </div>
               <div>
@@ -309,13 +315,13 @@ export default function RemediationPolicyEditor() {
                   min="0"
                   value={formData.cooldown_seconds}
                   onChange={(e) => setFormData({ ...formData, cooldown_seconds: parseInt(e.target.value) })}
-                  className="w-full px-3 py-1.5 bg-slate-800/50 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
                 />
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-800/30 border border-border rounded-xl p-4 mt-4">
+          <div className="bg-surface border border-border rounded-xl p-4 mt-4">
             <h3 className="text-base font-semibold text-text-primary mb-3">验证配置</h3>
             <div className="mb-3">
               <label className="flex items-center gap-2 cursor-pointer">
@@ -323,7 +329,7 @@ export default function RemediationPolicyEditor() {
                   type="checkbox"
                   checked={formData.enable_verification}
                   onChange={(e) => setFormData({ ...formData, enable_verification: e.target.checked })}
-                  className="w-3.5 h-3.5 rounded border-slate-600 text-blue-600 focus:ring-blue-500"
+                  className="w-3.5 h-3.5 rounded border-border text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-xs text-text-primary">启用修复后验证</span>
               </label>
@@ -335,7 +341,7 @@ export default function RemediationPolicyEditor() {
                   <select
                     value={formData.verification_workflow_id}
                     onChange={(e) => setFormData({ ...formData, verification_workflow_id: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-slate-800/50 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
                   >
                     <option value="">选择工作流</option>
                     {workflows?.map((w: any) => (
@@ -350,7 +356,7 @@ export default function RemediationPolicyEditor() {
                     min="1"
                     value={formData.verification_timeout_seconds}
                     onChange={(e) => setFormData({ ...formData, verification_timeout_seconds: parseInt(e.target.value) })}
-                    className="w-full px-3 py-1.5 bg-slate-800/50 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
                   />
                 </div>
                 <div className="col-span-2">
@@ -359,14 +365,14 @@ export default function RemediationPolicyEditor() {
                     rows={2}
                     value={formData.verification_params}
                     onChange={(e) => setFormData({ ...formData, verification_params: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-slate-800/50 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500 font-mono"
+                    className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500 font-mono"
                   />
                 </div>
               </div>
             )}
           </div>
 
-          <div className="bg-slate-800/30 border border-border rounded-xl p-4 mt-4">
+          <div className="bg-surface border border-border rounded-xl p-4 mt-4">
             <h3 className="text-base font-semibold text-text-primary mb-3">回滚配置</h3>
             <div className="mb-3">
               <label className="flex items-center gap-2 cursor-pointer">
@@ -374,7 +380,7 @@ export default function RemediationPolicyEditor() {
                   type="checkbox"
                   checked={formData.enable_rollback}
                   onChange={(e) => setFormData({ ...formData, enable_rollback: e.target.checked })}
-                  className="w-3.5 h-3.5 rounded border-slate-600 text-blue-600 focus:ring-blue-500"
+                  className="w-3.5 h-3.5 rounded border-border text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-xs text-text-primary">启用自动回滚</span>
               </label>
@@ -386,7 +392,7 @@ export default function RemediationPolicyEditor() {
                   <select
                     value={formData.rollback_workflow_id}
                     onChange={(e) => setFormData({ ...formData, rollback_workflow_id: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-slate-800/50 border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
                   >
                     <option value="">选择工作流</option>
                     {workflows?.map((w: any) => (
@@ -400,7 +406,7 @@ export default function RemediationPolicyEditor() {
                       type="checkbox"
                       checked={formData.rollback_on_failure}
                       onChange={(e) => setFormData({ ...formData, rollback_on_failure: e.target.checked })}
-                      className="w-3.5 h-3.5 rounded border-slate-600 text-blue-600 focus:ring-blue-500"
+                      className="w-3.5 h-3.5 rounded border-border text-blue-600 focus:ring-blue-500"
                     />
                     <span className="text-xs text-text-primary">修复失败时自动回滚</span>
                   </label>

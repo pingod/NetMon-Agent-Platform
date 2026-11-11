@@ -1203,6 +1203,7 @@ CREATE TABLE remediation_executions (
         rollback_execution_id TEXT,
         rollback_completed_at DATETIME,
         rollback_result TEXT,
+        verification_task_id TEXT,
         execution_duration_ms INTEGER,
         created_at DATETIME DEFAULT (datetime('now','localtime')),
         FOREIGN KEY (policy_id) REFERENCES remediation_policies(id),
@@ -1294,10 +1295,21 @@ CREATE TABLE root_cause_analyses (
         timeline TEXT,
         evidence TEXT,
         recommendations TEXT,
+        confidence REAL DEFAULT 0,
         created_at DATETIME DEFAULT (datetime('now','localtime')),
         updated_at DATETIME DEFAULT (datetime('now','localtime')),
         completed_at DATETIME,
         FOREIGN KEY (alert_id) REFERENCES alerts(id)
+      );
+
+-- [table] platform_backups
+CREATE TABLE platform_backups (
+        id TEXT PRIMARY KEY,
+        filename TEXT NOT NULL,
+        size_bytes INTEGER DEFAULT 0,
+        source TEXT DEFAULT 'manual',
+        created_by TEXT DEFAULT '',
+        created_at DATETIME DEFAULT (datetime('now','localtime'))
       );
 
 -- [table] scheduled_tasks
@@ -1326,6 +1338,9 @@ CREATE TABLE scripts (
         language TEXT DEFAULT 'bash',
         content TEXT NOT NULL,
         tags TEXT,
+        type TEXT NOT NULL DEFAULT 'shell',
+        parameters TEXT NOT NULL DEFAULT '[]',
+        version INTEGER NOT NULL DEFAULT 1,
         created_at DATETIME DEFAULT (datetime('now','localtime')),
         updated_at DATETIME DEFAULT (datetime('now','localtime'))
       );

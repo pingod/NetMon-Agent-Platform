@@ -137,6 +137,7 @@ export interface RemediationPolicyStats {
 
 export interface RemediationPolicyListResult {
   policies: RemediationPolicy[];
+  total?: number;
 }
 
 // ── 修复执行 ──
@@ -161,6 +162,7 @@ export interface RemediationExecutionListParams {
 
 export interface ApproveExecutionInput {
   action: 'approve' | 'reject';
+  comment?: string;
 }
 
 // ── 修复审计 ──
@@ -324,7 +326,7 @@ export const autoApi = {
   // ── 修复执行 ──
 
   /** 获取修复执行列表 */
-  async listRemediationExecutions(params?: RemediationExecutionListParams): Promise<RemediationExecution[]> {
+  async listRemediationExecutions(params?: RemediationExecutionListParams): Promise<{ executions: RemediationExecution[]; total: number }> {
     const { data } = await api.get('/remediation-executions', { params });
     return data.data;
   },
@@ -348,7 +350,7 @@ export const autoApi = {
   // ── 修复审计 ──
 
   /** 获取修复审计列表 */
-  async listRemediationAudits(params?: RemediationAuditListParams): Promise<RemediationAudit[]> {
+  async listRemediationAudits(params?: RemediationAuditListParams): Promise<{ audits: RemediationAudit[]; total: number }> {
     const { data } = await api.get('/remediation-audits', { params });
     return data.data;
   },

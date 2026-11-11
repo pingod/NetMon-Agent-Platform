@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Modal } from 'antd';
 import api from '../../../lib/api';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -203,18 +204,23 @@ export default function RemediationPolicies() {
                         </button>
                         <button
                           onClick={() => navigate(`/remediation-policies/${policy.id}`)}
-                          className="p-1.5 text-text-secondary hover:text-blue-400 transition-colors"
+                          className="p-1.5 text-text-secondary hover:text-blue-600 transition-colors"
                           title="编辑"
                         >
                           <Settings className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => {
-                            if (confirm('确定要删除此策略吗？')) {
-                              deleteMutation.mutate(policy.id);
-                            }
+                            Modal.confirm({
+                              title: '确认删除策略',
+                              content: `确定要删除策略「${policy.name}」吗？删除后相关告警将不再触发该策略。`,
+                              okText: '删除',
+                              okType: 'danger',
+                              cancelText: '取消',
+                              onOk: () => deleteMutation.mutate(policy.id),
+                            });
                           }}
-                          className="p-1.5 text-text-secondary hover:text-red-400 transition-colors"
+                          className="p-1.5 text-text-secondary hover:text-red-600 transition-colors"
                           title="删除"
                         >
                           <XCircle className="w-4 h-4" />

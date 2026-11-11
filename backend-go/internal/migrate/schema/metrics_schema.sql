@@ -131,37 +131,9 @@ CREATE TABLE IF NOT EXISTS baseline_metrics (
     updated_at DATETIME DEFAULT (datetime('now','localtime'))
 );
 
--- 自定义大屏指标配置
-CREATE TABLE IF NOT EXISTS custom_dashboard_metrics (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT DEFAULT '',
-    metric_type TEXT NOT NULL DEFAULT 'gauge',
-    device_ids TEXT DEFAULT '[]',
-    oid TEXT DEFAULT '',
-    expression TEXT DEFAULT '',
-    unit TEXT DEFAULT '',
-    refresh_interval INTEGER DEFAULT 30,
-    display_config TEXT DEFAULT '{}',
-    sort_order INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT (datetime('now','localtime')),
-    updated_at DATETIME DEFAULT (datetime('now','localtime'))
-);
-
--- 自定义大屏列表配置
-CREATE TABLE IF NOT EXISTS custom_dashboard_lists (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT DEFAULT '',
-    list_type TEXT NOT NULL DEFAULT 'scalar',
-    device_id TEXT DEFAULT '',
-    columns TEXT DEFAULT '[]',
-    refresh_interval INTEGER DEFAULT 60,
-    display_config TEXT DEFAULT '{}',
-    sort_order INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT (datetime('now','localtime')),
-    updated_at DATETIME DEFAULT (datetime('now','localtime'))
-);
+-- 注意：custom_dashboard_metrics / custom_dashboard_lists 的真实 schema 在 app.db
+-- （schema_dump.sql，按设备存储的自定义指标/列表），此处曾存在同名但不同结构的
+-- “大屏定义”表，无任何代码使用且会遮蔽路由，已移除。
 
 -- 服务器性能指标
 CREATE TABLE IF NOT EXISTS server_metrics (
