@@ -285,11 +285,16 @@ export function useServerActions() {
   // ---------- Mutations ----------
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const payload = {
+      const payload: Record<string, unknown> = {
         ...data,
         tags: data.tags ? data.tags.split(',').map((t: string) => t.trim()) : [],
         ssh_key_id: selectedSshKeyId || undefined,
       };
+      if (selectedSshKeyId) {
+        // 关联已有凭证时私钥由服务端解析，避免把表单残留值二次加密入库
+        delete payload.private_key;
+        delete payload.password;
+      }
       const res = await api.post('/servers', payload);
       return res.data;
     },

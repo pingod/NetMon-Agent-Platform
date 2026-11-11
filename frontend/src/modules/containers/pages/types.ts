@@ -24,6 +24,7 @@ export interface ContainerItem {
   Ports?: Array<{ PublicPort?: number; PrivatePort?: number; Type?: string }>;
   Created?: number;
   created?: number;
+  created_at?: string;
 }
 
 export interface ImageItem {
@@ -67,9 +68,7 @@ export interface EndpointItem {
   port: number;
   protocol: string;
   status: string;
-  tlsCa?: string;
-  tlsCert?: string;
-  tlsKey?: string;
+  hasTls?: boolean;
   error_message?: string;
 }
 

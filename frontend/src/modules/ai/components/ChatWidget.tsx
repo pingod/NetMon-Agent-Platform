@@ -25,6 +25,7 @@ import {
   Database
 } from 'lucide-react';
 import api from '../../../lib/api';
+import { logger } from '../../../lib/logger';
 import MarkdownOutput from '../../../shared/components/MarkdownOutput';
 import { useToast } from '../../../contexts/ToastContext';
 
@@ -163,7 +164,7 @@ export default function ChatWidget() {
       }
     },
     onError: (err: any) => {
-      console.error('Failed to create conversation', err);
+      logger.error('Failed to create conversation', err);
       toast.error('创建对话出错，请重试');
     },
   });
@@ -211,7 +212,7 @@ export default function ChatWidget() {
         title="打开 NetMon 智能运维助手"
       >
         <Bot className="w-7 h-7 transition-transform group-hover:rotate-6" />
-        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full animate-pulse" />
+        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-surface rounded-full animate-pulse" />
       </button>
     );
   }
@@ -223,7 +224,6 @@ export default function ChatWidget() {
   const chatBg = 'bg-background';
   const textPrimary = 'text-text-primary';
   const textSecondary = 'text-text-secondary';
-  const textMuted = 'text-text-tertiary';
   const inputBg = 'bg-surface';
   const inputBorder = 'border-border';
   const cardBg = 'bg-surface';
@@ -335,7 +335,7 @@ export default function ChatWidget() {
                       onClick={() => setCurrentConversationId(c.id)}
                       className={`group p-2 rounded-lg cursor-pointer transition-all text-xs border ${
                         isSelected
-                          ? 'bg-blue-600/15 border-blue-500/40 text-blue-400 font-medium shadow-sm'
+                          ? 'bg-blue-600/15 border-blue-500/40 text-blue-600 font-medium shadow-sm'
                           : `${cardBg} border-transparent ${textSecondary} ${hoverBg}`
                       }`}
                     >
@@ -346,7 +346,7 @@ export default function ChatWidget() {
                             e.stopPropagation();
                             deleteConversationMutation.mutate(c.id);
                           }}
-                          className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity p-0.5"
+                          className="opacity-0 group-hover:opacity-100 hover:text-red-600 transition-opacity p-0.5"
                           title="删除会话"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -369,10 +369,10 @@ export default function ChatWidget() {
               {(isPasswordChangeRequired(suggestionsError) || isPasswordChangeRequired(conversationsError)) && (
                 <div className="p-3 m-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                    <AlertCircle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-yellow-300 font-medium text-xs">需要修改初始密码</p>
-                      <p className="text-yellow-200/80 text-[11px] mt-0.5">
+                      <p className="text-yellow-600 font-medium text-xs">需要修改初始密码</p>
+                      <p className="text-yellow-600/80 text-[11px] mt-0.5">
                         请前往设置页面更新密码后继续使用 NetMon 助手。
                       </p>
                     </div>
@@ -384,7 +384,7 @@ export default function ChatWidget() {
               {!currentConversationId ? (
                 <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center text-center scrollbar-thin">
                   <div className="w-14 h-14 bg-gradient-to-tr from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-2xl flex items-center justify-center mb-3 shadow-inner">
-                    <Bot className="w-8 h-8 text-blue-400 animate-pulse" />
+                    <Bot className="w-8 h-8 text-blue-600 animate-pulse" />
                   </div>
                   <h3 className={`text-base font-semibold ${textPrimary} mb-1`}>
                     您好！我是 NetMon 智能运维助手
@@ -400,9 +400,9 @@ export default function ChatWidget() {
                         <button
                           key={idx}
                           onClick={() => handleSend(action.query)}
-                          className={`p-3 ${cardBg} ${hoverBg} border ${cardBorder} hover:border-blue-500/50 rounded-xl text-left text-xs ${textSecondary} hover:${textPrimary} transition-all duration-200 flex items-start gap-2.5 group shadow-sm hover:shadow`}
+                          className={`p-3 ${cardBg} ${hoverBg} border ${cardBorder} hover:border-blue-500/50 rounded-xl text-left text-xs ${textSecondary} hover:text-text-primary transition-all duration-200 flex items-start gap-2.5 group shadow-sm hover:shadow`}
                         >
-                          <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors mt-0.5">
+                          <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 group-hover:bg-blue-500 group-hover:text-white transition-colors mt-0.5">
                             <Icon className="w-4 h-4" />
                           </div>
                           <div>
@@ -454,8 +454,8 @@ export default function ChatWidget() {
                               </div>
                             </div>
                             {isUser && (
-                              <div className="w-8 h-8 bg-slate-700 border border-slate-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow mt-0.5">
-                                <User className="w-4 h-4 text-white" />
+                              <div className="w-8 h-8 bg-surface-2 border border-border rounded-xl flex items-center justify-center flex-shrink-0 shadow mt-0.5">
+                                <User className="w-4 h-4 text-text-secondary" />
                               </div>
                             )}
                           </div>
@@ -470,7 +470,7 @@ export default function ChatWidget() {
                             <Bot className="w-4 h-4 text-white" />
                           </div>
                           <div className={`p-3.5 ${msgBg} ${textSecondary} rounded-2xl rounded-tl-none border ${msgBorder} flex items-center gap-3`}>
-                            <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                            <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
                             <span className="text-xs text-text-tertiary">正在检索系统数据并生成回复...</span>
                           </div>
                         </div>
@@ -482,7 +482,7 @@ export default function ChatWidget() {
                   {/* 快捷指令芯片栏 */}
                   <div className="px-3 py-1.5 border-t border-border/60 bg-surface/40 flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-shrink-0">
                     <span className="text-[10px] text-text-tertiary font-medium flex items-center gap-1 flex-shrink-0">
-                      <Sparkles className="w-3 h-3 text-blue-400" />
+                      <Sparkles className="w-3 h-3 text-blue-600" />
                       快捷问答:
                     </span>
                     {quickActions.map((action, idx) => (
@@ -490,7 +490,7 @@ export default function ChatWidget() {
                         key={idx}
                         onClick={() => handleSend(action.query)}
                         disabled={sendMessageMutation.isPending}
-                        className="px-2.5 py-1 rounded-lg text-[11px] bg-surface hover:bg-blue-500/10 hover:text-blue-400 border border-border transition-colors whitespace-nowrap flex-shrink-0 disabled:opacity-50"
+                        className="px-2.5 py-1 rounded-lg text-[11px] bg-surface hover:bg-blue-500/10 hover:text-blue-600 border border-border transition-colors whitespace-nowrap flex-shrink-0 disabled:opacity-50"
                       >
                         {action.label}
                       </button>
@@ -511,7 +511,7 @@ export default function ChatWidget() {
                           }
                         }}
                         placeholder="输入您的问题（如：查询交换机状态、展示网络拓扑、列出汇总表格...）"
-                        className={`flex-1 ${inputBg} border ${inputBorder} rounded-xl px-3.5 py-2.5 text-xs ${textPrimary} placeholder:${textMuted} focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all`}
+                        className={`flex-1 ${inputBg} border ${inputBorder} rounded-xl px-3.5 py-2.5 text-xs ${textPrimary} placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all`}
                         disabled={sendMessageMutation.isPending}
                       />
                       <button

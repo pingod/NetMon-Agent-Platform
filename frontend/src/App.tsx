@@ -2,6 +2,9 @@ import { Suspense, isValidElement } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, theme as antdTheme } from 'antd';
+import zhCN from 'antd/locale/zh_CN';
+import enUS from 'antd/locale/en_US';
+import { useTranslation } from 'react-i18next';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -51,8 +54,10 @@ function SuspenseRoute({ children, isInner = false }: { children: React.ReactNod
 }
 
 function ThemedConfigProvider({ children }: { children: React.ReactNode }) {
-return (
+  const { i18n } = useTranslation();
+  return (
     <ConfigProvider
+      locale={i18n.language?.startsWith('zh') ? zhCN : enUS}
       theme={{
         algorithm: antdTheme.defaultAlgorithm,
         token: {

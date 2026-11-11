@@ -2,8 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Select, Button, Switch, Input, Space, message, Tooltip, InputNumber } from 'antd';
 import { Play, Square, Search, Download, Trash2, ArrowDown } from 'lucide-react';
 import api from '../../../lib/api';
-import type { Socket } from 'socket.io-client';
-import io from 'socket.io-client';
 
 interface Container {
   id: string;
@@ -17,6 +15,24 @@ interface LogEntry {
   timestamp: string;
 }
 
+// docker logs --timestamps 行首为 RFC3339Nano 时间戳
+const TS_RE = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}))\s?(.*)$/;
+
+function parseLogLines(containerId: string, raw: string): LogEntry[] {
+  return raw.split('\n').filter(l => l.length > 0).map(line => {
+    const m = line.match(TS_RE);
+    if (m) {
+      const d = new Date(m[1]);
+      return {
+        containerId,
+        data: m[2],
+        timestamp: isNaN(d.getTime()) ? m[1] : d.toLocaleTimeString('zh-CN', { hour12: false }),
+      };
+    }
+    return { containerId, data: line, timestamp: '' };
+  });
+}
+
 export default function ContainerLogs() {
   const [containers, setContainers] = useState<Container[]>([]);
   const [selectedContainer, setSelectedContainer] = useState<string>('');
@@ -28,27 +44,32 @@ export default function ContainerLogs() {
   const [tailLines, setTailLines] = useState(500);
   const [loadingContainers, setLoadingContainers] = useState(false);
   const logContainerRef = useRef<HTMLDivElement>(null);
-  const socketRef = useRef<Socket | null>(null);
-  const roomIdRef = useRef<string>('');
+  const fetchingRef = useRef(false);
 
-  // Initialize Socket.io
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const socket = io('/', { auth: { token }, transports: ['websocket', 'polling'] });
-    socketRef.current = socket;
-
-    socket.on('container:log:entry', (entry: LogEntry) => {
-      setLogs(prev => {
-        const updated = [...prev, entry];
-        if (updated.length > tailLines) {
-          return updated.slice(updated.length - tailLines);
-        }
-        return updated;
+  // 轮询拉取日志（后端无 socket.io 推送，REST tail 语义：每次整体替换）
+  const fetchLogs = useCallback(async () => {
+    if (!selectedContainer || fetchingRef.current) return;
+    fetchingRef.current = true;
+    try {
+      const res = await api.get(`/containers/logs/${selectedContainer}`, {
+        params: { tail: tailLines, timestamps: 1 },
       });
-    });
+      const raw = typeof res.data.data === 'string' ? res.data.data : '';
+      setLogs(parseLogLines(selectedContainer, raw));
+    } catch {
+      message.error('拉取容器日志失败，已停止刷新');
+      setIsStreaming(false);
+    } finally {
+      fetchingRef.current = false;
+    }
+  }, [selectedContainer, tailLines]);
 
-    return () => { socket.disconnect(); };
-  }, [tailLines]);
+  useEffect(() => {
+    if (!isStreaming) return;
+    fetchLogs();
+    const timer = setInterval(fetchLogs, 2500);
+    return () => clearInterval(timer);
+  }, [isStreaming, fetchLogs]);
 
   // Fetch containers list
   const fetchContainers = useCallback(async () => {
@@ -78,22 +99,12 @@ export default function ContainerLogs() {
       message.warning('请先选择容器');
       return;
     }
-    const roomId = `container-logs-${selectedContainer}-${Date.now()}`;
-    roomIdRef.current = roomId;
-    socketRef.current?.emit('container:log:subscribe', {
-      containerId: selectedContainer,
-      tail: tailLines,
-      roomId,
-    });
-    setIsStreaming(true);
     setLogs([]);
+    setIsStreaming(true);
   };
 
   // Stop streaming logs
   const stopStreaming = () => {
-    socketRef.current?.emit('container:log:unsubscribe', {
-      roomId: roomIdRef.current,
-    });
     setIsStreaming(false);
   };
 
@@ -168,7 +179,7 @@ export default function ContainerLogs() {
           showSearch
           placeholder="选择容器"
           value={selectedContainer || undefined}
-          onChange={(val) => setSelectedContainer(val)}
+          onChange={(val) => { setSelectedContainer(val); setLogs([]); }}
           options={containerOptions}
           loading={loadingContainers}
           style={{ minWidth: 250 }}

@@ -1,8 +1,6 @@
 import { useMemo } from 'react';
 import { Search, X, CheckCircle2, Key } from 'lucide-react';
 import clsx from 'clsx';
-import api from '../../../lib/api';
-import { useToast } from '../../../contexts/ToastContext';
 
 interface SshKeyItem {
   id: string;
@@ -43,8 +41,6 @@ export function SshKeySection({
   resetForm,
   closeModal,
 }: SshKeySectionProps) {
-  const toast = useToast();
-
   const filteredSshKeys = useMemo(() => {
     if (!sshKeys) return [];
     if (!sshKeySearchQuery) return sshKeys;
@@ -120,16 +116,12 @@ export function SshKeySection({
                   key={key.id}
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={async () => {
-                    try {
-                      const res = await api.get(`/ssh-keys/${key.id}`);
-                      onSelectedSshKeyIdChange(key.id);
-                      onSshKeySearchQueryChange(`${key.name} (${key.key_type})`);
-                      onPrivateKeyChange(res.data.data.private_key);
-                      onShowSshKeyDropdownChange(false);
-                    } catch {
-                      toast.error('获取 SSH 私钥失败');
-                    }
+                  onClick={() => {
+                    // 只关联凭证 ID，私钥由服务端解密使用；切勿把密文填进表单造成二次加密
+                    onSelectedSshKeyIdChange(key.id);
+                    onSshKeySearchQueryChange(`${key.name} (${key.key_type})`);
+                    onPrivateKeyChange('');
+                    onShowSshKeyDropdownChange(false);
                   }}
                   className={clsx(
                     'w-full px-4 py-2.5 text-left hover:bg-primary/5 transition-colors border-b border-border/50 last:border-b-0',

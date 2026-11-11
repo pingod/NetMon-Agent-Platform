@@ -1,17 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import type { Socket } from 'socket.io-client';
-import { io } from 'socket.io-client';
 import { logger } from '@/lib/logger';
 import { Play, Pause, XCircle, Clock, CheckCircle, XCircle as XIcon, FileText, Activity, List, FileCheck } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import clsx from 'clsx';
 import api from '../../../lib/api';
-import { useAuth } from '../../../contexts/AuthContext';
 import MarkdownOutput from '../../../shared/components/MarkdownOutput';
-
-const wsUrl = window.location.origin;
 
 // ── Local display types (parsed JSON from API) ──
 
@@ -51,23 +46,21 @@ interface Report {
   task_id?: string;
 }
 
-interface _SocketTaskEvent {
-  taskId: string;
-  status?: string;
-}
-
 export default function Tasks() {
-  const { token } = useAuth();
   const [searchParams] = useSearchParams();
   const taskIdFromQuery = searchParams.get('taskId');
   const [selectedTask, setSelectedTask] = useState<TaskDisplay | null>(null);
-  const [executingNodeId, setExecutingNodeId] = useState<string | null>(null);
   const [taskLogs, setTaskLogs] = useState<TaskLogEntry[]>([]);
   const [activeTab, setActiveTab] = useState<'logs' | 'nodes' | 'related_reports'>('logs');
   const [showReportDetail, setShowReportDetail] = useState<Report | null>(null);
 
   const { data: tasks, refetch: refetchTasks } = useQuery({
     queryKey: ['tasks'],
+    // 后端无 socket.io 推送：有进行中任务时 3s 轮询，否则 15s
+    refetchInterval: (query) => {
+      const data = query.state.data as TaskDisplay[] | undefined;
+      return data?.some(t => t.status === 'running' || t.status === 'pending') ? 3000 : 15000;
+    },
     queryFn: async () => {
       const res = await api.get('/tasks');
       const taskData = res.data.data as TaskDisplay[];
@@ -118,110 +111,8 @@ export default function Tasks() {
     },
   });
 
-  useEffect(() => {
-    if (!token) return;
-
-    const socket: Socket = io(wsUrl, {
-      transports: ['websocket', 'polling'],
-      auth: {
-        token: token
-      }
-    });
-
-    const handleConnect = () => {
-    };
-
-    const handleDisconnect = () => {
-    };
-
-    const handleConnectError = (_error: Error) => {
-    };
-
-    const handleTaskStarted = (_data: unknown) => {
-      refetchTasks();
-    };
-
-    const handleNodeStarted = (data: unknown) => {
-      const nodeData = data as { nodeId: string };
-      setExecutingNodeId(nodeData.nodeId);
-    };
-
-    const handleNodeThinking = (data: unknown) => {
-      const eventData = data as { taskId: string; content: string };
-      if (selectedTask?.id === eventData.taskId) {
-        setTaskLogs((prev) => [
-          ...prev,
-          { type: 'thinking', content: eventData.content, timestamp: new Date() },
-        ]);
-      }
-    };
-
-    const handleNodeOutput = (data: unknown) => {
-      const eventData = data as { taskId: string; output: string };
-      if (selectedTask?.id === eventData.taskId) {
-        setTaskLogs((prev) => [
-          ...prev,
-          { type: 'output', content: eventData.output, timestamp: new Date() },
-        ]);
-      }
-    };
-
-    const handleNodeCompleted = (data: unknown) => {
-      setExecutingNodeId(null);
-      refetchTasks();
-      const taskData = data as { taskId: string; status: string };
-      if (selectedTask?.id === taskData.taskId) {
-        setTaskLogs((prev) => [
-          ...prev,
-          {
-            type: 'success',
-            content: `节点执行完成: ${taskData.status}`,
-            timestamp: new Date(),
-          },
-        ]);
-      }
-    };
-
-    const handleTaskCompleted = (_data: unknown) => {
-      refetchTasks();
-    };
-
-    const handleTaskFailed = (_data: unknown) => {
-      refetchTasks();
-    };
-
-    socket.on('connect', handleConnect);
-    socket.on('disconnect', handleDisconnect);
-    socket.on('connect_error', handleConnectError);
-    socket.on('task:started', handleTaskStarted);
-    socket.on('task:node:started', handleNodeStarted);
-    socket.on('task:node:thinking', handleNodeThinking);
-    socket.on('task:node:output', handleNodeOutput);
-    socket.on('task:node:completed', handleNodeCompleted);
-    socket.on('task:completed', handleTaskCompleted);
-    socket.on('task:failed', handleTaskFailed);
-
-    if (selectedTask) {
-      socket.emit('task:subscribe', selectedTask.id);
-    }
-
-    return () => {
-      if (selectedTask) {
-        socket.emit('task:unsubscribe', selectedTask.id);
-      }
-      socket.off('connect', handleConnect);
-      socket.off('disconnect', handleDisconnect);
-      socket.off('connect_error', handleConnectError);
-      socket.off('task:started', handleTaskStarted);
-      socket.off('task:node:started', handleNodeStarted);
-      socket.off('task:node:thinking', handleNodeThinking);
-      socket.off('task:node:output', handleNodeOutput);
-      socket.off('task:node:completed', handleNodeCompleted);
-      socket.off('task:completed', handleTaskCompleted);
-      socket.off('task:failed', handleTaskFailed);
-      socket.disconnect();
-    };
-  }, [selectedTask, refetchTasks, token]);
+  // 执行中节点由任务的 current_node_id 推导（轮询驱动，无 socket 事件）
+  const executingNodeId = selectedTask?.status === 'running' ? selectedTask.current_node_id : null;
 
   const selectedTaskRef = useRef<TaskDisplay | null>(selectedTask);
   useEffect(() => {
@@ -233,9 +124,10 @@ export default function Tasks() {
     if (currentSelectedTask && tasks) {
       const updatedTask = tasks.find(t => t.id === currentSelectedTask.id);
       if (updatedTask) {
-        const hasChanged = 
-          updatedTask.status !== currentSelectedTask.status || 
-          JSON.stringify(updatedTask.node_results) !== JSON.stringify(currentSelectedTask.node_results);
+        const hasChanged =
+          updatedTask.status !== currentSelectedTask.status ||
+          JSON.stringify(updatedTask.node_results) !== JSON.stringify(currentSelectedTask.node_results) ||
+          (updatedTask.logs?.length || 0) !== (currentSelectedTask.logs?.length || 0);
         
         if (hasChanged) {
           const parsedTask = { ...updatedTask };
@@ -276,9 +168,7 @@ export default function Tasks() {
           }
           
           setSelectedTask(parsedTask);
-          if (updatedTask.status === 'completed' || updatedTask.status === 'failed') {
-            setTaskLogs(parsedLogs);
-          }
+          setTaskLogs(parsedLogs);
         }
       }
     }

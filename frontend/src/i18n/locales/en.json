@@ -79,6 +79,10 @@
     "kubernetes": "K8s Management",
     "costAnalysis": "Cost Analysis",
     "autoScale": "Auto Scaling",
+    "mcp": "MCP",
+    "mcpOverview": "MCP Overview",
+    "mcpTools": "Tool Browser",
+    "mcpExternalServers": "External Servers",
     "mcpTester": "MCP Tester",
     "alertProviders": "Alert Providers",
     "metricTags": "Metric Tags"

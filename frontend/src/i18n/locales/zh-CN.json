@@ -1,5 +1,5 @@
 {
-  "app": { "title": "NetMon", "subtitle": "网络监控平台", "brandTagline": "智能运维平台", "systemNormal": "系统正常", "collapseAll": "展开全部", "expandAll": "折叠全部", "logout": "退出登录", "darkMode": "切换深色模式", "lightMode": "切换浅色模式", "searchMenu": "搜索菜单…", "menu": "功能菜单", "menuEmpty": "没有匹配的菜单。可在「系统设置 → 界面与菜单」中恢复显示。" },
+  "app": { "title": "NetMon", "subtitle": "网络监控平台", "brandTagline": "智能运维平台", "systemNormal": "系统正常", "collapseAll": "折叠全部", "expandAll": "展开全部", "logout": "退出登录", "darkMode": "切换深色模式", "lightMode": "切换浅色模式", "searchMenu": "搜索菜单…", "menu": "功能菜单", "menuEmpty": "没有匹配的菜单。可在「系统设置 → 界面与菜单」中恢复显示。" },
   "nav": {
     "home": "首页",
     "dashboard": "仪表盘",

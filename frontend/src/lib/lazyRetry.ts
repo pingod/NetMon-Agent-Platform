@@ -10,9 +10,13 @@
  * 2. 仍失败 → 刷新整个页面（恢复模块图）
  */
 import { lazy, type ComponentType } from 'react';
+import { logger } from './logger';
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 200;
+// 自动刷新最小间隔： chunk 永久缺失（如旧版本部署残留）时避免无限刷新循环
+const RELOAD_COOLDOWN = 30000;
+const RELOAD_KEY = 'lazyRetryReloadAt';
 
 function isDynamicImportError(error: unknown): boolean {
   const msg = error instanceof Error ? error.message : String(error);
@@ -42,10 +46,14 @@ export function lazyRetry<T extends ComponentType<any>>(
         await sleep(RETRY_DELAY * retryCount);
         return retryableImport();
       }
-      // 重试耗尽后仍失败 → 刷新页面让浏览器重新获取模块图
+      // 重试耗尽后仍失败 → 刷新页面让浏览器重新获取模块图（带冷却，防死循环）
       if (isDynamicImportError(error)) {
-        console.error('[lazyRetry] Dynamic import failed after retries, reloading page...', error);
-        setTimeout(() => window.location.reload(), 0);
+        const lastReload = Number(sessionStorage.getItem(RELOAD_KEY) || 0);
+        if (Date.now() - lastReload > RELOAD_COOLDOWN) {
+          sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
+          logger.error('[lazyRetry] Dynamic import failed after retries, reloading page...', error);
+          setTimeout(() => window.location.reload(), 0);
+        }
       }
       throw error;
     }

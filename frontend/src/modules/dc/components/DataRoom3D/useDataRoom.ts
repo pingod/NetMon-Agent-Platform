@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { logger } from '@/lib/logger';
 import api from '../../../../lib/api';
-import { useSocketIO } from '../../../../lib/useSocketIO';
-import type { DCStatusPayload } from '../../../../lib/useSocketIO';
 import type { Rack3D, SlotInfo, OverviewData, AlertItem } from './types';
 
 interface RawSlotItem {
@@ -35,6 +33,7 @@ interface RawAlertItem {
   id: string;
   title: string;
   severity: string;
+  status?: string;
   source?: string;
   created_at?: string;
 }
@@ -155,51 +154,43 @@ export default function useDataRoom(): UseDataRoomReturn {
     };
 
     load();
-    return () => { cancelled = true; };
+    // 后端无实时推送，轮询刷新概览与机柜利用率
+    const timer = setInterval(load, 60000);
+    return () => { cancelled = true; clearInterval(timer); };
   }, []);
 
-  /** 加载告警数据 */
+  /** 加载告警数据（活动告警 = 未 resolved/closed；'open' 不是合法状态值） */
   useEffect(() => {
     let cancelled = false;
 
-    api.get('/alerts', { params: { limit: 50, status: 'open' } })
-      .then(res => {
-        if (cancelled) return;
-        const items = (res.data.data || []) as RawAlertItem[];
-        setAlerts(items);
-        setAlertsList(items);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setAlerts([]);
-          setAlertsList([]);
-        }
-      });
-
-    return () => { cancelled = true; };
-  }, []);
-
-  /** WebSocket 实时推送订阅 */
-  const { on } = useSocketIO();
-  useEffect(() => {
-    const unsub = on<DCStatusPayload>('dc:status', (payload) => {
-      // 更新机柜利用率
-      if (payload.rackUtil?.length > 0) {
-        setRacks(prev => prev.map(r => {
-          const update = payload.rackUtil.find((u) => u.id === r.id);
-          if (update) {
-            return { ...r, usedU: update.used_u, deviceCount: update.device_count };
+    const loadAlerts = () => {
+      api.get('/alerts', { params: { limit: 50 } })
+        .then(res => {
+          if (cancelled) return;
+          const items = ((res.data.data || []) as RawAlertItem[])
+            .filter(a => a.status !== 'resolved' && a.status !== 'closed')
+            .map(a => ({
+              id: a.id,
+              title: a.title,
+              severity: a.severity,
+              source: a.source,
+              time: a.created_at,
+            }));
+          setAlerts(items);
+          setAlertsList(items);
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setAlerts([]);
+            setAlertsList([]);
           }
-          return r;
-        }));
-      }
-      // 更新概览摘要
-      if (payload.summary) {
-        setOverview(prev => prev ? { ...prev, summary: { ...prev.summary, ...payload.summary } } : prev);
-      }
-    });
-    return () => unsub();
-  }, [on]);
+        });
+    };
+
+    loadAlerts();
+    const timer = setInterval(loadAlerts, 30000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, []);
 
   /** 加载选中机柜的 U 位详情 */
   const fetchRackSlots = useCallback(async (rackId: string) => {

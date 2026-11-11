@@ -4,8 +4,8 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Bell, CheckCircle, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import api from '../../../../lib/api';
-import { useAuth } from '../../../../contexts/AuthContext';
-import { useAlertSocket } from './useAlertSocket';
+import { useToast } from '../../../../contexts/ToastContext';
+import { getAxiosErrorMessage } from '../../../../lib/errorHandler';
 import AlertFilterBar from './AlertFilterBar';
 import AlertList from './AlertList';
 import AlertDetailPanel from './AlertDetailPanel';
@@ -14,7 +14,7 @@ import AutomationLogPanel from './AutomationLogPanel';
 import type { Alert, ProcessResult, AutomationLog, AnalysisItem } from './types';
 
 export default function Alerts() {
-  const { token } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
@@ -36,9 +36,9 @@ export default function Alerts() {
       return res.data.data as Alert[];
     },
     staleTime: 30000,
+    // 后端无 socket.io 推送，轮询保证新告警可见
+    refetchInterval: 30000,
   });
-
-  const { wsConnected: _wsConnected } = useAlertSocket(token, refetch);
 
   // 关联数据：AI 分析结果 + 修复执行记录
   const { data: analysisMap = {} } = useQuery({
@@ -66,9 +66,10 @@ export default function Alerts() {
     if (!alerts) return [];
     if (!searchQuery) return alerts;
     return alerts.filter((alert) => {
-      return alert.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        alert.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        alert.source.toLowerCase().includes(searchQuery.toLowerCase());
+      const q = searchQuery.toLowerCase();
+      return (alert.title || '').toLowerCase().includes(q) ||
+        (alert.content || '').toLowerCase().includes(q) ||
+        (alert.source || '').toLowerCase().includes(q);
     });
   }, [alerts, searchQuery]);
 
@@ -77,6 +78,7 @@ export default function Alerts() {
       await api.put(`/alerts/${alertId}/acknowledge`);
     },
     onSuccess: () => refetch(),
+    onError: (err) => toast.error(getAxiosErrorMessage(err, '确认告警失败')),
   });
 
   const resolveMutation = useMutation({
@@ -84,6 +86,7 @@ export default function Alerts() {
       await api.put(`/alerts/${alertId}/resolve`);
     },
     onSuccess: () => refetch(),
+    onError: (err) => toast.error(getAxiosErrorMessage(err, '解决告警失败')),
   });
 
   const processMutation = useMutation({
@@ -97,6 +100,7 @@ export default function Alerts() {
       }
       refetch();
     },
+    onError: (err) => toast.error(getAxiosErrorMessage(err, '处理告警失败')),
   });
 
   // 支持 URL 参数 ?alertId=... 或 ?highlight=... 自动弹出告警详情弹窗

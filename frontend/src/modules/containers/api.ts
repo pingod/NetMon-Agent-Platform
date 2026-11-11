@@ -508,16 +508,6 @@ export const containersApi = {
     return data.data;
   },
 
-  /** 启动容器监控 */
-  async startMonitor(containerId: string): Promise<void> {
-    await api.post(`/docker-monitor/start/${containerId}`);
-  },
-
-  /** 停止容器监控 */
-  async stopMonitor(containerId: string): Promise<void> {
-    await api.post(`/docker-monitor/stop/${containerId}`);
-  },
-
   // ── 虚拟机平台 ──
 
   /** 获取虚拟化平台列表 */

@@ -32,23 +32,23 @@ export default function TerminalPage() {
     setSelectedServer(null);
   }, []);
 
-  const { data: serversData, isLoading } = useQuery<{ success: boolean; data: ServerItem[] }>({
+  // 与其他页面共享 ['servers'] 缓存，必须同样缓存解包后的数组
+  const { data: servers = [], isLoading } = useQuery<ServerItem[]>({
     queryKey: ['servers'],
-    queryFn: () => api.get('/servers').then((r) => r.data),
+    queryFn: () => api.get('/servers').then((r) => r.data.data || []),
   });
 
-  const servers = useMemo(() => {
-    const all = serversData?.data || [];
-    if (!searchTerm) return all;
+  const filteredServers = useMemo(() => {
+    if (!searchTerm) return servers;
     const term = searchTerm.toLowerCase();
-    return all.filter(
+    return servers.filter(
       (s) =>
         s.name.toLowerCase().includes(term) ||
         s.hostname.toLowerCase().includes(term) ||
         s.username.toLowerCase().includes(term) ||
         (s.tags || []).some((t) => t.toLowerCase().includes(term))
     );
-  }, [serversData, searchTerm]);
+  }, [servers, searchTerm]);
 
   if (selectedServer && token) {
     return (
@@ -100,7 +100,7 @@ export default function TerminalPage() {
             <div key={i} className="h-32 bg-surface rounded-lg animate-pulse" />
           ))}
         </div>
-      ) : servers.length === 0 ? (
+      ) : filteredServers.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-text-secondary/60">
           <Server className="w-16 h-16 mb-4 opacity-50" />
           <p className="text-lg">
@@ -112,7 +112,7 @@ export default function TerminalPage() {
         </div>
       ) : (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {servers.map((server) => (
+          {filteredServers.map((server) => (
             <button
               key={server.id}
               onClick={() => handleServerClick(server)}

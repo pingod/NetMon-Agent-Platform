@@ -320,12 +320,6 @@ export const serversApi = {
     return data.data;
   },
 
-  /** 获取 SSH 凭证详情（含私钥） */
-  async getSshKey(id: string): Promise<SshKey & { private_key: string }> {
-    const { data } = await api.get(`/ssh-keys/${id}`);
-    return data.data;
-  },
-
   /** 创建 SSH 凭证 */
   async createSshKey(input: SshKeyInput): Promise<SshKey> {
     const { data } = await api.post('/ssh-keys', input);

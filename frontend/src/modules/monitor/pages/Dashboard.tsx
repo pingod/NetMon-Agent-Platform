@@ -84,7 +84,7 @@ export default function Dashboard() {
       icon: Activity,
       color: 'text-blue-600',
       bg: 'bg-blue-600/10',
-      action: () => navigate('/workflows'),
+      action: () => navigate('/inspection-center'),
     },
     {
       id: 'executeScript',

@@ -8,6 +8,7 @@ import clsx from 'clsx';
 import api from '../../../lib/api';
 import { getAxiosErrorMessage } from '../../../lib/errorHandler';
 import { useToast } from '../../../contexts/ToastContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import { useEscapeKey } from '../../../hooks/useEscapeKey';
 
 interface SSHKey {
@@ -32,6 +33,8 @@ interface UsageServer {
 export default function SSHKeys() {
   const queryClient = useQueryClient();
   const toast = useToast();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedKey, setSelectedKey] = useState<SSHKey | null>(null);
   const [formData, setFormData] = useState({
@@ -60,14 +63,15 @@ export default function SSHKeys() {
     },
   });
 
-  const { data: fullKeyData } = useQuery({
-    queryKey: ['ssh-key', expandedKey],
+  const { data: fullKeyData, isFetching: revealLoading, error: revealError } = useQuery({
+    queryKey: ['ssh-key-reveal', expandedKey],
     queryFn: async () => {
       if (!expandedKey) return null;
-      const res = await api.get(`/ssh-keys/${expandedKey}`);
-      return res.data.data as SSHKey & { private_key: string };
+      const res = await api.get(`/ssh-keys/${expandedKey}/reveal`);
+      return res.data.data as { private_key?: string; password?: string };
     },
-    enabled: !!expandedKey,
+    enabled: !!expandedKey && isAdmin,
+    retry: false,
   });
 
   const createMutation = useMutation({
@@ -168,9 +172,10 @@ export default function SSHKeys() {
   };
 
   const handleCopyKey = () => {
-    if (fullKeyData?.private_key) {
-      navigator.clipboard.writeText(fullKeyData.private_key);
-      toast.success('私钥已复制到剪贴板');
+    const secret = fullKeyData?.private_key || fullKeyData?.password;
+    if (secret) {
+      navigator.clipboard.writeText(secret);
+      toast.success(fullKeyData?.private_key ? '私钥已复制到剪贴板' : '密码已复制到剪贴板');
     }
   };
 
@@ -349,17 +354,19 @@ export default function SSHKeys() {
                           <Server className="h-3.5 w-3.5" />
                         </button>
                       )}
-                      <button
-                        onClick={() => setExpandedKey(expandedKey === key.id ? null : key.id)}
-                        className="rounded-md p-1.5 text-[#94a3b8] transition-colors hover:bg-white/5 hover:text-[#60a5fa]"
-                        title="查看私钥"
-                      >
-                        {expandedKey === key.id ? (
-                          <EyeOff className="h-3.5 w-3.5" />
-                        ) : (
-                          <Eye className="h-3.5 w-3.5" />
-                        )}
-                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={() => setExpandedKey(expandedKey === key.id ? null : key.id)}
+                          className="rounded-md p-1.5 text-[#94a3b8] transition-colors hover:bg-white/5 hover:text-[#60a5fa]"
+                          title={key.auth_type === 'password' ? '查看密码' : '查看私钥'}
+                        >
+                          {expandedKey === key.id ? (
+                            <EyeOff className="h-3.5 w-3.5" />
+                          ) : (
+                            <Eye className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      )}
                       <button
                         onClick={() => handleEdit(key)}
                         className="rounded-md p-1.5 text-[#94a3b8] transition-colors hover:bg-white/5 hover:text-[#60a5fa]"
@@ -391,21 +398,30 @@ export default function SSHKeys() {
                     </div>
                   )}
 
-                  {expandedKey === key.id && fullKeyData && (
+                  {expandedKey === key.id && isAdmin && (
                     <div className="mt-4 p-4 bg-black/60 border border-border rounded-lg">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-text-tertiary">私钥内容</span>
+                        <span className="text-xs text-text-tertiary">
+                          {key.auth_type === 'password' ? '密码内容' : '私钥内容'}（查看已记入审计日志）
+                        </span>
                         <button
                           onClick={handleCopyKey}
-                          className="text-xs text-text-tertiary hover:text-text-primary flex items-center gap-1 transition-colors"
+                          disabled={!fullKeyData}
+                          className="text-xs text-text-tertiary hover:text-text-primary flex items-center gap-1 transition-colors disabled:opacity-40"
                         >
                           <Copy className="w-3 h-3" />
-                          复制私钥
+                          {key.auth_type === 'password' ? '复制密码' : '复制私钥'}
                         </button>
                       </div>
-                      <pre className="text-xs font-mono text-green-400 whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
-                        {fullKeyData.private_key}
-                      </pre>
+                      {revealLoading ? (
+                        <p className="text-xs text-text-tertiary animate-pulse">正在解密…</p>
+                      ) : revealError ? (
+                        <p className="text-xs text-red-400">{getAxiosErrorMessage(revealError, '获取凭证内容失败')}</p>
+                      ) : (
+                        <pre className="text-xs font-mono text-green-400 whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
+                          {fullKeyData?.private_key || fullKeyData?.password || '（无内容）'}
+                        </pre>
+                      )}
                     </div>
                   )}
 

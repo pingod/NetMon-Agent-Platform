@@ -2,6 +2,12 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
+// 后端代理目标:DOCKER_MODE 用容器名,否则可用 API_PROXY_TARGET 指向非默认端口的开发实例
+const apiTarget = process.env.DOCKER_MODE
+  ? 'http://backend:3001'
+  : process.env.API_PROXY_TARGET || 'http://localhost:8088';
+const wsTarget = apiTarget.replace(/^http/, 'ws');
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -39,15 +45,15 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: process.env.DOCKER_MODE ? 'http://backend:3001' : 'http://localhost:8088',
+        target: apiTarget,
         changeOrigin: true,
       },
       '/socket.io': {
-        target: process.env.DOCKER_MODE ? 'http://backend:3001' : 'http://localhost:8088',
+        target: apiTarget,
         ws: true,
       },
       '/ws': {
-        target: process.env.DOCKER_MODE ? 'ws://backend:3001' : 'ws://localhost:8088',
+        target: wsTarget,
         ws: true,
       },
     },

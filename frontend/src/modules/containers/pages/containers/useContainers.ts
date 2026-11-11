@@ -280,9 +280,10 @@ export function useContainers() {
     setEpHost(ep.host);
     setEpPort(String(ep.port || 2375));
     setEpProtocol(ep.protocol || 'tcp');
-    setEpTlsCa(ep.tlsCa || '');
-    setEpTlsCert(ep.tlsCert || '');
-    setEpTlsKey(ep.tlsKey || '');
+    // TLS 密钥不再随列表下发，留空表示保留原值
+    setEpTlsCa('');
+    setEpTlsCert('');
+    setEpTlsKey('');
     setShowEpCreateModal(true);
   }
 

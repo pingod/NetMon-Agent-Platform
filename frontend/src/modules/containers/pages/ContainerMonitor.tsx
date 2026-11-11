@@ -1,9 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Table, Button, Tag, Card, Statistic, Row, Col, Drawer, Descriptions, Progress, message, Switch as _Switch, Space, Tooltip } from 'antd';
-import { Play, Square, Eye, Activity, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Table, Button, Tag, Card, Statistic, Row, Col, Drawer, Descriptions, Progress, message, Switch, Space, Tooltip } from 'antd';
+import { Eye, Activity, RefreshCw } from 'lucide-react';
 import api from '../../../lib/api';
-import type { Socket } from 'socket.io-client';
-import io from 'socket.io-client';
 
 interface ContainerStats {
   containerId: string;
@@ -48,26 +46,12 @@ export default function ContainerMonitor() {
   const [detailItem, setDetailItem] = useState<Container | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [detailInspect, setDetailInspect] = useState<any>(null);
-  const [monitoredIds, setMonitoredIds] = useState<Set<string>>(new Set());
   const [containerStatsMap, setContainerStatsMap] = useState<Map<string, ContainerStats>>(new Map());
-  const socketRef = useRef<Socket | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
-  // Initialize Socket.io
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const socket = io('/', { auth: { token }, transports: ['websocket', 'polling'] });
-    socketRef.current = socket;
-
-    socket.on('container:stats', (stats: ContainerStats) => {
-      setContainerStatsMap(prev => new Map(prev).set(stats.containerId, stats));
-    });
-
-    return () => { socket.disconnect(); };
-  }, []);
-
-  // Fetch initial data
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  // Fetch initial data；silent=true 用于定时轮询，不触发 loading 闪烁
+  const fetchData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [containerRes, snapRes] = await Promise.all([
         api.get('/containers'),
@@ -79,42 +63,31 @@ export default function ContainerMonitor() {
         totalContainers: 0, runningContainers: 0, totalCpuPercent: '0',
         totalMemoryUsage: 0, totalMemoryLimit: 0, totalMemoryPercent: '0',
       });
-      setContainerStatsMap(prev => {
-        const next = new Map(prev);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        list.forEach((c: any) => {
-          if (c.stats) {
-            next.set(c.id, c.stats);
-            if (c.container_id) next.set(c.container_id, c.stats);
-          }
-        });
-        return next;
+      // /containers 列表已内嵌每容器 stats（docker stats --no-stream），无需 socket 推送
+      const next = new Map<string, ContainerStats>();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      list.forEach((c: any) => {
+        if (c.stats) {
+          next.set(c.id, c.stats);
+          if (c.container_id) next.set(c.container_id, c.stats);
+        }
       });
+      setContainerStatsMap(next);
     } catch {
-      message.error('加载失败');
+      if (!silent) message.error('加载失败');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Toggle monitoring
-  const toggleMonitor = async (containerId: string, start: boolean) => {
-    try {
-      await api.post(`/docker-monitor/${start ? 'start' : 'stop'}/${containerId}`);
-      if (start) {
-        socketRef.current?.emit('container:subscribe', { containerId });
-        setMonitoredIds(prev => new Set(prev).add(containerId));
-      } else {
-        socketRef.current?.emit('container:unsubscribe', { containerId });
-        setMonitoredIds(prev => { const next = new Set(prev); next.delete(containerId); return next; });
-      }
-      message.success(start ? '已开始监控' : '已停止监控');
-    } catch {
-      message.error('操作失败');
-    }
-  };
+  // 自动刷新：5s 轮询替代原 socket.io 推送（后端无 socket.io）
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const timer = setInterval(() => fetchData(true), 5000);
+    return () => clearInterval(timer);
+  }, [autoRefresh, fetchData]);
 
   // View detail
   const viewDetail = async (item: Container) => {
@@ -228,42 +201,18 @@ export default function ContainerMonitor() {
     {
       title: '操作',
       key: 'actions',
-      width: 240,
-      render: (_: unknown, record: Container) => {
-        const isMonitoring = monitoredIds.has(record.id);
-        return (
-          <Space size="small">
-            {isMonitoring ? (
-              <Button
-                size="small"
-                danger
-                icon={<Square className="w-3 h-3" />}
-                onClick={() => toggleMonitor(record.id, false)}
-              >
-                停止监控
-              </Button>
-            ) : (
-              <Button
-                size="small"
-                type="primary"
-                ghost
-                icon={<Play className="w-3 h-3" />}
-                onClick={() => toggleMonitor(record.id, true)}
-                disabled={record.status !== 'running'}
-              >
-                开始监控
-              </Button>
-            )}
-            <Button
-              size="small"
-              icon={<Eye className="w-3 h-3" />}
-              onClick={() => viewDetail(record)}
-            >
-              详情
-            </Button>
-          </Space>
-        );
-      },
+      width: 120,
+      render: (_: unknown, record: Container) => (
+        <Space size="small">
+          <Button
+            size="small"
+            icon={<Eye className="w-3 h-3" />}
+            onClick={() => viewDetail(record)}
+          >
+            详情
+          </Button>
+        </Space>
+      ),
     },
   ];
 
@@ -275,9 +224,15 @@ export default function ContainerMonitor() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">容器实时监控</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">实时监控容器运行状态、CPU、内存与网络资源</p>
         </div>
-        <Button icon={<RefreshCw className="w-4 h-4" />} onClick={fetchData} loading={loading}>
-          刷新
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500 dark:text-gray-400">自动刷新</span>
+            <Switch size="small" checked={autoRefresh} onChange={setAutoRefresh} />
+          </div>
+          <Button icon={<RefreshCw className="w-4 h-4" />} onClick={() => fetchData()} loading={loading}>
+            刷新
+          </Button>
+        </div>
       </div>
 
       {/* Cluster Overview Cards */}
