@@ -161,7 +161,7 @@ func ServerManagementRoutes() chi.Router {
 			// 连接测试（可选）— 异步执行，不阻塞导入主流程
 			if req.TestConnection {
 				go func(srvID string) {
-					cfg, cfgErr := buildServerSSHConfig(srvID)
+					cfg, cfgErr := BuildServerSSHConfig(srvID)
 					if cfgErr != nil {
 						return
 					}
@@ -218,7 +218,7 @@ func execSimple(client *services.SSHClient, cmd string, timeout time.Duration) s
 
 // collectServerInfo 采集单台服务器信息并回填
 func collectServerInfo(id string) (map[string]interface{}, error) {
-	cfg, err := buildServerSSHConfig(id)
+	cfg, err := BuildServerSSHConfig(id)
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +273,7 @@ func collectServerInfo(id string) (map[string]interface{}, error) {
 
 // collectServerMetrics 采集单台服务器性能指标
 func collectServerMetrics(id string) (map[string]interface{}, error) {
-	cfg, err := buildServerSSHConfig(id)
+	cfg, err := BuildServerSSHConfig(id)
 	if err != nil {
 		return nil, err
 	}

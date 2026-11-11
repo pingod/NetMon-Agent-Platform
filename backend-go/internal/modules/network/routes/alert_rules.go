@@ -15,19 +15,20 @@ import (
 
 	"itops-backend/internal/appdb"
 	"itops-backend/internal/httpx"
+	"itops-backend/internal/middleware"
 	"itops-backend/internal/modules/network/services"
 	"itops-backend/internal/repos"
 )
 
 func RegisterAlertRuleRoutes(r chi.Router) {
 	r.Get("/alert-rules", handleListAlertRules)
-	r.Post("/alert-rules", handleCreateAlertRule)
-	r.Put("/alert-rules/{id}", handleUpdateAlertRule)
-	r.Delete("/alert-rules/{id}", handleDeleteAlertRule)
+	r.With(middleware.RequireRole("admin")).Post("/alert-rules", handleCreateAlertRule)
+	r.With(middleware.RequireRole("admin")).Put("/alert-rules/{id}", handleUpdateAlertRule)
+	r.With(middleware.RequireRole("admin")).Delete("/alert-rules/{id}", handleDeleteAlertRule)
 	r.Get("/alert-rules/available-metrics", handleGetAvailableMetrics)
 	r.Get("/alert-rules/available-tags", handleGetAvailableTags)
-	r.Post("/alert-rules/preview-match", handlePreviewAlertMatch)
-	r.Post("/alert-rules/seed-templates", handleSeedAlertTemplates)
+	r.With(middleware.RequireRole("admin", "operator")).Post("/alert-rules/preview-match", handlePreviewAlertMatch)
+	r.With(middleware.RequireRole("admin")).Post("/alert-rules/seed-templates", handleSeedAlertTemplates)
 }
 
 func handleListAlertRules(w http.ResponseWriter, r *http.Request) {

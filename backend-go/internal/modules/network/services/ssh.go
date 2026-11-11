@@ -369,6 +369,8 @@ func (c *SSHClient) RunShellCommandsWithTimeout(device SSHDeviceConfig, commands
 
 	var output strings.Builder
 	var stderrOutput strings.Builder
+	// stderrOutput 由 stderr goroutine 写入、主循环读取，必须加锁
+	var stderrMu sync.Mutex
 
 	// stderr goroutine：累积输出 + 检测 enable 密码提示
 	go func() {
@@ -377,7 +379,9 @@ func (c *SSHClient) RunShellCommandsWithTimeout(device SSHDeviceConfig, commands
 			n, err := stderrPipe.Read(buf)
 			if n > 0 {
 				chunk := string(buf[:n])
+				stderrMu.Lock()
 				stderrOutput.WriteString(chunk)
+				stderrMu.Unlock()
 				if enablePasswordRegex.MatchString(chunk) && device.EnablePassword != "" {
 					logger.Debugf("Detected enable password prompt, sending enable password")
 					stdin.Write([]byte(device.EnablePassword + "\n"))
@@ -459,9 +463,11 @@ func (c *SSHClient) RunShellCommandsWithTimeout(device SSHDeviceConfig, commands
 		select {
 		case <-timeoutCh:
 			finalOutput := output.String()
+			stderrMu.Lock()
 			if stderrOutput.Len() > 0 {
 				finalOutput += "\n[stderr] " + stderrOutput.String()
 			}
+			stderrMu.Unlock()
 			return finalOutput, fmt.Errorf("Shell 会话超时(%ds), 已收到 %.1fKB", int(timeout.Seconds()), float64(output.Len())/1024)
 
 		case <-stdoutErrCh:
@@ -521,9 +527,11 @@ func (c *SSHClient) RunShellCommandsWithTimeout(device SSHDeviceConfig, commands
 	session.Wait()
 
 	// 追加 stderr
+	stderrMu.Lock()
 	if stderrOutput.Len() > 0 {
 		output.WriteString("\n[stderr] " + stderrOutput.String())
 	}
+	stderrMu.Unlock()
 
 	logger.Debugf("Shell session closed, received %.1fKB output", float64(output.Len())/1024)
 	return output.String(), nil

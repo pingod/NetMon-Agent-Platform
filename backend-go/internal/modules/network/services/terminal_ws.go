@@ -5,6 +5,7 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -164,11 +165,11 @@ func handleTerminalMessages(conn *websocket.Conn) {
 		case "open":
 			handleTerminalOpen(conn, msg)
 		case "data":
-			handleTerminalData(msg)
+			handleTerminalData(conn, msg)
 		case "resize":
-			handleTerminalResize(msg)
+			handleTerminalResize(conn, msg)
 		case "close":
-			handleTerminalClose(msg)
+			handleTerminalClose(conn, msg)
 		default:
 			sendWSError(conn, fmt.Sprintf("unknown message type: %s", msg.Type))
 		}
@@ -252,16 +253,25 @@ func handleTerminalOpen(conn *websocket.Conn, msg WSMessage) {
 	}()
 }
 
+// ownedTerminalSession 按 sessionID 查会话，并校验其属于当前 WebSocket 连接，
+// 防止跨连接向他人终端注入命令/改窗口/关闭会话。
+func ownedTerminalSession(conn *websocket.Conn, sessionID string) *TerminalSession {
+	terminalSessionsMu.Lock()
+	session, ok := terminalSessions[sessionID]
+	terminalSessionsMu.Unlock()
+	if !ok || session == nil || session.Conn != conn {
+		return nil
+	}
+	return session
+}
+
 // handleTerminalData 处理终端输入数据
-func handleTerminalData(msg WSMessage) {
+func handleTerminalData(conn *websocket.Conn, msg WSMessage) {
 	if msg.SessionID == "" {
 		return
 	}
-	terminalSessionsMu.Lock()
-	session, ok := terminalSessions[msg.SessionID]
-	terminalSessionsMu.Unlock()
-
-	if !ok || session == nil || session.WriteData == nil {
+	session := ownedTerminalSession(conn, msg.SessionID)
+	if session == nil || session.WriteData == nil {
 		return
 	}
 	if err := session.WriteData([]byte(msg.Data)); err != nil {
@@ -270,15 +280,12 @@ func handleTerminalData(msg WSMessage) {
 }
 
 // handleTerminalResize 处理终端大小变更
-func handleTerminalResize(msg WSMessage) {
+func handleTerminalResize(conn *websocket.Conn, msg WSMessage) {
 	if msg.SessionID == "" {
 		return
 	}
-	terminalSessionsMu.Lock()
-	session, ok := terminalSessions[msg.SessionID]
-	terminalSessionsMu.Unlock()
-
-	if !ok || session == nil || session.Resize == nil {
+	session := ownedTerminalSession(conn, msg.SessionID)
+	if session == nil || session.Resize == nil {
 		return
 	}
 	session.Resize(msg.Cols, msg.Rows)
@@ -286,10 +293,14 @@ func handleTerminalResize(msg WSMessage) {
 }
 
 // handleTerminalClose 处理终端关闭
-func handleTerminalClose(msg WSMessage) {
-	if msg.SessionID != "" {
-		closeTerminalSession(msg.SessionID)
+func handleTerminalClose(conn *websocket.Conn, msg WSMessage) {
+	if msg.SessionID == "" {
+		return
 	}
+	if ownedTerminalSession(conn, msg.SessionID) == nil {
+		return
+	}
+	closeTerminalSession(msg.SessionID)
 }
 
 // closeTerminalSession 关闭终端会话
@@ -431,47 +442,8 @@ func createDeviceTerminal(deviceID string, cols, rows int) (sessionID string, sh
 		return "", nil, nil, nil, nil, fmt.Errorf("启动 Shell 失败: %w", err)
 	}
 
-	sessionID = "dev-" + deviceID[:8] + "-" + uuid.New().String()[:8]
-	dataCh := make(chan []byte, 512)
-
-	// 读取 stdout
-	go func() {
-		buf := make([]byte, 4096)
-		for {
-			n, err := stdout.Read(buf)
-			if n > 0 {
-				data := make([]byte, n)
-				copy(data, buf[:n])
-				select {
-				case dataCh <- data:
-				default:
-				}
-			}
-			if err != nil {
-				close(dataCh)
-				return
-			}
-		}
-	}()
-
-	// 读取 stderr
-	go func() {
-		buf := make([]byte, 4096)
-		for {
-			n, err := stderr.Read(buf)
-			if n > 0 {
-				data := make([]byte, n)
-				copy(data, buf[:n])
-				select {
-				case dataCh <- data:
-				default:
-				}
-			}
-			if err != nil {
-				return
-			}
-		}
-	}()
+	sessionID = "dev-" + shortID(deviceID) + "-" + uuid.New().String()[:8]
+	dataCh := pipeShellOutput(stdout, stderr)
 
 	writeData = func(data []byte) error {
 		_, err := stdin.Write(data)
@@ -585,45 +557,8 @@ func createServerTerminal(serverID string, cols, rows int) (sessionID string, sh
 		return "", nil, nil, nil, nil, fmt.Errorf("启动 Shell 失败: %w", err)
 	}
 
-	sessionID = "srv-" + serverID[:8] + "-" + uuid.New().String()[:8]
-	dataCh := make(chan []byte, 512)
-
-	go func() {
-		buf := make([]byte, 4096)
-		for {
-			n, err := stdout.Read(buf)
-			if n > 0 {
-				data := make([]byte, n)
-				copy(data, buf[:n])
-				select {
-				case dataCh <- data:
-				default:
-				}
-			}
-			if err != nil {
-				close(dataCh)
-				return
-			}
-		}
-	}()
-
-	go func() {
-		buf := make([]byte, 4096)
-		for {
-			n, err := stderr.Read(buf)
-			if n > 0 {
-				data := make([]byte, n)
-				copy(data, buf[:n])
-				select {
-				case dataCh <- data:
-				default:
-				}
-			}
-			if err != nil {
-				return
-			}
-		}
-	}()
+	sessionID = "srv-" + shortID(serverID) + "-" + uuid.New().String()[:8]
+	dataCh := pipeShellOutput(stdout, stderr)
 
 	writeData = func(data []byte) error {
 		_, err := stdin.Write(data)
@@ -648,6 +583,47 @@ func createServerTerminal(serverID string, cols, rows int) (sessionID string, sh
 // ───────────────────────────────────────────────
 // 辅助函数
 // ───────────────────────────────────────────────
+
+// shortID 安全截取 ID 前 8 位（ID 可能不足 8 字符，直接切片会 panic）
+func shortID(id string) string {
+	if len(id) > 8 {
+		return id[:8]
+	}
+	return id
+}
+
+// pipeShellOutput 合并 stdout/stderr 到单一 channel。
+// 两个读协程都退出后才 close，避免「stdout 先 close、stderr 仍在 send」的 panic。
+func pipeShellOutput(stdout, stderr io.Reader) <-chan []byte {
+	dataCh := make(chan []byte, 512)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	pump := func(r io.Reader) {
+		defer wg.Done()
+		buf := make([]byte, 4096)
+		for {
+			n, err := r.Read(buf)
+			if n > 0 {
+				data := make([]byte, n)
+				copy(data, buf[:n])
+				select {
+				case dataCh <- data:
+				default:
+				}
+			}
+			if err != nil {
+				return
+			}
+		}
+	}
+	go pump(stdout)
+	go pump(stderr)
+	go func() {
+		wg.Wait()
+		close(dataCh)
+	}()
+	return dataCh
+}
 
 func sendWSMessage(conn *websocket.Conn, resp WSResponse) error {
 	data, err := json.Marshal(resp)

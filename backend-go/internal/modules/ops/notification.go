@@ -537,6 +537,7 @@ func LogNotificationRecord(ntfType, title, content, recipient, status, alertID, 
 
 type AlertDispatchInfo struct {
 	AlertID    string
+	Source     string
 	Title      string
 	Message    string
 	Severity   string

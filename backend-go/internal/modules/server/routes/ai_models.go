@@ -3,8 +3,12 @@
 package routes
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -13,16 +17,40 @@ import (
 	"itops-backend/internal/repos"
 )
 
+// maskAPIKey 对外响应一律脱敏：仅保留前 3 位与后 4 位，完整密钥不出 HTTP 层
+func maskAPIKey(key *string) *string {
+	if key == nil || *key == "" {
+		return key
+	}
+	k := *key
+	var masked string
+	if len(k) <= 8 {
+		masked = "******"
+	} else {
+		masked = k[:3] + "****" + k[len(k)-4:]
+	}
+	return &masked
+}
+
+func maskModel(m *repos.AIModel) {
+	if m != nil {
+		m.APIKey = maskAPIKey(m.APIKey)
+	}
+}
+
 // AIModelRoutes AI 模型管理路由
 func AIModelRoutes() chi.Router {
 	r := chi.NewRouter()
 
-	// GET / — 模型列表
+	// GET / — 模型列表（api_key 脱敏，完整密钥仅服务端内部使用）
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		models, err := repos.AIModels.List()
 		if err != nil {
 			httpx.RespondError(w, "获取模型列表失败: "+err.Error(), http.StatusInternalServerError)
 			return
+		}
+		for i := range models {
+			maskModel(&models[i])
 		}
 		httpx.Respond(w, models)
 	})
@@ -44,6 +72,7 @@ func AIModelRoutes() chi.Router {
 			httpx.RespondError(w, "创建模型失败: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+		maskModel(model)
 		httpx.Respond(w, model)
 	})
 
@@ -77,6 +106,7 @@ func AIModelRoutes() chi.Router {
 			httpx.RespondError(w, "更新模型失败: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+		maskModel(model)
 		httpx.Respond(w, model)
 	})
 
@@ -90,7 +120,7 @@ func AIModelRoutes() chi.Router {
 		httpx.RespondMessage(w, "删除成功")
 	})
 
-	// POST /{id}/test — 测试模型连通性
+	// POST /{id}/test — 真实调用一次 chat/completions 验证连通性
 	r.With(middleware.RequireRole("admin")).Post("/{id}/test", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		model, err := repos.AIModels.GetByID(id)
@@ -99,8 +129,51 @@ func AIModelRoutes() chi.Router {
 			return
 		}
 
-		_ = repos.AIModels.UpdateTestStatus(id, "success")
+		apiBase := "https://api.openai.com/v1"
+		if model.APIBase != nil && *model.APIBase != "" {
+			apiBase = strings.TrimRight(*model.APIBase, "/")
+		}
+		reqBody, _ := json.Marshal(map[string]interface{}{
+			"model":      model.ModelID,
+			"messages":   []map[string]string{{"role": "user", "content": "ping"}},
+			"max_tokens": 1,
+		})
+		req, err := http.NewRequestWithContext(r.Context(), http.MethodPost, apiBase+"/chat/completions", bytes.NewReader(reqBody))
+		if err != nil {
+			httpx.RespondError(w, "构造测试请求失败: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+		if model.APIKey != nil && *model.APIKey != "" {
+			req.Header.Set("Authorization", "Bearer "+*model.APIKey)
+		}
 
+		client := &http.Client{Timeout: 20 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			_ = repos.AIModels.UpdateTestStatus(id, "failed")
+			httpx.Respond(w, map[string]interface{}{"success": false, "message": "连接失败: " + err.Error()})
+			return
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			var errBody struct {
+				Error struct {
+					Message string `json:"message"`
+				} `json:"error"`
+			}
+			_ = json.NewDecoder(resp.Body).Decode(&errBody)
+			msg := errBody.Error.Message
+			if msg == "" {
+				msg = resp.Status
+			}
+			_ = repos.AIModels.UpdateTestStatus(id, "failed")
+			httpx.Respond(w, map[string]interface{}{"success": false, "message": fmt.Sprintf("接口返回 %d: %s", resp.StatusCode, msg)})
+			return
+		}
+
+		_ = repos.AIModels.UpdateTestStatus(id, "success")
 		httpx.Respond(w, map[string]interface{}{
 			"success": true,
 			"message": "模型连接测试成功",

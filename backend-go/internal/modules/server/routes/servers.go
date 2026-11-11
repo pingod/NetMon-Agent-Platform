@@ -346,7 +346,7 @@ func ServerRoutes() chi.Router {
 	// POST /{id}/test-connection — 单台服务器连接测试
 	r.With(middleware.RequireRole("admin")).Post("/{id}/test-connection", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-		sshCfg, err := buildServerSSHConfig(id)
+		sshCfg, err := BuildServerSSHConfig(id)
 		if err != nil {
 			httpx.RespondError(w, "无法获取服务器凭据: "+err.Error(), http.StatusBadRequest)
 			return
@@ -386,8 +386,8 @@ func sanitizeServerList(list []repos.Server) {
 	}
 }
 
-// buildServerSSHConfig 构建服务器 SSH 连接配置（含 ssh_key 凭证解析）
-func buildServerSSHConfig(serverID string) (services.SSHDeviceConfig, error) {
+// BuildServerSSHConfig 构建服务器 SSH 连接配置（含 ssh_key 凭证解析）
+func BuildServerSSHConfig(serverID string) (services.SSHDeviceConfig, error) {
 	username, password, privateKey, useSSHKey, err := repos.Servers.GetCredentialFields(serverID)
 	if err != nil {
 		return services.SSHDeviceConfig{}, err

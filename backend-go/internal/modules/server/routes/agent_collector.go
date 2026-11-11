@@ -3,13 +3,17 @@
 package routes
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +23,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"itops-backend/internal/appdb"
+	"itops-backend/internal/config"
 	"itops-backend/internal/crypto"
 	"itops-backend/internal/httpx"
 	"itops-backend/internal/logger"
@@ -92,10 +97,14 @@ func AgentCollectorRoutes() chi.Router {
 	r := chi.NewRouter()
 
 	// 1. GET /install.sh — 动态生成 Linux 超轻量 Agent 一键安装脚本
+	// 脚本内嵌 agent_token，必须携带经认证接口签发的短时效安装票据
 	r.Get("/install.sh", handleGenerateLinuxInstallScript)
 
 	// 2. GET /install.ps1 — 动态生成 Windows PowerShell Agent 一键安装脚本
 	r.Get("/install.ps1", handleGenerateWindowsInstallScript)
+
+	// 2.5 POST /install-ticket — 签发短时效安装票据（仅 admin/operator）
+	r.With(middleware.RequireRole("admin", "operator")).Post("/install-ticket", handleCreateInstallTicket)
 
 	// 3. POST /report — 接收虚拟机 Agent 实时上报的性能指标包
 	r.Post("/report", handleAgentReportMetrics)
@@ -443,9 +452,73 @@ func ensureAgentToken(serverID string) (string, error) {
 	return token, nil
 }
 
+// installTicketTTL 安装票据有效期：覆盖「复制命令 → 登录目标机 → 执行」的操作窗口
+const installTicketTTL = 15 * time.Minute
+
+// signInstallTicket 用服务端密钥对 serverID+过期时间 做 HMAC，票据无状态、不可伪造
+func signInstallTicket(serverID string, expires int64) string {
+	mac := hmac.New(sha256.New, []byte(config.Env.JWTSecret))
+	fmt.Fprintf(mac, "agent-install:%s:%d", serverID, expires)
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+// validInstallTicket 校验票据签名、有效期与 serverID 绑定
+func validInstallTicket(serverID, ticket string) bool {
+	parts := strings.SplitN(ticket, ".", 2)
+	if len(parts) != 2 {
+		return false
+	}
+	expires, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil || time.Now().Unix() > expires {
+		return false
+	}
+	return hmac.Equal([]byte(parts[1]), []byte(signInstallTicket(serverID, expires)))
+}
+
+// newInstallTicket 生成一张新的安装票据
+func newInstallTicket(serverID string) string {
+	expires := time.Now().Add(installTicketTTL).Unix()
+	return fmt.Sprintf("%d.%s", expires, signInstallTicket(serverID, expires))
+}
+
+// handleCreateInstallTicket 为指定服务器签发安装票据（需 admin/operator）
+func handleCreateInstallTicket(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		ServerID string `json:"server_id"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&req); err != nil {
+		httpx.RespondFailStatus(w, http.StatusBadRequest, "请求体格式错误")
+		return
+	}
+	if !agentIDPattern.MatchString(req.ServerID) {
+		httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的 server_id")
+		return
+	}
+	var exists int
+	if err := appdb.DB().QueryRow("SELECT 1 FROM servers WHERE id = ?", req.ServerID).Scan(&exists); err != nil {
+		httpx.RespondFailStatus(w, http.StatusBadRequest, "服务器不存在")
+		return
+	}
+	ticket := newInstallTicket(req.ServerID)
+	expires, _ := strconv.ParseInt(strings.SplitN(ticket, ".", 2)[0], 10, 64)
+	httpx.Respond(w, map[string]interface{}{"ticket": ticket, "expiresAt": expires})
+}
+
+// requireInstallTicket 安装脚本下载的统一票据校验
+func requireInstallTicket(w http.ResponseWriter, r *http.Request, serverID string) bool {
+	if !validInstallTicket(serverID, r.URL.Query().Get("ticket")) {
+		httpx.RespondFailStatus(w, http.StatusUnauthorized, "安装票据缺失或已过期，请在平台重新打开安装窗口获取命令")
+		return false
+	}
+	return true
+}
+
 // handleGenerateLinuxInstallScript 生成并返回 Linux 采集器安装脚本
 func handleGenerateLinuxInstallScript(w http.ResponseWriter, r *http.Request) {
 	serverID := r.URL.Query().Get("server_id")
+	if !requireInstallTicket(w, r, serverID) {
+		return
+	}
 	host := r.Host
 	if err := validateAgentHost(host); err != nil {
 		httpx.RespondFailStatus(w, http.StatusBadRequest, err.Error())
@@ -469,6 +542,9 @@ func handleGenerateLinuxInstallScript(w http.ResponseWriter, r *http.Request) {
 // handleGenerateWindowsInstallScript 生成 Windows PowerShell Agent 安装脚本
 func handleGenerateWindowsInstallScript(w http.ResponseWriter, r *http.Request) {
 	serverID := r.URL.Query().Get("server_id")
+	if !requireInstallTicket(w, r, serverID) {
+		return
+	}
 	host := r.Host
 	if host == "" {
 		host = "127.0.0.1:8088"
@@ -559,7 +635,8 @@ func handleAgentReportMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var p AgentReportPayload
-	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+	// 未鉴权即可达本端点，限制 body 防止内存耗尽（正常指标包仅数 KB）
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&p); err != nil {
 		httpx.RespondError(w, "无效的指标数据: "+err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -916,7 +993,8 @@ func installAgentOnSingleServer(serverID string, req BatchInstallRequest, scheme
 	var stdout, stderr string
 	var cmdErr error
 	if strings.Contains(strings.ToLower(osType), "win") {
-		installCmd := fmt.Sprintf(`powershell -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; if (Get-Command irm -ErrorAction SilentlyContinue) { irm %s://%s/api/v1/agent/install.ps1?server_id=%s | iex } else { (New-Object Net.WebClient).DownloadString('%s://%s/api/v1/agent/install.ps1?server_id=%s') | iex }"`, scheme, reportHost, serverID, scheme, reportHost, serverID)
+		ticket := newInstallTicket(serverID)
+		installCmd := fmt.Sprintf(`powershell -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; if (Get-Command irm -ErrorAction SilentlyContinue) { irm %s://%s/api/v1/agent/install.ps1?server_id=%s&ticket=%s | iex } else { (New-Object Net.WebClient).DownloadString('%s://%s/api/v1/agent/install.ps1?server_id=%s&ticket=%s') | iex }"`, scheme, reportHost, serverID, ticket, scheme, reportHost, serverID, ticket)
 		stdout, stderr, cmdErr = sshClient.ExecCommand(installCmd, 60*time.Second)
 	} else {
 		// 直接通过 Base64 管道传入 bash 执行，彻底避免目标机反向 HTTP 请求宿主机导致的超时或防火墙拦截
@@ -1077,7 +1155,7 @@ func handleGetServerMetricsHistory(w http.ResponseWriter, r *http.Request) {
 					&p.CPUUsage, &p.CPUUser, &p.CPUSystem,
 					&p.MemoryUsage, &p.MemoryTotalGB, &p.MemoryUsedGB); err == nil {
 					p.Time = formatShortTime(colAt)
-					if t, err := time.Parse("2006-01-02 15:04:05", colAt); err == nil {
+					if t, err := appdb.ParseDBTime(colAt); err == nil {
 						p.Timestamp = t.Unix()
 					}
 					points = append(points, p)
@@ -1137,6 +1215,9 @@ func handleGetServerMetricsHistory(w http.ResponseWriter, r *http.Request) {
 }
 
 func formatShortTime(dateStr string) string {
+	if t, err := appdb.ParseDBTime(dateStr); err == nil {
+		return t.Format("15:04")
+	}
 	parts := strings.Split(dateStr, " ")
 	if len(parts) == 2 {
 		timeParts := strings.Split(parts[1], ":")

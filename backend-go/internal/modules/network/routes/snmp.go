@@ -4,6 +4,7 @@ package routes
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -42,8 +43,8 @@ func SnmpRoutes() chi.Router {
 	r.Get("/", handleSnmpStatus)
 	r.Get("/status", handleSnmpStatus)
 
-	// GET /credentials — 获取 SNMP 凭证列表
-	r.Get("/credentials", func(w http.ResponseWriter, r *http.Request) {
+	// GET /credentials — 获取 SNMP 凭证列表（含 community，仅 admin/operator）
+	r.With(middleware.RequireRole("admin", "operator")).Get("/credentials", func(w http.ResponseWriter, r *http.Request) {
 		deviceID := r.URL.Query().Get("deviceId")
 		rows, err := repos.SnmpCredentials.List(deviceID)
 		if err != nil {
@@ -54,7 +55,7 @@ func SnmpRoutes() chi.Router {
 	})
 
 	// POST /credentials — 保存 SNMP 凭证
-	r.Post("/credentials", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin")).Post("/credentials", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			DeviceID         string `json:"device_id"`
 			Name             string `json:"name"`
@@ -127,7 +128,7 @@ func SnmpRoutes() chi.Router {
 	})
 
 	// DELETE /credentials/:id — 删除 SNMP 凭证
-	r.Delete("/credentials/{id}", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin")).Delete("/credentials/{id}", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		if err := repos.SnmpCredentials.Delete(id); err != nil {
 			httpx.RespondError(w, "删除 SNMP 凭证失败", http.StatusInternalServerError)
@@ -137,7 +138,7 @@ func SnmpRoutes() chi.Router {
 	})
 
 	// PUT /credentials/:id — 更新 SNMP 凭证
-	r.Put("/credentials/{id}", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin")).Put("/credentials/{id}", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		var req struct {
 			Name             string `json:"name"`
@@ -252,6 +253,9 @@ func SnmpRoutes() chi.Router {
 		if privKey == "" {
 			privKey = req.SnmpPrivKey
 		}
+		if !checkSnmpTarget(w, req.Host, req.Port) {
+			return
+		}
 
 		ok := services.SnmpServiceInstance.TestCredentialConnection(
 			req.Host, req.Port, services.SnmpVersion(version),
@@ -275,11 +279,11 @@ func SnmpRoutes() chi.Router {
 	}
 
 	// POST /test & POST /test-connection — 测试 SNMP 连通性
-	r.Post("/test", handleTestConnection)
-	r.Post("/test-connection", handleTestConnection)
+	r.With(middleware.RequireRole("admin", "operator")).Post("/test", handleTestConnection)
+	r.With(middleware.RequireRole("admin", "operator")).Post("/test-connection", handleTestConnection)
 
 	// POST /credentials/:id/test — 测试已存储凭证连通性
-	r.Post("/credentials/{id}/test", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin", "operator")).Post("/credentials/{id}/test", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		cred, err := repos.SnmpCredentials.GetByID(id)
 		if err != nil || cred == nil {
@@ -374,7 +378,7 @@ func SnmpRoutes() chi.Router {
 	})
 
 	// POST /get — SNMP GET
-	r.Post("/get", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin", "operator")).Post("/get", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Host      string `json:"host"`
 			Port      int    `json:"port"`
@@ -397,13 +401,20 @@ func SnmpRoutes() chi.Router {
 		if req.OID == "" {
 			req.OID = services.SystemOIDs.SysName
 		}
+		if !checkSnmpTarget(w, req.Host, req.Port) {
+			return
+		}
+		if !validOID(req.OID) {
+			httpx.RespondError(w, "无效的 OID 格式", http.StatusBadRequest)
+			return
+		}
 
 		result := services.SnmpServiceInstance.SnmpGet(req.Host, req.Port, services.SnmpVersion(req.Version), req.Community, "", "", "", "", "", req.OID)
 		httpx.Respond(w, result)
 	})
 
 	// POST /walk — SNMP WALK
-	r.Post("/walk", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin", "operator")).Post("/walk", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Host      string `json:"host"`
 			Port      int    `json:"port"`
@@ -426,13 +437,20 @@ func SnmpRoutes() chi.Router {
 		if req.OID == "" {
 			req.OID = services.IfMibOIDs.IfTable
 		}
+		if !checkSnmpTarget(w, req.Host, req.Port) {
+			return
+		}
+		if !validOID(req.OID) {
+			httpx.RespondError(w, "无效的 OID 格式", http.StatusBadRequest)
+			return
+		}
 
 		results := services.SnmpServiceInstance.SnmpWalk(req.Host, req.Port, services.SnmpVersion(req.Version), req.Community, "", "", "", "", "", req.OID, 0)
 		httpx.Respond(w, results)
 	})
 
 	// POST /system-info — 获取系统信息
-	r.Post("/system-info", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin", "operator")).Post("/system-info", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Host      string `json:"host"`
 			Port      int    `json:"port"`
@@ -450,6 +468,9 @@ func SnmpRoutes() chi.Router {
 		}
 		if req.Community == "" {
 			req.Community = "public"
+		}
+		if !checkSnmpTarget(w, req.Host, req.Port) {
+			return
 		}
 
 		info := services.SnmpServiceInstance.GetSystemInfoSimple(req.Host, req.Port, services.SnmpVersion(req.Version), req.Community)
@@ -457,7 +478,7 @@ func SnmpRoutes() chi.Router {
 	})
 
 	// POST /interfaces — 获取接口列表
-	r.Post("/interfaces", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin", "operator")).Post("/interfaces", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Host      string `json:"host"`
 			Port      int    `json:"port"`
@@ -475,6 +496,9 @@ func SnmpRoutes() chi.Router {
 		}
 		if req.Community == "" {
 			req.Community = "public"
+		}
+		if !checkSnmpTarget(w, req.Host, req.Port) {
+			return
 		}
 
 		ifs := services.SnmpServiceInstance.GetInterfacesSimple(req.Host, req.Port, services.SnmpVersion(req.Version), req.Community)
@@ -517,7 +541,7 @@ func SnmpRoutes() chi.Router {
 	})
 
 	// POST /health-batch — 批量设备健康检查（Goroutine 并行多线程并发采集）
-	r.Post("/health-batch", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin", "operator")).Post("/health-batch", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			DeviceIDs []string `json:"deviceIds"`
 		}
@@ -568,7 +592,7 @@ func SnmpRoutes() chi.Router {
 	})
 
 	// POST /discover — SNMP 自动发现
-	r.Post("/discover", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin", "operator")).Post("/discover", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Subnet    string `json:"subnet"`
 			Community string `json:"community"`
@@ -586,6 +610,21 @@ func SnmpRoutes() chi.Router {
 		}
 		if req.Port == 0 {
 			req.Port = 161
+		}
+		if !validSnmpPort(req.Port) {
+			httpx.RespondError(w, "无效的端口（1-65535）", http.StatusBadRequest)
+			return
+		}
+		// 仅允许 CIDR 网段；服务层只扫 /24 及以上，路由层提前给出明确报错
+		_, ipNet, err := net.ParseCIDR(req.Subnet)
+		if err != nil {
+			httpx.RespondError(w, "无效的网段（CIDR 格式，如 192.168.1.0/24）", http.StatusBadRequest)
+			return
+		}
+		ones, bits := ipNet.Mask.Size()
+		if bits-ones > 8 {
+			httpx.RespondError(w, "网段过大（最大支持 /24，即 254 个地址）", http.StatusBadRequest)
+			return
 		}
 
 		devices := services.SnmpServiceInstance.DiscoverDevices(req.Subnet, req.Community, services.SnmpVersion(req.Version), req.Port)
@@ -713,7 +752,7 @@ func SnmpRoutes() chi.Router {
 	})
 
 	// POST /poll-interfaces — 接口指标采集
-	r.Post("/poll-interfaces", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin", "operator")).Post("/poll-interfaces", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Host      string `json:"host"`
 			Port      int    `json:"port"`
@@ -731,6 +770,9 @@ func SnmpRoutes() chi.Router {
 		}
 		if req.Community == "" {
 			req.Community = "public"
+		}
+		if !checkSnmpTarget(w, req.Host, req.Port) {
+			return
 		}
 
 		ifs := services.SnmpServiceInstance.GetInterfacesSimple(req.Host, req.Port, services.SnmpVersion(req.Version), req.Community)

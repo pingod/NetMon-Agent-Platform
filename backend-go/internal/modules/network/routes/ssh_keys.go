@@ -16,6 +16,7 @@ import (
 	"itops-backend/internal/httpx"
 	"itops-backend/internal/middleware"
 	"itops-backend/internal/repos"
+	"itops-backend/internal/services/audit"
 )
 
 // SshKeyRoutes SSH 密钥管理路由
@@ -23,7 +24,7 @@ func SshKeyRoutes() chi.Router {
 	r := chi.NewRouter()
 
 	// GET / — 列出所有凭证（不含敏感字段）
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin", "operator")).Get("/", func(w http.ResponseWriter, r *http.Request) {
 		keys, err := repos.SshKeys.List()
 		if err != nil {
 			httpx.RespondError(w, "获取 SSH 凭证列表失败", http.StatusInternalServerError)
@@ -32,8 +33,8 @@ func SshKeyRoutes() chi.Router {
 		httpx.Respond(w, keys)
 	})
 
-	// GET /{id} — 获取单个凭证（含加密的敏感字段）
-	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
+	// GET /{id} — 获取单个凭证元数据（不下发密码/私钥，查看明文走 /reveal）
+	r.With(middleware.RequireRole("admin", "operator")).Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		key, err := repos.SshKeys.GetByID(id)
 		if err != nil {
@@ -44,7 +45,58 @@ func SshKeyRoutes() chi.Router {
 			httpx.RespondError(w, "SSH key not found", http.StatusNotFound)
 			return
 		}
+		key.Password = nil
+		key.PrivateKey = nil
 		httpx.Respond(w, key)
+	})
+
+	// GET /{id}/reveal — 查看凭证明文（仅 admin，写审计日志）
+	r.With(middleware.RequireRole("admin")).Get("/{id}/reveal", func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		key, err := repos.SshKeys.GetByID(id)
+		if err != nil {
+			httpx.RespondError(w, "查询失败", http.StatusInternalServerError)
+			return
+		}
+		if key == nil {
+			httpx.RespondError(w, "SSH key not found", http.StatusNotFound)
+			return
+		}
+
+		result := map[string]interface{}{
+			"id":        key.ID,
+			"name":      key.Name,
+			"auth_type": key.AuthType,
+			"username":  key.Username,
+		}
+		if key.PrivateKey != nil && *key.PrivateKey != "" {
+			plain, derr := crypto.Decrypt(*key.PrivateKey)
+			if derr != nil {
+				plain = *key.PrivateKey // 兼容历史明文数据
+			}
+			result["private_key"] = plain
+		}
+		if key.Password != nil && *key.Password != "" {
+			plain, derr := crypto.Decrypt(*key.Password)
+			if derr != nil {
+				plain = *key.Password
+			}
+			result["password"] = plain
+		}
+
+		userID := ""
+		if u := middleware.GetUser(r); u != nil {
+			userID = u.ID
+		}
+		audit.CreateAuditLog(audit.AuditInput{
+			UserID:       userID,
+			Action:       "ssh_key_reveal",
+			ResourceType: "ssh_key",
+			ResourceID:   id,
+			Details:      map[string]interface{}{"name": key.Name},
+			IPAddress:    middleware.ClientIP(r),
+		})
+		httpx.Respond(w, result)
 	})
 
 	// POST / — 创建凭证
@@ -285,7 +337,7 @@ func SshKeyRoutes() chi.Router {
 	})
 
 	// GET /{id}/usage — 获取使用此密钥的服务器列表
-	r.Get("/{id}/usage", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin", "operator")).Get("/{id}/usage", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		servers, err := repos.SshKeys.ListServersByKey(id)
 		if err != nil {

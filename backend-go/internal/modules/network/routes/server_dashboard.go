@@ -484,7 +484,7 @@ func handleRemediationStats(w http.ResponseWriter, r *http.Request) {
 		COALESCE(SUM(CASE WHEN status='success' THEN 1 ELSE 0 END),0),
 		COALESCE(SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END),0),
 		COALESCE(SUM(CASE WHEN status='rolled_back' THEN 1 ELSE 0 END),0),
-		COALESCE(AVG(CAST(duration_ms AS REAL)),0)
+		COALESCE(AVG(CASE WHEN execution_duration_ms IS NOT NULL THEN CAST(execution_duration_ms AS REAL) END),0)
 		FROM remediation_executions
 		WHERE date(created_at) = date('now','localtime')`).Scan(&todayTotal, &todaySuccess, &todayFailed, &todayRolledBack, &todayAvgDuration)
 
@@ -495,12 +495,12 @@ func handleRemediationStats(w http.ResponseWriter, r *http.Request) {
 
 	// 待审批
 	var waitingApproval int
-	db.QueryRow(`SELECT COUNT(*) FROM remediation_executions WHERE status='pending_approval'`).Scan(&waitingApproval)
+	db.QueryRow(`SELECT COUNT(*) FROM remediation_executions WHERE status='waiting_approval'`).Scan(&waitingApproval)
 
 	// 最近执行记录
 	execRows, _ := db.Query(`SELECT re.id, re.status, re.status_reason, re.created_at,
-		COALESCE(rp.name,''), COALESCE(re.execution_mode,'manual'),
-		COALESCE(a.title,''), COALESCE(a.severity,'')
+		COALESCE(rp.name,''), COALESCE(rp.execution_mode,'manual'),
+		COALESCE(a.title, json_extract(re.alert_snapshot,'$.title'), ''), COALESCE(a.severity,'')
 		FROM remediation_executions re
 		LEFT JOIN remediation_policies rp ON re.policy_id = rp.id
 		LEFT JOIN alerts a ON re.alert_id = a.id
@@ -542,6 +542,40 @@ func handleRemediationStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httpx.Respond(w, result)
+}
+
+// handleAlertSourceStats 按告警来源聚合状态与级别分布
+func handleAlertSourceStats(w http.ResponseWriter, r *http.Request) {
+	db := appdb.DB()
+	rows, err := db.Query(`SELECT COALESCE(NULLIF(source,''),'unknown') AS src,
+		COUNT(*) AS total,
+		COALESCE(SUM(CASE WHEN status='new' THEN 1 ELSE 0 END),0),
+		COALESCE(SUM(CASE WHEN status NOT IN ('resolved','closed') THEN 1 ELSE 0 END),0),
+		COALESCE(SUM(CASE WHEN status IN ('resolved','closed') THEN 1 ELSE 0 END),0),
+		COALESCE(SUM(CASE WHEN severity IN ('disaster','critical') THEN 1 ELSE 0 END),0),
+		COALESCE(SUM(CASE WHEN severity='high' THEN 1 ELSE 0 END),0),
+		COALESCE(SUM(CASE WHEN severity IN ('average','medium') THEN 1 ELSE 0 END),0),
+		COALESCE(SUM(CASE WHEN severity IN ('warning','low','info') THEN 1 ELSE 0 END),0)
+		FROM alerts GROUP BY src ORDER BY total DESC`)
+	if err != nil {
+		httpx.RespondFailStatus(w, http.StatusInternalServerError, "查询告警来源统计失败")
+		return
+	}
+	defer rows.Close()
+
+	stats := make([]map[string]interface{}, 0)
+	for rows.Next() {
+		var src string
+		var total, newN, activeN, resolvedN, criticalN, highN, mediumN, lowN int
+		if rows.Scan(&src, &total, &newN, &activeN, &resolvedN, &criticalN, &highN, &mediumN, &lowN) == nil {
+			stats = append(stats, map[string]interface{}{
+				"source": src, "total_alerts": total,
+				"new_alerts": newN, "active_alerts": activeN, "resolved_alerts": resolvedN,
+				"critical_count": criticalN, "high_count": highN, "medium_count": mediumN, "low_count": lowN,
+			})
+		}
+	}
+	httpx.Respond(w, map[string]interface{}{"source_stats": stats})
 }
 
 // handleSlaStats 返回 SLA 统计

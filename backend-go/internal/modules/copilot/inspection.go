@@ -1,5 +1,6 @@
 // Copilot 智能运维助手 — 设备巡检调度与健康诊断报告生成器
-// 支持自然语言意图识别、单机/批量巡检、多维健康评分计算、离线设备故障排查与数据库持久化
+// 支持自然语言意图识别、单机/批量巡检、基于真实采集数据的健康评分与数据库持久化
+// 原则：报告只呈现实测/在库数据，未采集的维度明确标注「未采集」，绝不编造指标
 package copilot
 
 import (
@@ -40,8 +41,7 @@ func isInspectionQuery(rawQuery string) (bool, string, string) {
 		inspType = "quick"
 	}
 
-	// 3. 目标设备范围解析
-	// A. 显式全部/批量
+	// 3. 目标设备范围解析：显式全部/批量
 	if strings.Contains(lower, "所有") ||
 		strings.Contains(lower, "全部") ||
 		strings.Contains(lower, "全网") ||
@@ -51,7 +51,7 @@ func isInspectionQuery(rawQuery string) (bool, string, string) {
 		return true, "all", inspType
 	}
 
-	// B. 精准匹配设备名称或 IP
+	// 4. 精准匹配在库设备名称或 IP
 	netDevices, _ := repos.NetworkDevices.List()
 	for _, d := range netDevices {
 		if d == nil {
@@ -62,30 +62,7 @@ func isInspectionQuery(rawQuery string) (bool, string, string) {
 		}
 	}
 
-	// C. 常见别名简写匹配
-	if strings.Contains(rawQuery, "核心交换机") || strings.Contains(rawQuery, "核心") {
-		return true, "核心交换机-1", inspType
-	}
-	if strings.Contains(rawQuery, "汇聚交换机") || strings.Contains(rawQuery, "汇聚") {
-		return true, "汇聚交换机-1", inspType
-	}
-	if strings.Contains(rawQuery, "防火墙") {
-		return true, "防火墙-1", inspType
-	}
-	if strings.Contains(rawQuery, "19.71.8.164") {
-		return true, "19.71.8.164", inspType
-	}
-	if strings.Contains(rawQuery, "10.136.251.14") {
-		return true, "核心交换机-1", inspType
-	}
-	if strings.Contains(rawQuery, "10.136.251.18") {
-		return true, "汇聚交换机-1", inspType
-	}
-	if strings.Contains(rawQuery, "10.136.251.30") {
-		return true, "防火墙-1", inspType
-	}
-
-	// D. 未指定具体设备时，默认执行全网设备巡检
+	// 5. 未指定具体设备时，默认执行全网设备巡检
 	return true, "all", inspType
 }
 
@@ -93,12 +70,10 @@ func isInspectionQuery(rawQuery string) (bool, string, string) {
 func ExecuteInspectionFromChat(ctx context.Context, targetScope, inspType string) string {
 	start := time.Now()
 
-	// 1. 批量/全网设备巡检
 	if targetScope == "all" {
 		return executeAllDevicesInspection(ctx, inspType)
 	}
 
-	// 2. 单台特定设备巡检
 	netDevices, _ := repos.NetworkDevices.List()
 	var targetDev *repos.NetworkDevice
 	for _, d := range netDevices {
@@ -119,146 +94,309 @@ func ExecuteInspectionFromChat(ctx context.Context, targetScope, inspType string
 		sb.WriteString("当前纳管的有效设备列表如下，您可直接点击或发送指令重新发起巡检：\n\n")
 		for _, d := range netDevices {
 			statusBadge := "🟢 在线"
-			if strings.ToLower(d.Status) != "online" && strings.ToLower(d.Status) != "up" {
+			if !isDeviceOnline(d) {
 				statusBadge = "🔴 离线"
 			}
 			sb.WriteString(fmt.Sprintf("- **%s** (`%s`) · %s · 厂商: `%s`\n", d.Name, d.IPAddress, statusBadge, d.Vendor))
 		}
-		sb.WriteString("\n> 💡 **操作提示**：例如发送「**帮我巡检核心交换机-1**」或「**巡检所有网络设备**」。")
+		sb.WriteString("\n> 💡 **操作提示**：例如发送「**巡检 设备名称**」或「**巡检所有网络设备**」。")
 		return sb.String()
 	}
 
-	// 执行单设备巡检并生成深度健康报告
 	return inspectSingleDeviceReport(targetDev, inspType, start)
 }
 
-// inspectSingleDeviceReport 对单台设备执行巡检并输出卡片
+func isDeviceOnline(d *repos.NetworkDevice) bool {
+	s := strings.ToLower(d.Status)
+	return s == "online" || s == "up"
+}
+
+// ───────────────────────────────────────────────
+// 真实数据采集与健康评分
+// ───────────────────────────────────────────────
+
+// deviceSignals 一台设备本次巡检采集到的真实信号
+type deviceSignals struct {
+	sshOK        bool // SSH 巡检是否真实执行
+	sshExecuted  int
+	sshFailed    int
+	sshSummary   string
+	health       *services.DeviceHealth // SNMP 健康检查（nil = 未采集到）
+	activeAlerts int                    // 在库未 resolved 告警数
+	lastBackup   string                 // 最近一次配置备份时间（空 = 无记录）
+}
+
+// collectDeviceSignals 采集单台设备的真实巡检信号
+func collectDeviceSignals(dev *repos.NetworkDevice, inspType string, withSSH bool) deviceSignals {
+	sig := deviceSignals{}
+
+	if withSSH {
+		if res, err := services.NetworkInspectionServiceInstance.InspectDevice(dev.ID, inspType, nil); err == nil && res != nil {
+			sig.sshOK = true
+			sig.sshExecuted = res.CommandsExecuted
+			sig.sshFailed = res.CommandsFailed
+			sig.sshSummary = res.Summary
+		}
+	}
+
+	sig.health = services.SnmpServiceInstance.HealthCheck(dev.ID, dev.IPAddress, 0)
+
+	db := appdb.DB()
+	_ = db.QueryRow(`SELECT COUNT(*) FROM alerts WHERE device_id = ? AND status NOT IN ('resolved','closed')`, dev.ID).Scan(&sig.activeAlerts)
+	_ = db.QueryRow(`SELECT COALESCE(MAX(created_at),'') FROM network_config_backups WHERE device_id = ? AND status = 'success'`, dev.ID).Scan(&sig.lastBackup)
+	return sig
+}
+
+// scoreDevice 基于真实信号计算健康分；返回 -1 表示无任何采集数据、未评估
+func scoreDevice(sig deviceSignals) int {
+	hasSignal := false
+	score := 100
+
+	if sig.sshOK {
+		hasSignal = true
+		if sig.sshFailed > 0 {
+			score -= min(sig.sshFailed*5, 20)
+		}
+	}
+	if h := sig.health; h != nil {
+		hasSignal = true
+		if h.CpuUsage != nil {
+			switch {
+			case *h.CpuUsage > 90:
+				score -= 25
+			case *h.CpuUsage > 80:
+				score -= 15
+			}
+		}
+		if h.MemoryUsage != nil {
+			switch {
+			case *h.MemoryUsage > 90:
+				score -= 25
+			case *h.MemoryUsage > 80:
+				score -= 15
+			}
+		}
+		if h.Temperature != nil && *h.Temperature > 60 {
+			score -= 10
+		}
+		if h.InterfaceHighUtil > 0 {
+			score -= min(h.InterfaceHighUtil*5, 20)
+		}
+		if h.InterfaceCount > 0 && h.InterfacesDown > h.InterfacesUp {
+			score -= 5
+		}
+	}
+	if sig.activeAlerts > 0 {
+		hasSignal = true
+		score -= min(sig.activeAlerts*8, 30)
+	}
+
+	if !hasSignal {
+		return -1
+	}
+	return max(score, 0)
+}
+
+func scoreLabel(score int) string {
+	switch {
+	case score < 0:
+		return "未评估"
+	case score >= 90:
+		return "优秀 🟢"
+	case score >= 75:
+		return "良好 🟡"
+	case score >= 60:
+		return "一般 🟠"
+	default:
+		return "异常 🔴"
+	}
+}
+
+// ───────────────────────────────────────────────
+// 单设备报告
+// ───────────────────────────────────────────────
+
+// inspectSingleDeviceReport 对单台设备执行巡检并输出卡片（全部基于实测数据）
 func inspectSingleDeviceReport(dev *repos.NetworkDevice, inspType string, startTime time.Time) string {
 	db := appdb.DB()
 	nowStr := time.Now().Format("2006-01-02 15:04:05")
 
-	// 1. 判断是否为离线设备（如 19.71.8.164）
-	isOffline := strings.ToLower(dev.Status) != "online" && strings.ToLower(dev.Status) != "up"
-
-	if isOffline {
-		// 离线设备故障排查报告
+	// 1. 离线设备：基于平台记录状态出具排查报告（不做虚假的协议实测表述）
+	if !isDeviceOnline(dev) {
 		durationMs := time.Since(startTime).Milliseconds()
-		summary := fmt.Sprintf("设备处于离线脱网状态，ICMP Ping/SNMP/SSH 管理通道均不可达 (耗时 %dms)", durationMs)
+		summary := fmt.Sprintf("平台记录设备状态为离线（%s），本次未执行实测采集，建议排查物理链路与管理通道 (耗时 %dms)", dev.Status, durationMs)
 
-		// 写入巡检历史
-		_ = repos.Inspections.UpdateResult(
-			"", "failed", 0, 3, "[]", summary, int(durationMs),
-		)
 		_, _ = db.Exec(`
 			INSERT INTO network_inspection_history (id, device_id, inspection_type, status, commands_executed, commands_failed, summary, duration_ms, created_at)
-			VALUES (?, ?, ?, 'failed', 0, 3, ?, ?, ?)`,
+			VALUES (?, ?, ?, 'failed', 0, 0, ?, ?, ?)`,
 			dev.ID+"-"+fmt.Sprintf("%d", time.Now().Unix()), dev.ID, inspType, summary, durationMs, nowStr)
-
-		// 更新设备最后巡检结果
 		_ = repos.NetworkDevices.UpdateInspectionResult(dev.ID, summary)
 
 		var sb strings.Builder
 		sb.WriteString("### 🩺 NetMon 智能巡检健康诊断报告\n\n")
-		sb.WriteString("> ⚠️ **巡检警报**：目标设备当前响应超时，已被系统判定为 **脱网离线 (OFFLINE)**，健康评分严重不及格！\n\n")
+		sb.WriteString("> ⚠️ **巡检警报**：平台记录的设备状态为 **离线 (OFFLINE)**，本次巡检未采集到实测指标。\n\n")
 
 		sb.WriteString("#### 1. 📌 设备资产与巡检元数据\n\n")
 		sb.WriteString("| 属性 | 信息 |\n")
 		sb.WriteString("| :--- | :--- |\n")
 		sb.WriteString(fmt.Sprintf("| **设备名称** | **%s** |\n", dev.Name))
 		sb.WriteString(fmt.Sprintf("| **管理 IP** | `%s` |\n", dev.IPAddress))
-		sb.WriteString(fmt.Sprintf("| **设备品牌/型号** | `%s` / `%s` |\n", dev.Vendor, safeStr(dev.Model, "通用型号")))
-		sb.WriteString(fmt.Sprintf("| **当前状态** | 🔴 **离线运行 (Offline)** |\n"))
-		sb.WriteString(fmt.Sprintf("| **巡检时间** | `%s` (耗时 `%d ms`) |\n", nowStr, durationMs))
-		sb.WriteString(fmt.Sprintf("| **健康指数评级** | 🛑 **0 / 100 分 (严重故障 🔴)** |\n\n"))
+		sb.WriteString(fmt.Sprintf("| **设备品牌/型号** | `%s` / `%s` |\n", dev.Vendor, safeStr(dev.Model, "未登记")))
+		sb.WriteString(fmt.Sprintf("| **记录状态** | 🔴 **离线 (%s)** |\n", dev.Status))
+		sb.WriteString(fmt.Sprintf("| **巡检时间** | `%s` (耗时 `%d ms`) |\n\n", nowStr, durationMs))
 
-		sb.WriteString("#### 2. 🔍 核心协议与通道连通性检测明细\n\n")
-		sb.WriteString("| 检测项目 | 协议端口 | 检测状态 | 诊断详情 |\n")
-		sb.WriteString("| :--- | :---: | :---: | :--- |\n")
-		sb.WriteString(fmt.Sprintf("| **ICMP 物理 Ping 测** | - | 🔴 **超时丢失** | 发往 `%s` 丢包率 100%%，网卡无回包 |\n", dev.IPAddress))
-		sb.WriteString(fmt.Sprintf("| **SNMP 状态采集** | UDP 161 | 🔴 **连接断开** | 协议无响应，未能检索到 SysUptime 及 OID 指标 |\n"))
-		sb.WriteString(fmt.Sprintf("| **SSH 管理通道** | TCP %d | 🔴 **端口拒绝** | 无法建立安全通信会话，命令通道阻断 |\n\n", dev.SSHPort))
+		sb.WriteString("#### 2. 💡 排障建议\n\n")
+		sb.WriteString("1. **物理层核查**：确认设备是否上架通电，排查上联光纤/网线链路。\n")
+		sb.WriteString(fmt.Sprintf("2. **网关与路由核查**：检查平台宿主机至 `%s` 的路由可达性与 UDP 161 / TCP %d 端口放通。\n", dev.IPAddress, dev.SSHPort))
+		sb.WriteString("3. **状态刷新**：设备恢复后等待下一轮探测自动更新状态，或在设备详情页手动触发 SNMP/SSH 测试。\n")
+		sb.WriteString("4. **虚假设备清理**：若该设备为临时测试创建的不存在设备，请前往「**网络设备 ➔ 设备管理**」删除，避免误告警。\n\n")
 
-		sb.WriteString("#### 3. 💡 智能排障与自愈处理建议\n\n")
-		sb.WriteString("1. **物理层核查**：确认设备是否上架通电，排查上联光纤/网线链路物理接口是否常亮绿色。\n")
-		sb.WriteString(fmt.Sprintf("2. **网关与路由核查**：检查宿主机至网段 `%s` 的静态路由与子网掩码配置，确认无网段冲突。\n", dev.IPAddress))
-		sb.WriteString("3. **虚拟设备清理**：若该设备为您临时测试乱建的不存在测试机，请前往「**网络设备 ➔ 设备管理**」点击右侧操作栏将其删除，避免产生误告警。\n\n")
-
-		sb.WriteString(fmt.Sprintf("> 📝 **数据存档**：本次离线巡检结论已自动归档至系统数据库 `network_inspection_history`。"))
+		sb.WriteString("> 📝 **数据存档**：本次巡检结论已归档至 `network_inspection_history`。")
 		return sb.String()
 	}
 
-	// 2. 在线设备巡检逻辑（如 核心交换机-1）
-	// 调用真实的后端巡检引擎
-	inspRes, _ := services.NetworkInspectionServiceInstance.InspectDevice(dev.ID, inspType, nil)
+	// 2. 在线设备：执行真实 SSH 巡检 + SNMP 健康检查 + 在库告警/备份查询
+	sig := collectDeviceSignals(dev, inspType, true)
+	score := scoreDevice(sig)
+	durationMs := time.Since(startTime).Milliseconds()
 
-	// 获取接口指标数据用于丰富巡检报表
-	latestMetrics, _ := repos.SnmpInterfaceMetrics.GetLatestByDeviceID(dev.ID)
-	upPorts := 0
-	downPorts := 0
-	for _, iface := range latestMetrics {
-		if iface.IfOperStatus == 1 {
-			upPorts++
-		} else {
-			downPorts++
+	upPorts, downPorts := -1, -1
+	if sig.health != nil && sig.health.InterfaceCount > 0 {
+		upPorts = sig.health.InterfacesUp
+		downPorts = sig.health.InterfacesDown
+	} else if latest, _ := repos.SnmpInterfaceMetrics.GetLatestByDeviceID(dev.ID); len(latest) > 0 {
+		upPorts, downPorts = 0, 0
+		for _, iface := range latest {
+			if iface.IfOperStatus == 1 {
+				upPorts++
+			} else {
+				downPorts++
+			}
 		}
 	}
-	if upPorts == 0 && downPorts == 0 {
-		upPorts = 7
-		downPorts = 8
-	}
 
-	// 计算健康评分
-	score := 98
-	if downPorts > upPorts {
-		score -= 5
+	scoreStr := "未评估"
+	if score >= 0 {
+		scoreStr = fmt.Sprintf("%d", score)
 	}
-	if inspRes != nil && inspRes.CommandsFailed > 0 {
-		score -= 10
-	}
-	if score < 60 {
-		score = 60
-	}
-
-	durationMs := time.Since(startTime).Milliseconds()
-	summary := fmt.Sprintf("设备综合体检完毕，健康分 %d 分，状态良好，物理端口 UP:%d/DOWN:%d，协议响应正常 (耗时 %dms)", score, upPorts, downPorts, durationMs)
-
-	// 更新巡检记录与设备表
+	summary := fmt.Sprintf("健康分 %s，SSH 巡检执行 %d 条命令（失败 %d），活动告警 %d 个 (耗时 %dms)",
+		scoreStr, sig.sshExecuted, sig.sshFailed, sig.activeAlerts, durationMs)
 	_ = repos.NetworkDevices.UpdateInspectionResult(dev.ID, summary)
 
 	var sb strings.Builder
 	sb.WriteString("### 🩺 NetMon 智能巡检健康诊断报告\n\n")
-	sb.WriteString(fmt.Sprintf("> 🟢 **巡检结论**：目标设备 `[ %s ]` 核心指标检测完毕，健康指数评分 **%d / 100 分**（评级：**优秀 🟢**），各项运维通道运行平稳！\n\n", dev.Name, score))
+	if score < 0 {
+		sb.WriteString(fmt.Sprintf("> ⚪ **巡检结论**：设备 `[ %s ]` 平台记录在线，但本次未采集到 SNMP/SSH 实测数据，健康分**未评估**。请检查设备凭证配置。\n\n", dev.Name))
+	} else {
+		sb.WriteString(fmt.Sprintf("> 🟢 **巡检结论**：设备 `[ %s ]` 实测巡检完毕，健康指数 **%d / 100 分**（评级：**%s**）。\n\n", dev.Name, score, scoreLabel(score)))
+	}
 
-	sb.WriteString("#### 1. 📌 设备资产档案与运行概况\n\n")
-	sb.WriteString("| 属性维度 | 检测结果 | 属性维度 | 检测结果 |\n")
+	sb.WriteString("#### 1. 📌 设备资产档案\n\n")
+	sb.WriteString("| 属性 | 值 | 属性 | 值 |\n")
 	sb.WriteString("| :--- | :--- | :--- | :--- |\n")
 	sb.WriteString(fmt.Sprintf("| **设备名称** | **%s** | **管理 IP** | `%s` |\n", dev.Name, dev.IPAddress))
-	sb.WriteString(fmt.Sprintf("| **厂商/品牌** | `%s` | **设备型号** | `%s` |\n", dev.Vendor, safeStr(dev.Model, "S5735-L48T4X-A")))
-	sb.WriteString(fmt.Sprintf("| **设备角色** | `%s` | **安装位置** | `%s` |\n", safeStr(dev.Role, "交换机"), safeStr(dev.Location, "机房A-01机柜")))
-	sb.WriteString(fmt.Sprintf("| **运行状态** | 🟢 **在线运行 (Online)** | **SNMP 服务** | ✅ **已启用 (Port 161)** |\n"))
+	sb.WriteString(fmt.Sprintf("| **厂商/品牌** | `%s` | **设备型号** | `%s` |\n", dev.Vendor, safeStr(dev.Model, "未登记")))
+	sb.WriteString(fmt.Sprintf("| **设备角色** | `%s` | **安装位置** | `%s` |\n", safeStr(dev.Role, "未登记"), safeStr(dev.Location, "未登记")))
 	sb.WriteString(fmt.Sprintf("| **巡检耗时** | `%d ms` | **完成时间** | `%s` |\n\n", durationMs, nowStr))
 
-	sb.WriteString("#### 2. 📊 核心运维指标多维体检大盘\n\n")
-	sb.WriteString("| 体检维度 | 权重指标 | 当前实测值 | 健康状态 | 判定说明 |\n")
-	sb.WriteString("| :--- | :--- | :---: | :---: | :--- |\n")
-	sb.WriteString(fmt.Sprintf("| **网络连通性** | ICMP Ping 延迟与丢包率 | `< 1 ms (0%% 丢包)` | 🟢 极佳 | 物理链路直通，无抖动 |\n"))
-	sb.WriteString(fmt.Sprintf("| **SNMP 监控层** | 采集周期与 MIB 响应 | `正常 (60s 精准调度)` | 🟢 正常 | OID 读写通道畅通 |\n"))
-	sb.WriteString(fmt.Sprintf("| **物理接口健康** | 活跃链路与错包率 | `UP: %d 口 / DOWN: %d 口` | 🟢 正常 | 错包 CRC=0，端口无异常翻动 |\n", upPorts, downPorts))
-	sb.WriteString(fmt.Sprintf("| **CPU 利用率** | 主控板瞬时负荷 | `18.5%%` | 🟢 健康 | 负荷远低于 80%% 警戒阈值 |\n"))
-	sb.WriteString(fmt.Sprintf("| **内存使用率** | 内存池分配与剩余 | `32.4%%` | 🟢 健康 | 内存充足，无泄漏风险 |\n"))
-	sb.WriteString(fmt.Sprintf("| **配置备份状态** | 备份基线版本一致性 | `已备份` | 🟢 完备 | 最近备份基线已在库持久化 |\n"))
-	sb.WriteString(fmt.Sprintf("| **告警与事件** | 实时高危告警排查 | `0 个活动告警` | 🟢 洁净 | 无影响业务的阻塞故障 |\n\n"))
+	sb.WriteString("#### 2. 📊 实测指标体检明细\n\n")
+	sb.WriteString("| 体检维度 | 实测值 | 数据来源 |\n")
+	sb.WriteString("| :--- | :--- | :--- |\n")
 
-	sb.WriteString("#### 3. 💡 AI 智能运维建议与预防性策略\n\n")
-	sb.WriteString(fmt.Sprintf("- 建议持续保持当前的 60s SNMP 接口指标独立轮询策略；\n"))
-	sb.WriteString(fmt.Sprintf("- 物理端口仍有 %d 个处于闲置 DOWN 状态，建议对长期未使用的端口执行 `shutdown` 提升机房安全合规评级；\n", downPorts))
-	sb.WriteString("- 整体健康状态良好，系统已生成最新巡检快照，无需人工现场干预。\n\n")
+	// SSH 巡检
+	if sig.sshOK {
+		sb.WriteString(fmt.Sprintf("| **SSH 配置巡检** | 执行 %d 条 / 失败 %d 条 | 本次实测 |\n", sig.sshExecuted, sig.sshFailed))
+	} else {
+		sb.WriteString("| **SSH 配置巡检** | 未执行（无 SSH 凭证或连接失败） | — |\n")
+	}
 
-	sb.WriteString("> 📝 **报告归档**：巡检历史记录已自动存入系统库 `network_inspection_history`，您也可在设备卡片直接查看最新巡检结果。")
+	// SNMP 系统信息
+	if h := sig.health; h != nil {
+		if h.SysUptime > 0 {
+			sb.WriteString(fmt.Sprintf("| **系统运行时长** | %s | SNMP 实测 |\n", formatUptime(h.SysUptime)))
+		}
+		if h.CpuUsage != nil {
+			sb.WriteString(fmt.Sprintf("| **CPU 利用率** | %.1f%% | SNMP 实测 |\n", *h.CpuUsage))
+		} else {
+			sb.WriteString("| **CPU 利用率** | 未采集（设备不支持该 OID） | — |\n")
+		}
+		if h.MemoryUsage != nil {
+			sb.WriteString(fmt.Sprintf("| **内存使用率** | %.1f%% | SNMP 实测 |\n", *h.MemoryUsage))
+		} else {
+			sb.WriteString("| **内存使用率** | 未采集（设备不支持该 OID） | — |\n")
+		}
+		if h.Temperature != nil {
+			sb.WriteString(fmt.Sprintf("| **设备温度** | %.1f ℃ | SNMP 实测 |\n", *h.Temperature))
+		}
+		if h.InterfaceHighUtil > 0 {
+			sb.WriteString(fmt.Sprintf("| **高负载接口** | %d 个接口利用率 >80%% | SNMP 实测 |\n", h.InterfaceHighUtil))
+		}
+	} else {
+		sb.WriteString("| **SNMP 健康检查** | 未采集（无 SNMP 凭证或设备无响应） | — |\n")
+	}
+
+	// 接口统计
+	if upPorts >= 0 {
+		src := "SNMP 实测"
+		if sig.health == nil || sig.health.InterfaceCount == 0 {
+			src = "最近一次采集存档"
+		}
+		sb.WriteString(fmt.Sprintf("| **物理接口状态** | UP: %d 口 / DOWN: %d 口 | %s |\n", upPorts, downPorts, src))
+	} else {
+		sb.WriteString("| **物理接口状态** | 未采集 | — |\n")
+	}
+
+	// 告警与备份（在库真实数据）
+	sb.WriteString(fmt.Sprintf("| **活动告警** | %d 个未解决告警 | 告警中心在库数据 |\n", sig.activeAlerts))
+	if sig.lastBackup != "" {
+		sb.WriteString(fmt.Sprintf("| **配置备份** | 最近成功备份 `%s` | 备份记录在库数据 |\n", sig.lastBackup))
+	} else {
+		sb.WriteString("| **配置备份** | 无成功备份记录 | 备份记录在库数据 |\n")
+	}
+	sb.WriteString("\n")
+
+	sb.WriteString("#### 3. 💡 运维建议\n\n")
+	if sig.sshFailed > 0 {
+		sb.WriteString(fmt.Sprintf("- SSH 巡检有 %d 条命令执行失败，建议在「巡检中心」查看明细并核对设备命令兼容性；\n", sig.sshFailed))
+	}
+	if sig.health != nil && sig.health.CpuUsage != nil && *sig.health.CpuUsage > 80 {
+		sb.WriteString(fmt.Sprintf("- CPU 利用率 %.1f%% 超过 80%% 警戒线，建议排查异常进程或流量突增；\n", *sig.health.CpuUsage))
+	}
+	if sig.health != nil && sig.health.MemoryUsage != nil && *sig.health.MemoryUsage > 80 {
+		sb.WriteString(fmt.Sprintf("- 内存使用率 %.1f%% 超过 80%% 警戒线，建议关注内存泄漏风险；\n", *sig.health.MemoryUsage))
+	}
+	if sig.activeAlerts > 0 {
+		sb.WriteString(fmt.Sprintf("- 存在 %d 个未解决告警，请前往「告警中心」处理；\n", sig.activeAlerts))
+	}
+	if sig.lastBackup == "" {
+		sb.WriteString("- 尚无成功配置备份，建议在「配置备份」中为该设备建立定期备份任务；\n")
+	}
+	if downPorts > 0 {
+		sb.WriteString(fmt.Sprintf("- %d 个端口处于 DOWN 状态，长期闲置端口建议 `shutdown` 以提升安全合规评级；\n", downPorts))
+	}
+	if score >= 90 {
+		sb.WriteString("- 各项实测指标正常，保持当前采集与备份策略即可。\n")
+	}
+	sb.WriteString("\n> 📝 **报告归档**：巡检结论已更新至设备档案，历史记录见 `network_inspection_history`。")
 	return sb.String()
 }
 
-// executeAllDevicesInspection 执行全网设备批量巡检
+func formatUptime(centiseconds int64) string {
+	d := time.Duration(centiseconds) * 10 * time.Millisecond
+	days := int(d.Hours()) / 24
+	hours := int(d.Hours()) % 24
+	minutes := int(d.Minutes()) % 60
+	if days > 0 {
+		return fmt.Sprintf("%d 天 %d 小时 %d 分", days, hours, minutes)
+	}
+	return fmt.Sprintf("%d 小时 %d 分", hours, minutes)
+}
+
+// ───────────────────────────────────────────────
+// 全网批量巡检
+// ───────────────────────────────────────────────
+
+// executeAllDevicesInspection 全网批量巡检：逐台执行真实 SNMP 健康检查（并发 8）
 func executeAllDevicesInspection(ctx context.Context, inspType string) string {
 	start := time.Now()
 	devices, err := repos.NetworkDevices.List()
@@ -279,6 +417,7 @@ func executeAllDevicesInspection(ctx context.Context, inspType string) string {
 	var results []inspectItem
 	var mu sync.Mutex
 	var wg sync.WaitGroup
+	sem := make(chan struct{}, 8)
 
 	for _, d := range devices {
 		if d == nil {
@@ -287,37 +426,36 @@ func executeAllDevicesInspection(ctx context.Context, inspType string) string {
 		wg.Add(1)
 		go func(dev *repos.NetworkDevice) {
 			defer wg.Done()
-			isOnline := strings.ToLower(dev.Status) == "online" || strings.ToLower(dev.Status) == "up"
+			sem <- struct{}{}
+			defer func() { <-sem }()
 
-			score := 95
-			statusStr := "🟢 正常"
-			summaryText := "巡检正常，各项关键性能指标达标"
+			item := inspectItem{name: dev.Name, ip: dev.IPAddress, vendor: dev.Vendor, isOnline: isDeviceOnline(dev)}
 
-			if !isOnline {
-				score = 0
-				statusStr = "🔴 离线异常"
-				summaryText = "设备脱网无法响应 ICMP/SNMP 探测，建议排查物理线路或删除虚假设备"
+			if !item.isOnline {
+				item.score = 0
+				item.statusStr = "🔴 离线"
+				item.summary = "平台记录状态离线，未执行实测采集，建议排查物理线路或删除虚假设备"
 			} else {
-				if strings.Contains(dev.Name, "核心") {
-					score = 98
-				} else if strings.Contains(dev.Name, "防火墙") {
-					score = 92
+				// 批量巡检走 SNMP 健康检查（轻量）；SSH 深度巡检由单机报告执行
+				sig := collectDeviceSignals(dev, inspType, false)
+				item.score = scoreDevice(sig)
+				switch {
+				case item.score < 0:
+					item.statusStr = "⚪ 未评估"
+					item.summary = "在线但无 SNMP 采集数据，请检查 SNMP 凭证配置"
+				case item.score >= 90:
+					item.statusStr = "🟢 正常"
+					item.summary = fmt.Sprintf("实测健康分 %d，活动告警 %d 个", item.score, sig.activeAlerts)
+				default:
+					item.statusStr = "🟡 关注"
+					item.summary = fmt.Sprintf("实测健康分 %d，活动告警 %d 个，建议查看单机报告", item.score, sig.activeAlerts)
 				}
 			}
 
-			// 持久化更新设备巡检摘要
-			_ = repos.NetworkDevices.UpdateInspectionResult(dev.ID, summaryText)
+			_ = repos.NetworkDevices.UpdateInspectionResult(dev.ID, item.summary)
 
 			mu.Lock()
-			results = append(results, inspectItem{
-				name:      dev.Name,
-				ip:        dev.IPAddress,
-				vendor:    dev.Vendor,
-				isOnline:  isOnline,
-				score:     score,
-				statusStr: statusStr,
-				summary:   summaryText,
-			})
+			results = append(results, item)
 			mu.Unlock()
 		}(d)
 	}
@@ -325,63 +463,63 @@ func executeAllDevicesInspection(ctx context.Context, inspType string) string {
 	wg.Wait()
 	durationMs := time.Since(start).Milliseconds()
 
-	onlineCount := 0
-	offlineCount := 0
-	totalScore := 0
+	onlineCount, offlineCount, totalScore, evaluated := 0, 0, 0, 0
 	for _, r := range results {
 		if r.isOnline {
 			onlineCount++
 		} else {
 			offlineCount++
 		}
-		totalScore += r.score
+		if r.score >= 0 {
+			totalScore += r.score
+			evaluated++
+		}
 	}
-	avgScore := totalScore / len(results)
+	avgScore := -1
+	if evaluated > 0 {
+		avgScore = totalScore / evaluated
+	}
 
 	var sb strings.Builder
-	sb.WriteString("### 🌐 NetMon 全网基础设施批量巡检总览大盘\n\n")
-	sb.WriteString(fmt.Sprintf("> **巡检总调度耗时**：`%d ms` | **并发调度协程**：%d 个 | **巡检类型**：`%s`\n\n", durationMs, len(devices), inspType))
+	sb.WriteString("### 🌐 NetMon 全网基础设施批量巡检总览\n\n")
+	sb.WriteString(fmt.Sprintf("> **巡检总耗时**：`%d ms` | **并发采集**：8 | **巡检类型**：`%s`（SNMP 实测）\n\n", durationMs, inspType))
 
-	sb.WriteString("#### 1. 📊 全网健康大盘统计指标\n\n")
-	sb.WriteString("| 指标项 | 统计数值 | 评估状态 |\n")
-	sb.WriteString("| :--- | :---: | :---: |\n")
-	sb.WriteString(fmt.Sprintf("| **巡检设备总数** | **%d 台** | 整体纳管规模 |\n", len(devices)))
-	sb.WriteString(fmt.Sprintf("| **在线健康设备** | 🟢 **%d 台** | 正常承载业务流量 |\n", onlineCount))
-	sb.WriteString(fmt.Sprintf("| **离线/异常设备** | 🔴 **%d 台** | %s |\n", offlineCount, func() string {
-		if offlineCount > 0 {
-			return "⚠️ 存在严重脱网设备，需紧急排查"
-		}
-		return "全网通畅，无脱网节点"
-	}()))
-	sb.WriteString(fmt.Sprintf("| **全网平均健康分** | **%d / 100 分** | 整体评级：%s |\n\n", avgScore, func() string {
-		if avgScore >= 90 {
-			return "🟢 优秀"
-		} else if avgScore >= 75 {
-			return "🟡 良好"
-		}
-		return "🔴 警告"
-	}()))
+	sb.WriteString("#### 1. 📊 全网健康统计\n\n")
+	sb.WriteString("| 指标项 | 统计数值 | 说明 |\n")
+	sb.WriteString("| :--- | :---: | :--- |\n")
+	sb.WriteString(fmt.Sprintf("| **巡检设备总数** | **%d 台** | 整体纳管规模 |\n", len(results)))
+	sb.WriteString(fmt.Sprintf("| **在线设备** | 🟢 **%d 台** | 平台记录状态 |\n", onlineCount))
+	sb.WriteString(fmt.Sprintf("| **离线设备** | 🔴 **%d 台** | 平台记录状态 |\n", offlineCount))
+	if avgScore >= 0 {
+		sb.WriteString(fmt.Sprintf("| **平均健康分** | **%d / 100 分**（%d 台有效评估） | 评级：%s |\n\n", avgScore, evaluated, scoreLabel(avgScore)))
+	} else {
+		sb.WriteString("| **平均健康分** | 无有效评估 | 所有设备均未采集到实测数据 |\n\n")
+	}
 
-	sb.WriteString("#### 2. 📋 各设备健康评分与检测结论汇总清单\n\n")
-	sb.WriteString("| 序号 | 设备名称 | 管理 IP | 品牌 | 运行状态 | 健康评分 | 巡检结论摘要 |\n")
+	sb.WriteString("#### 2. 📋 各设备健康评分清单\n\n")
+	sb.WriteString("| 序号 | 设备名称 | 管理 IP | 品牌 | 状态 | 健康评分 | 巡检结论摘要 |\n")
 	sb.WriteString("| :---: | :--- | :--- | :--- | :---: | :---: | :--- |\n")
 	for idx, r := range results {
-		sb.WriteString(fmt.Sprintf("| %d | **%s** | `%s` | %s | %s | **%d 分** | %s |\n",
-			idx+1, r.name, r.ip, r.vendor, r.statusStr, r.score, r.summary))
+		scoreStr := "未评估"
+		if r.score >= 0 {
+			scoreStr = fmt.Sprintf("%d 分", r.score)
+		}
+		sb.WriteString(fmt.Sprintf("| %d | **%s** | `%s` | %s | %s | **%s** | %s |\n",
+			idx+1, r.name, r.ip, r.vendor, r.statusStr, scoreStr, r.summary))
 	}
 	sb.WriteString("\n")
 
 	if offlineCount > 0 {
-		sb.WriteString("#### 3. 🚨 重点告警与异常设备处理策略\n\n")
+		sb.WriteString("#### 3. 🚨 离线设备处理建议\n\n")
 		for _, r := range results {
 			if !r.isOnline {
-				sb.WriteString(fmt.Sprintf("- ⚠️ **设备 `%s` (`%s`) 持续脱网**：检测到物理接口与 SNMP 通道完全不可达。若该设备为您新建的不存在设备，请前往「**网络设备 ➔ 设备管理**」予以删除；若是生产设备，请排查上联光纤与供电状态。\n", r.name, r.ip))
+				sb.WriteString(fmt.Sprintf("- ⚠️ **`%s` (`%s`)**：平台记录持续离线。若为测试设备请前往「**网络设备 ➔ 设备管理**」删除；若为生产设备请排查上联链路与供电。\n", r.name, r.ip))
 			}
 		}
 		sb.WriteString("\n")
 	}
 
-	sb.WriteString("> 💡 **深入操作**：可输入「**巡检核心交换机-1**」查看单机深度端口与流量体检报告，或输入「**查看当前告警状态**」获取告警明细。")
+	sb.WriteString("> 💡 **深入操作**：输入「**巡检 设备名称**」可执行单机深度巡检（含 SSH 配置核查）。")
 	return sb.String()
 }
 

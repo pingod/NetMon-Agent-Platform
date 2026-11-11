@@ -18,8 +18,9 @@ import (
 type DeviceStatusProber struct {
 	mu       sync.Mutex
 	stopCh   chan struct{}
+	resetCh  chan struct{} // 通知 loop 以新间隔重建 ticker
 	running  bool
-	interval time.Duration // 探测间隔
+	interval time.Duration // 探测间隔（mu 保护）
 }
 
 // DeviceStatusProberInstance 全局单例
@@ -36,10 +37,11 @@ func (p *DeviceStatusProber) Start() {
 	}
 	p.running = true
 	p.stopCh = make(chan struct{})
+	p.resetCh = make(chan struct{}, 1)
 	p.mu.Unlock()
 
 	go p.loop()
-	logger.Infof("设备状态探测服务已启动，间隔 %s", p.interval)
+	logger.Infof("设备状态探测服务已启动，间隔 %s", p.getInterval())
 }
 
 // Shutdown 停止探测
@@ -52,27 +54,50 @@ func (p *DeviceStatusProber) Shutdown() {
 	}
 }
 
-// SetInterval 设置探测间隔
+// SetInterval 设置探测间隔；运行中会立即按新间隔重建 ticker
 func (p *DeviceStatusProber) SetInterval(d time.Duration) {
+	if d <= 0 {
+		return
+	}
 	p.mu.Lock()
 	p.interval = d
+	resetCh := p.resetCh
 	p.mu.Unlock()
+	if resetCh != nil {
+		select {
+		case resetCh <- struct{}{}:
+		default:
+		}
+	}
+}
+
+func (p *DeviceStatusProber) getInterval() time.Duration {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.interval
 }
 
 func (p *DeviceStatusProber) loop() {
 	// 首次立即执行
 	p.probeAll()
 
-	ticker := time.NewTicker(p.interval)
+	p.mu.Lock()
+	stopCh := p.stopCh
+	resetCh := p.resetCh
+	p.mu.Unlock()
+
+	ticker := time.NewTicker(p.getInterval())
 	defer ticker.Stop()
 
 	for {
 		select {
-		case <-p.stopCh:
+		case <-stopCh:
 			logger.Infof("设备状态探测服务已停止")
 			return
 		case <-ticker.C:
 			p.probeAll()
+		case <-resetCh:
+			ticker.Reset(p.getInterval())
 		}
 	}
 }
@@ -370,7 +395,7 @@ func isPingSuccess(output string) bool {
 // init 在包初始化时根据环境变量设置探测间隔
 func init() {
 	if v := os.Getenv("DEVICE_PROBE_INTERVAL"); v != "" {
-		if d, err := time.ParseDuration(v); err == nil {
+		if d, err := time.ParseDuration(v); err == nil && d > 0 {
 			DeviceStatusProberInstance.interval = d
 		}
 	}

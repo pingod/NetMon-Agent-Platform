@@ -49,7 +49,7 @@ func createTelnetDeviceTerminal(deviceID, name, host string, port int, username,
 		return "", nil, nil, nil, nil, fmt.Errorf("Telnet 连接到 %s:%d 失败: %w", host, port, dialErr)
 	}
 
-	sessionID = "telnet-" + deviceID[:8] + "-" + uuid.New().String()[:8]
+	sessionID = "telnet-" + shortID(deviceID) + "-" + uuid.New().String()[:8]
 	dataCh := make(chan []byte, 512)
 
 	// 发送初始终端大小 NAWS (RFC 1073)

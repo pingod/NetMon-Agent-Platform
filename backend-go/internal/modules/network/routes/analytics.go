@@ -54,6 +54,7 @@ func AnalyticsRoutes() chi.Router {
 	r.Get("/dashboard/agent-stats", handleAgentStats)
 	r.Get("/dashboard/task-distribution", handleTaskDistribution)
 	r.Get("/dashboard/remediation-stats", handleRemediationStats)
+	r.Get("/dashboard/alert-source-stats", handleAlertSourceStats)
 	r.Get("/dashboard/sla-stats", handleSlaStats)
 
 	// ── 告警核心 & 夜莺规则引擎 ──

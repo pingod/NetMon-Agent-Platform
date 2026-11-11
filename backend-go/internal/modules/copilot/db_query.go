@@ -132,30 +132,156 @@ var forbiddenSQLWords = []string{
 	"into ", "load_extension", "outfile", "dumpfile",
 }
 
-// reSQLTableRef 提取 FROM / JOIN 后引用的表名（含反引号、双引号、方括号与 schema 前缀）
-var reSQLTableRef = regexp.MustCompile("(?i)\\b(?:from|join)\\s+([`\"\\[\\]\\w.]+)")
-
 // isSQLWordChar 判断是否为 SQL 标识符字符
 func isSQLWordChar(b byte) bool {
 	return b == '_' || (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9')
 }
 
-// referencedTables 解析 SQL 中引用的物理表名（去重、小写、去 schema 前缀）
+// readSQLIdentifier 从 s[i] 读取一个标识符（支持 "x" / `x` / [x] / 裸名），
+// 返回标识符内容与下一个位置；无法识别时返回空串。
+func readSQLIdentifier(s string, i int) (string, int) {
+	n := len(s)
+	if i >= n {
+		return "", i
+	}
+	switch s[i] {
+	case '"', '`':
+		q := s[i]
+		j := i + 1
+		var b strings.Builder
+		for j < n {
+			if s[j] == q {
+				if j+1 < n && s[j+1] == q { // 转义的双写引号
+					b.WriteByte(q)
+					j += 2
+					continue
+				}
+				return b.String(), j + 1
+			}
+			b.WriteByte(s[j])
+			j++
+		}
+		return b.String(), n
+	case '[':
+		j := i + 1
+		for j < n && s[j] != ']' {
+			j++
+		}
+		if j < n {
+			return s[i+1 : j], j + 1
+		}
+		return s[i+1 : n], n
+	default:
+		if !isSQLWordChar(s[i]) || (s[i] >= '0' && s[i] <= '9') {
+			return "", i
+		}
+		j := i
+		for j < n && (isSQLWordChar(s[j]) || s[j] == '$') {
+			j++
+		}
+		return s[i:j], j
+	}
+}
+
+// referencedTables 解析 SQL 中引用的物理表名（去重、小写、去 schema 前缀）。
+// 用扫描器而非正则：SQLite 允许 FROM"users"、FROM[users]、FROM a,b 等无空白写法，
+// 正则 \s+ 会漏检导致敏感表黑名单与列脱敏被绕过。
 func referencedTables(sqlQuery string) []string {
-	matches := reSQLTableRef.FindAllStringSubmatch(sqlQuery, -1)
 	seen := map[string]bool{}
 	var tables []string
-	for _, m := range matches {
-		name := strings.Trim(strings.TrimSpace(m[1]), "`\"[]")
-		if idx := strings.LastIndex(name, "."); idx != -1 {
-			name = strings.Trim(name[idx+1:], "`\"[]")
-		}
+	add := func(name string) {
 		name = strings.ToLower(name)
 		if name == "" || seen[name] {
-			continue
+			return
 		}
 		seen[name] = true
 		tables = append(tables, name)
+	}
+
+	n := len(sqlQuery)
+	skipSpace := func(i int) int {
+		for i < n && (sqlQuery[i] == ' ' || sqlQuery[i] == '\t' || sqlQuery[i] == '\n' || sqlQuery[i] == '\r' || sqlQuery[i] == '\f' || sqlQuery[i] == '\v') {
+			i++
+		}
+		return i
+	}
+	// readTableRef 读取一个表引用（可带 schema. 前缀），返回结束位置
+	readTableRef := func(i int) int {
+		i = skipSpace(i)
+		name, j := readSQLIdentifier(sqlQuery, i)
+		if name == "" {
+			return i
+		}
+		for {
+			k := skipSpace(j)
+			if k < n && sqlQuery[k] == '.' {
+				next, m := readSQLIdentifier(sqlQuery, skipSpace(k+1))
+				if next == "" {
+					break
+				}
+				name, j = next, m
+				continue
+			}
+			break
+		}
+		add(name)
+		return j
+	}
+
+	for i := 0; i < n; i++ {
+		ch := sqlQuery[i]
+		// 跳过字符串字面量与带引号标识符，避免误判其中的 from/join
+		if ch == '\'' {
+			i++
+			for i < n {
+				if sqlQuery[i] == '\'' {
+					if i+1 < n && sqlQuery[i+1] == '\'' {
+						i += 2
+						continue
+					}
+					break
+				}
+				i++
+			}
+			continue
+		}
+		if ch == '"' || ch == '`' || ch == '[' {
+			_, j := readSQLIdentifier(sqlQuery, i)
+			i = j - 1
+			continue
+		}
+		if ch != 'f' && ch != 'F' && ch != 'j' && ch != 'J' {
+			continue
+		}
+		if i > 0 && isSQLWordChar(sqlQuery[i-1]) {
+			continue
+		}
+		var kwLen int
+		if (ch == 'f' || ch == 'F') && i+4 <= n && strings.EqualFold(sqlQuery[i:i+4], "from") {
+			kwLen = 4
+		} else if (ch == 'j' || ch == 'J') && i+4 <= n && strings.EqualFold(sqlQuery[i:i+4], "join") {
+			kwLen = 4
+		} else {
+			continue
+		}
+		if i+kwLen < n && isSQLWordChar(sqlQuery[i+kwLen]) {
+			continue
+		}
+		// 读取表引用列表（逗号分隔的旧式连接也要覆盖）
+		j := i + kwLen
+		for {
+			k := readTableRef(j)
+			if k == skipSpace(j) { // 没读到标识符（如子查询的 '('），停止
+				break
+			}
+			k = skipSpace(k)
+			if k < n && sqlQuery[k] == ',' {
+				j = k + 1
+				continue
+			}
+			break
+		}
+		i += kwLen - 1
 	}
 	return tables
 }

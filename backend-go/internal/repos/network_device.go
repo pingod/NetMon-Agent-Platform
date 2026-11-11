@@ -3,6 +3,7 @@ package repos
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 	"time"
 
@@ -578,22 +579,102 @@ func (r *NetworkDeviceRepo) UpdateLastSnmpAt(id string) error {
 	return err
 }
 
-// Delete 删除设备
-func (r *NetworkDeviceRepo) Delete(id string) error {
-	cleanupTables := []string{
-		"snmp_custom_oid_results",
-		"config_backup_records",
-		"custom_dashboard_metrics",
-		"snmp_polling_snapshots",
-		"alert_device_associations",
-		"alert_auto_analysis",
-		"remediation_executions",
+// 设备删除时清理的关联表（app.db 内，均含 device_id 列）
+// 注意：remediation_executions 只关联 alert_id/policy_id，属于告警处置审计，
+// 与 alerts 一样保留不删。
+var deviceCleanupAppTables = []string{
+	"config_backup_records",
+	"alert_device_associations",
+	"alert_auto_analysis",
+	"snmp_credentials",
+	"network_config_backups",
+	"network_inspection_history",
+	"network_lldp_neighbors",
+	"probe_execution_stats",
+	"ai_remediations",
+	"aars_response_logs",
+	"dc_device_lifecycle",
+}
+
+// 指标类关联表（metrics.db 内；app.db 可能残留拆分前的旧副本，一并清理）
+var deviceCleanupMetricsTables = []string{
+	"snmp_custom_oid_results",
+	"custom_dashboard_metrics",
+	"snmp_polling_snapshots",
+	"snmp_interface_metrics",
+	"snmp_collect_results",
+	"baseline_metrics",
+	"snmp_polling_tasks",
+	"snmp_metric_samples",
+}
+
+// execDeviceCleanup 在两个库上执行清理；表不存在视为无需清理
+func execDeviceCleanup(db *sql.DB, query, id string) error {
+	if db == nil {
+		return nil
 	}
-	for _, t := range cleanupTables {
-		appdb.DB().Exec(`DELETE FROM `+t+` WHERE device_id = ?`, id)
+	_, err := db.Exec(query, id)
+	if err != nil && strings.Contains(err.Error(), "no such table") {
+		return nil
 	}
-	_, err := appdb.DB().Exec(`DELETE FROM network_devices WHERE id = ?`, id)
 	return err
+}
+
+func cleanupDeviceMetrics(id string) error {
+	for _, t := range deviceCleanupMetricsTables {
+		q := `DELETE FROM ` + t + ` WHERE device_id = ?`
+		if err := execDeviceCleanup(appdb.DBForTable(t), q, id); err != nil {
+			return fmt.Errorf("清理 %s 失败: %w", t, err)
+		}
+		if appdb.DBForTable(t) != appdb.DB() {
+			if err := execDeviceCleanup(appdb.DB(), q, id); err != nil {
+				return fmt.Errorf("清理 %s 失败: %w", t, err)
+			}
+		}
+	}
+	return nil
+}
+
+// cleanupDeviceAppTx 在 app.db 事务内清理关联数据并删除设备本体，返回是否真实删除了设备行
+func cleanupDeviceAppTx(tx *sql.Tx, id string) (bool, error) {
+	for _, t := range deviceCleanupAppTables {
+		if _, err := tx.Exec(`DELETE FROM `+t+` WHERE device_id = ?`, id); err != nil {
+			if strings.Contains(err.Error(), "no such table") {
+				continue
+			}
+			return false, fmt.Errorf("清理 %s 失败: %w", t, err)
+		}
+	}
+	// 释放机架 U 位（槽位行随设备删除）
+	if _, err := tx.Exec(`DELETE FROM dc_rack_slots WHERE device_id = ? AND device_type = 'network_device'`, id); err != nil && !strings.Contains(err.Error(), "no such table") {
+		return false, fmt.Errorf("释放机架槽位失败: %w", err)
+	}
+	// 释放占用的 IP（保留 reserved 预留）
+	if _, err := tx.Exec(`UPDATE network_ips SET device_id = NULL, device_name = NULL, status = 'available', updated_at = datetime('now','localtime') WHERE device_id = ? AND status = 'used'`, id); err != nil && !strings.Contains(err.Error(), "no such table") {
+		return false, fmt.Errorf("释放 IP 地址失败: %w", err)
+	}
+	res, err := tx.Exec(`DELETE FROM network_devices WHERE id = ?`, id)
+	if err != nil {
+		return false, err
+	}
+	affected, _ := res.RowsAffected()
+	return affected > 0, nil
+}
+
+// Delete 删除设备（含关联数据清理，app.db 侧事务化）
+func (r *NetworkDeviceRepo) Delete(id string) error {
+	if err := cleanupDeviceMetrics(id); err != nil {
+		return err
+	}
+	tx, err := appdb.DB().Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := cleanupDeviceAppTx(tx, id); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // BatchDelete 批量删除设备
@@ -601,26 +682,28 @@ func (r *NetworkDeviceRepo) BatchDelete(ids []string) (int, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
-	cleanupTables := []string{
-		"snmp_custom_oid_results",
-		"config_backup_records",
-		"custom_dashboard_metrics",
-		"snmp_polling_snapshots",
-		"alert_device_associations",
-		"alert_auto_analysis",
-		"remediation_executions",
+	for _, id := range ids {
+		if err := cleanupDeviceMetrics(id); err != nil {
+			return 0, err
+		}
 	}
+	tx, err := appdb.DB().Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
 	deletedCount := 0
 	for _, id := range ids {
-		for _, t := range cleanupTables {
-			_, _ = appdb.DB().Exec(`DELETE FROM `+t+` WHERE device_id = ?`, id)
+		deleted, err := cleanupDeviceAppTx(tx, id)
+		if err != nil {
+			return 0, err
 		}
-		res, err := appdb.DB().Exec(`DELETE FROM network_devices WHERE id = ?`, id)
-		if err == nil {
-			if affected, _ := res.RowsAffected(); affected > 0 {
-				deletedCount++
-			}
+		if deleted {
+			deletedCount++
 		}
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, err
 	}
 	return deletedCount, nil
 }

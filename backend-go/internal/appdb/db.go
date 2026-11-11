@@ -559,3 +559,13 @@ func TableExists(db *sql.DB, table string) bool {
 	err := db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?`, table).Scan(&n)
 	return err == nil && n > 0
 }
+
+// ParseDBTime 解析从数据库读出的时间字符串。
+// modernc.org/sqlite 会把 DATETIME 声明列解析为 time.Time，扫描进 string 后是 RFC3339；
+// TEXT 列则原样返回 "2006-01-02 15:04:05"。两种形态都必须接受，否则时间差计算静默归零。
+func ParseDBTime(s string) (time.Time, error) {
+	if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
+		return t, nil
+	}
+	return time.ParseInLocation("2006-01-02 15:04:05", s, time.Local)
+}

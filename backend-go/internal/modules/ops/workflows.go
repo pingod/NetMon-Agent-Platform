@@ -66,13 +66,41 @@ func WorkflowRoutes() chi.Router {
 	})
 
 	r.Get("/providers/list", func(w http.ResponseWriter, r *http.Request) {
+		strField := func(title, desc string) map[string]interface{} {
+			return map[string]interface{}{"type": "string", "title": title, "description": desc}
+		}
 		providers := []map[string]interface{}{
-			{"id": "bash", "name": "Bash 脚本执行器", "type": "script", "configSchema": map[string]interface{}{"command": "string"}},
-			{"id": "ssh", "name": "SSH 远程命令", "type": "remote", "configSchema": map[string]interface{}{"host": "string", "port": 22, "command": "string"}},
-			{"id": "http", "name": "HTTP / Webhook 请求", "type": "api", "configSchema": map[string]interface{}{"url": "string", "method": "POST"}},
-			{"id": "snmp", "name": "SNMP 采集与查询", "type": "snmp", "configSchema": map[string]interface{}{"oid": "string", "version": "v2c"}},
-			{"id": "python", "name": "Python 自动化执行器", "type": "script", "configSchema": map[string]interface{}{"script": "string"}},
-			{"id": "notify", "name": "多渠道通知", "type": "notification", "configSchema": map[string]interface{}{"channel": "wecom", "message": "string"}},
+			{"id": "bash", "name": "Bash 脚本执行器", "type": "script", "configSchema": map[string]interface{}{"properties": map[string]interface{}{
+				"command": strField("命令", "在平台主机执行，支持 {{params.x}}/{{alert.x}} 模板（自动 shell 转义）"),
+			}}},
+			{"id": "ssh", "name": "SSH 远程命令", "type": "remote", "configSchema": map[string]interface{}{"properties": map[string]interface{}{
+				"server_id": strField("服务器 ID", "已注册服务器 ID（优先，复用凭证库）；留空则用 host 直连"),
+				"host":      strField("主机", "直连模式主机地址"),
+				"port":      strField("端口", "默认 22"),
+				"username":  strField("用户名", "直连模式用户名"),
+				"password":  strField("密码", "直连模式密码"),
+				"command":   strField("命令", "支持 {{params.x}}/{{alert.x}} 模板（自动 shell 转义）"),
+			}}},
+			{"id": "http", "name": "HTTP / Webhook 请求", "type": "api", "configSchema": map[string]interface{}{"properties": map[string]interface{}{
+				"url":    strField("URL", "支持 {{params.x}}/{{alert.x}} 模板"),
+				"method": map[string]interface{}{"type": "string", "title": "方法", "enum": []string{"GET", "POST", "PUT", "DELETE"}, "default": "POST"},
+				"body":   strField("请求体", "默认 Content-Type: application/json"),
+			}}},
+			{"id": "snmp", "name": "SNMP 采集与查询", "type": "snmp", "configSchema": map[string]interface{}{"properties": map[string]interface{}{
+				"host":      strField("主机", "目标设备地址"),
+				"port":      strField("端口", "默认 161"),
+				"community": strField("Community", "默认 public"),
+				"oid":       strField("OID", "例如 1.3.6.1.2.1.1.1.0"),
+			}}},
+			{"id": "python", "name": "Python 自动化执行器", "type": "script", "configSchema": map[string]interface{}{"properties": map[string]interface{}{
+				"script": strField("脚本", "python3 执行，模板值自动按 Python 字符串转义"),
+			}}},
+			{"id": "notify", "name": "多渠道通知", "type": "notification", "configSchema": map[string]interface{}{"properties": map[string]interface{}{
+				"channel":     map[string]interface{}{"type": "string", "title": "渠道", "enum": []string{"webhook", "wecom", "dingtalk"}, "default": "webhook"},
+				"title":       strField("标题", "默认：工作流通知"),
+				"message":     strField("内容", "支持 {{params.x}}/{{alert.x}} 模板"),
+				"webhook_url": strField("Webhook 地址", "留空则使用系统通知配置"),
+			}}},
 		}
 		httpx.Respond(w, providers)
 	})
@@ -257,59 +285,96 @@ func TaskRoutes() chi.Router {
 		httpx.Respond(w, list)
 	})
 
-	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin", "operator")).Post("/", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			WorkflowID string `json:"workflow_id"`
-			Name       string `json:"name"`
+			WorkflowID string                 `json:"workflow_id"`
+			Name       string                 `json:"name"`
+			Params     map[string]interface{} `json:"params"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64*1024)).Decode(&req); err != nil {
 			httpx.RespondError(w, "无效的请求", http.StatusBadRequest)
+			return
+		}
+		if req.WorkflowID == "" {
+			httpx.RespondError(w, "workflow_id 必填", http.StatusBadRequest)
+			return
+		}
+		var wfName string
+		if appdb.DB().QueryRow(`SELECT name FROM workflows WHERE id = ?`, req.WorkflowID).Scan(&wfName) != nil {
+			httpx.RespondError(w, "工作流不存在", http.StatusNotFound)
 			return
 		}
 		id := uuid.NewString()
 		now := time.Now().Format("2006-01-02 15:04:05")
 		name := req.Name
 		if name == "" {
-			name = "任务-" + time.Now().Format("150405")
+			name = wfName + "-" + time.Now().Format("150405")
 		}
+		if req.Params == nil {
+			req.Params = map[string]interface{}{}
+		}
+		ctxJSON, _ := json.Marshal(map[string]interface{}{"params": req.Params})
 
 		_, err := appdb.DB().Exec(`
-			INSERT INTO tasks (id, name, workflow_id, status, start_time, created_at)
-			VALUES (?, ?, ?, 'completed', ?, ?)`,
-			id, name, req.WorkflowID, now, now)
+			INSERT INTO tasks (id, name, workflow_id, status, start_time, context, created_at, updated_at)
+			VALUES (?, ?, ?, 'running', ?, ?, ?, ?)`,
+			id, name, req.WorkflowID, now, string(ctxJSON), now, now)
 		if err != nil {
 			httpx.RespondError(w, "创建任务失败: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+		StartTaskExecution(id)
 		httpx.RespondStatus(w, http.StatusCreated, map[string]interface{}{
 			"id":          id,
 			"name":        name,
 			"workflow_id": req.WorkflowID,
-			"status":      "completed",
+			"status":      "running",
 			"start_time":  now,
 			"created_at":  now,
 		})
 	})
 
-	r.Put("/{id}/pause", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin", "operator")).Put("/{id}/pause", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-		_, _ = appdb.DB().Exec(`UPDATE tasks SET status = 'paused' WHERE id = ?`, id)
-		httpx.RespondMessage(w, "任务已暂停")
+		res, err := appdb.DB().Exec(`UPDATE tasks SET status = 'paused', updated_at = ? WHERE id = ? AND status = 'running'`,
+			time.Now().Format("2006-01-02 15:04:05"), id)
+		if err != nil || affected(res) == 0 {
+			httpx.RespondError(w, "只有执行中的任务可以暂停", http.StatusConflict)
+			return
+		}
+		httpx.RespondMessage(w, "任务将在当前节点完成后暂停")
 	})
 
-	r.Put("/{id}/resume", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin", "operator")).Put("/{id}/resume", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-		_, _ = appdb.DB().Exec(`UPDATE tasks SET status = 'running' WHERE id = ?`, id)
+		res, err := appdb.DB().Exec(`UPDATE tasks SET status = 'running', updated_at = ? WHERE id = ? AND status = 'paused'`,
+			time.Now().Format("2006-01-02 15:04:05"), id)
+		if err != nil || affected(res) == 0 {
+			httpx.RespondError(w, "只有已暂停的任务可以恢复", http.StatusConflict)
+			return
+		}
+		StartTaskExecution(id)
 		httpx.RespondMessage(w, "任务已恢复")
 	})
 
-	r.Put("/{id}/cancel", func(w http.ResponseWriter, r *http.Request) {
+	r.With(middleware.RequireRole("admin", "operator")).Put("/{id}/cancel", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-		_, _ = appdb.DB().Exec(`UPDATE tasks SET status = 'cancelled' WHERE id = ?`, id)
+		now := time.Now().Format("2006-01-02 15:04:05")
+		res, err := appdb.DB().Exec(`UPDATE tasks SET status = 'cancelled', end_time = ?, updated_at = ? WHERE id = ? AND status IN ('running','paused','pending','waiting_approval')`, now, now, id)
+		if err != nil || affected(res) == 0 {
+			httpx.RespondError(w, "任务当前状态不可取消", http.StatusConflict)
+			return
+		}
+		appdb.DB().Exec(`UPDATE approval_requests SET status = 'rejected', reject_reason = '任务已取消', updated_at = ? WHERE task_id = ? AND status = 'pending'`, now, id)
 		httpx.RespondMessage(w, "任务已取消")
 	})
 
 	return r
+}
+
+func affected(res sql.Result) int64 {
+	n, _ := res.RowsAffected()
+	return n
 }
 
 // ScheduledTaskRoutes 定时任务路由 (/api/v1/scheduled-tasks)

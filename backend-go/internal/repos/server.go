@@ -449,19 +449,22 @@ func (ServerRepo) Create(req ServerCreateInput) (*Server, error) {
 	now := nowLocal()
 
 	var pwd, priv, vncPwd interface{}
-	if req.Password != "" {
-		enc, err := crypto.Encrypt(req.Password)
-		if err != nil {
-			return nil, fmt.Errorf("加密 SSH 密码失败: %w", err)
+	// 关联托管凭证时以内联凭证为非法输入：忽略之，避免密文被二次加密入库
+	if req.SSHKeyID == "" {
+		if req.Password != "" {
+			enc, err := crypto.Encrypt(req.Password)
+			if err != nil {
+				return nil, fmt.Errorf("加密 SSH 密码失败: %w", err)
+			}
+			pwd = enc
 		}
-		pwd = enc
-	}
-	if req.PrivateKey != "" {
-		enc, err := crypto.Encrypt(req.PrivateKey)
-		if err != nil {
-			return nil, fmt.Errorf("加密 SSH 私钥失败: %w", err)
+		if req.PrivateKey != "" {
+			enc, err := crypto.Encrypt(req.PrivateKey)
+			if err != nil {
+				return nil, fmt.Errorf("加密 SSH 私钥失败: %w", err)
+			}
+			priv = enc
 		}
-		priv = enc
 	}
 	if req.VncPassword != "" {
 		enc, err := crypto.Encrypt(req.VncPassword)
@@ -580,6 +583,15 @@ func (ServerRepo) Update(id string, req ServerUpdateInput) (*Server, error) {
 	}
 	if req.SSHKeyID != nil {
 		sshKeyID = sql.NullString{String: *req.SSHKeyID, Valid: *req.SSHKeyID != ""}
+		if *req.SSHKeyID != "" {
+			// 切换到托管凭证：清除内联凭证，否则 buildServerSSHConfig 仍优先用旧内联值
+			pwd = sql.NullString{}
+			priv = sql.NullString{}
+		}
+	}
+	if (req.Password != nil && *req.Password != "") || (req.PrivateKey != nil && *req.PrivateKey != "") {
+		// 重新录入内联凭证：解除托管关联，保持二者互斥
+		sshKeyID = sql.NullString{}
 	}
 	if req.IPAddress != nil {
 		ip = sql.NullString{String: *req.IPAddress, Valid: *req.IPAddress != ""}

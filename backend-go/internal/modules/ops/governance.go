@@ -13,6 +13,7 @@ import (
 	"itops-backend/internal/appdb"
 	"itops-backend/internal/httpx"
 	"itops-backend/internal/middleware"
+	"itops-backend/internal/services/audit"
 )
 
 // KnowledgeRoutes 知识库路由 (/api/v1/knowledge)
@@ -397,16 +398,89 @@ func ApprovalRoutes() chi.Router {
 
 	r.With(middleware.RequireRole("admin")).Post("/{id}/approve", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
+		var taskID, status string
+		if appdb.DB().QueryRow(`SELECT task_id, status FROM approval_requests WHERE id = ?`, id).Scan(&taskID, &status) != nil {
+			httpx.RespondError(w, "审批请求不存在", http.StatusNotFound)
+			return
+		}
+		if status != "pending" {
+			httpx.RespondError(w, "该审批已处理", http.StatusConflict)
+			return
+		}
+		user := middleware.GetUser(r)
 		now := time.Now().Format("2006-01-02 15:04:05")
-		_, _ = appdb.DB().Exec(`UPDATE approval_requests SET status = 'approved', approved_at = ?, updated_at = ? WHERE id = ?`, now, now, id)
+		appdb.DB().Exec(`UPDATE approval_requests SET status = 'approved', approved_by = ?, approved_at = ?, updated_at = ? WHERE id = ?`, user.Username, now, now, id)
+		audit.CreateAuditLog(audit.AuditInput{UserID: user.ID, Action: "approval_approve", ResourceType: "approval_request", ResourceID: id, Details: map[string]interface{}{"task_id": taskID}, IPAddress: middleware.ClientIP(r)})
+		// 恢复挂起的工作流任务
+		res, _ := appdb.DB().Exec(`UPDATE tasks SET status = 'running', updated_at = ? WHERE id = ? AND status = 'waiting_approval'`, now, taskID)
+		if n, _ := res.RowsAffected(); n > 0 {
+			StartTaskExecution(taskID)
+		}
 		httpx.RespondMessage(w, "审批已通过")
 	})
 
 	r.With(middleware.RequireRole("admin")).Post("/{id}/reject", func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
+		var body struct {
+			Reason string `json:"reason"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		var taskID, status string
+		if appdb.DB().QueryRow(`SELECT task_id, status FROM approval_requests WHERE id = ?`, id).Scan(&taskID, &status) != nil {
+			httpx.RespondError(w, "审批请求不存在", http.StatusNotFound)
+			return
+		}
+		if status != "pending" {
+			httpx.RespondError(w, "该审批已处理", http.StatusConflict)
+			return
+		}
+		user := middleware.GetUser(r)
 		now := time.Now().Format("2006-01-02 15:04:05")
-		_, _ = appdb.DB().Exec(`UPDATE approval_requests SET status = 'rejected', updated_at = ? WHERE id = ?`, now, id)
+		appdb.DB().Exec(`UPDATE approval_requests SET status = 'rejected', approved_by = ?, approved_at = ?, reject_reason = ?, updated_at = ? WHERE id = ?`, user.Username, now, body.Reason, now, id)
+		audit.CreateAuditLog(audit.AuditInput{UserID: user.ID, Action: "approval_reject", ResourceType: "approval_request", ResourceID: id, Details: map[string]interface{}{"task_id": taskID, "reason": body.Reason}, IPAddress: middleware.ClientIP(r)})
+		failTask(taskID, "审批被拒绝: "+body.Reason)
 		httpx.RespondMessage(w, "审批已驳回")
+	})
+
+	return r
+}
+
+// AiRemediationRoutes AI 自愈方案路由 (/api/v1/ai-remediations)
+func AiRemediationRoutes() chi.Router {
+	r := chi.NewRouter()
+
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		rows, err := appdb.DB().Query(`SELECT id, title, description, alert_id, status, strategy, result, device_id, device_name, device_ip, risk_level, created_at FROM ai_remediations ORDER BY created_at DESC LIMIT 50`)
+		if err != nil {
+			httpx.Respond(w, []interface{}{})
+			return
+		}
+		defer rows.Close()
+		var list []map[string]interface{}
+		for rows.Next() {
+			var id, title, status string
+			var desc, alertID, strategy, result, devID, devName, devIP, riskLevel, createdAt sql.NullString
+			if rows.Scan(&id, &title, &desc, &alertID, &status, &strategy, &result, &devID, &devName, &devIP, &riskLevel, &createdAt) == nil {
+				list = append(list, map[string]interface{}{
+					"id":          id,
+					"title":       title,
+					"description": desc.String,
+					"alert_id":    alertID.String,
+					"status":      status,
+					"strategy":    strategy.String,
+					"result":      result.String,
+					"device_id":   devID.String,
+					"device_name": devName.String,
+					"device_ip":   devIP.String,
+					"risk_level":  riskLevel.String,
+					"created_at":  createdAt.String,
+				})
+			}
+		}
+		if list == nil {
+			list = []map[string]interface{}{}
+		}
+		httpx.Respond(w, list)
 	})
 
 	return r
@@ -499,43 +573,3 @@ func RemediationRoutes() chi.Router {
 	return r
 }
 
-// AiRemediationRoutes AI 自愈方案路由 (/api/v1/ai-remediations)
-func AiRemediationRoutes() chi.Router {
-	r := chi.NewRouter()
-
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		rows, err := appdb.DB().Query(`SELECT id, title, description, alert_id, status, strategy, result, device_id, device_name, device_ip, risk_level, created_at FROM ai_remediations ORDER BY created_at DESC LIMIT 50`)
-		if err != nil {
-			httpx.Respond(w, []interface{}{})
-			return
-		}
-		defer rows.Close()
-		var list []map[string]interface{}
-		for rows.Next() {
-			var id, title, status string
-			var desc, alertID, strategy, result, devID, devName, devIP, riskLevel, createdAt sql.NullString
-			if rows.Scan(&id, &title, &desc, &alertID, &status, &strategy, &result, &devID, &devName, &devIP, &riskLevel, &createdAt) == nil {
-				list = append(list, map[string]interface{}{
-					"id":          id,
-					"title":       title,
-					"description": desc.String,
-					"alert_id":    alertID.String,
-					"status":      status,
-					"strategy":    strategy.String,
-					"result":      result.String,
-					"device_id":   devID.String,
-					"device_name": devName.String,
-					"device_ip":   devIP.String,
-					"risk_level":  riskLevel.String,
-					"created_at":  createdAt.String,
-				})
-			}
-		}
-		if list == nil {
-			list = []map[string]interface{}{}
-		}
-		httpx.Respond(w, list)
-	})
-
-	return r
-}

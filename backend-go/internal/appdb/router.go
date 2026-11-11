@@ -14,8 +14,9 @@ var metricsTables = map[string]bool{
 	"snmp_custom_oid_profiles": true,
 	"snmp_trap_events":       true,
 	"baseline_metrics":       true,
-	"custom_dashboard_metrics": true,
-	"custom_dashboard_lists": true,
+	// custom_dashboard_metrics / custom_dashboard_lists 留在 app.db：
+	// 全部读写代码（repos/dashboard.go 等）使用 app.db 的按设备 schema，
+	// 路由到 metrics.db 会命中同名异构表导致查询静默失败。
 	"server_metrics":         true,
 	"mib_modules":            true,
 	"mib_objects":            true,

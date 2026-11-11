@@ -959,3 +959,8 @@ func cleanCommandSuffix(cmd string) string {
 	cmd = strings.TrimRight(cmd, " \t)]}")
 	return strings.TrimSpace(cmd)
 }
+
+// CallLLM 供其他模块复用的外部大模型调用入口（无可用模型时返回错误）。
+func CallLLM(ctx context.Context, query string) (string, error) {
+	return tryCallLLM(ctx, query)
+}

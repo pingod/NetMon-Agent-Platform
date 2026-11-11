@@ -23,12 +23,33 @@ import (
 	"itops-backend/internal/repos"
 )
 
+// SSHConnectError 标记凭证解析/连接建立阶段的失败（区别于命令执行非零退出）
+type SSHConnectError struct{ Err error }
+
+func (e *SSHConnectError) Error() string { return e.Err.Error() }
+func (e *SSHConnectError) Unwrap() error { return e.Err }
+
+// ExecOnServer 在目标服务器上执行一条命令（凭证解析 + SSH 连接 + 执行）。
+// 供脚本中心等模块复用；调用方负责审计与历史记录。
+func ExecOnServer(serverID, command string, timeout time.Duration) (string, string, error) {
+	cfg, err := BuildServerSSHConfig(serverID)
+	if err != nil {
+		return "", "", &SSHConnectError{Err: fmt.Errorf("获取服务器凭证失败: %w", err)}
+	}
+	client, err := services.SSHDial(cfg)
+	if err != nil {
+		return "", "", &SSHConnectError{Err: fmt.Errorf("连接目标服务器失败: %w", err)}
+	}
+	defer client.Close()
+	return client.ExecCommand(command, timeout)
+}
+
 // ServerCommandRoutes 服务器命令路由
 func ServerCommandRoutes() chi.Router {
 	r := chi.NewRouter()
 
-	// GET / — 命令执行历史
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+	// GET / — 命令执行历史（输出可能含敏感信息，不对 viewer 开放）
+	r.With(middleware.RequireRole("admin", "operator")).Get("/", func(w http.ResponseWriter, r *http.Request) {
 		rows, err := appdb.DB().Query(`SELECT id, server_id, command, status, exit_code, stdout, stderr, executed_at, duration_ms FROM server_command_history ORDER BY executed_at DESC LIMIT 50`)
 		if err != nil {
 			httpx.Respond(w, []interface{}{})
@@ -69,7 +90,7 @@ func ServerCommandRoutes() chi.Router {
 			return
 		}
 
-		cfg, err := buildServerSSHConfig(id)
+		cfg, err := BuildServerSSHConfig(id)
 		if err != nil {
 			httpx.RespondError(w, "获取服务器凭证失败: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -119,7 +140,7 @@ func ServerCommandRoutes() chi.Router {
 			return
 		}
 
-		cfg, err := buildServerSSHConfig(id)
+		cfg, err := BuildServerSSHConfig(id)
 		if err != nil {
 			httpx.RespondError(w, "获取服务器凭证失败: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -177,7 +198,7 @@ func ServerCommandRoutes() chi.Router {
 			useAI = *req.UseAI
 		}
 
-		cfg, err := buildServerSSHConfig(id)
+		cfg, err := BuildServerSSHConfig(id)
 		if err != nil {
 			httpx.RespondError(w, "获取服务器凭证失败: "+err.Error(), http.StatusInternalServerError)
 			return
@@ -454,7 +475,7 @@ func BatchInspectServers(serverIDs []string, useAI bool, concurrency int, inspec
 // inspectionType == "custom" 或 "brand_auto" 且 templateID 为空时，按品牌智能查找专属模版；
 // 否则使用内置默认检查项
 func inspectSingleServer(id string, useAI bool, inspectionType string, templateID string) (map[string]interface{}, error) {
-	cfg, err := buildServerSSHConfig(id)
+	cfg, err := BuildServerSSHConfig(id)
 	if err != nil {
 		return nil, fmt.Errorf("获取凭证失败: %w", err)
 	}
