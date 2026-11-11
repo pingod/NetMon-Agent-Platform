@@ -24,6 +24,7 @@ import (
 	"itops-backend/internal/modules"
 	"itops-backend/internal/modules/inspection"
 	"itops-backend/internal/modules/network/services"
+	"itops-backend/internal/modules/ops"
 	"itops-backend/internal/modules/planning"
 	"itops-backend/internal/repos"
 	"itops-backend/internal/services/tokenblacklist"
@@ -215,6 +216,12 @@ func main() {
 	services.SnmpPollerInstance.Start()
 	services.StartAlertRuleEvaluator()
 	logger.Infof("Network services initialized")
+
+	// ── 自愈引擎（告警匹配/审批/工作流执行/验证/回滚）──
+	ops.StartRemediationEngine()
+
+	// ── 容器自动伸缩引擎（docker stats → compose --scale）──
+	ops.StartAutoScaleEngine()
 
 	// ── 规划引擎（IDC 上架布线）──
 	// 异步启动：引擎不可用不应阻塞主服务；代理返回 503 与原因。

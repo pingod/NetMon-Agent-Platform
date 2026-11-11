@@ -3,6 +3,7 @@
 package modules
 
 import (
+	"context"
 	"io/fs"
 	"net/http"
 	"os"
@@ -32,6 +33,15 @@ import (
 
 // NewRouter 构建完整的 HTTP 路由
 func NewRouter() chi.Router {
+	// 打破 ops → server/routes 循环依赖：SSH 执行能力注入给工作流执行器
+	ops.SSHExecHook = srvroutes.ExecOnServer
+	// 打破 ops → copilot 循环依赖（copilot → network/services → ops）：agent 节点执行能力注入
+	ops.AgentRunHook = func(ctx context.Context, prompt string) string {
+		return copilot.ProcessMessage(ctx, prompt, "admin")
+	}
+	// RCA 根因推断的大模型通道（未配置模型时 hook 返回错误，RCA 回退规则推断）
+	ops.LLMHook = copilot.CallLLM
+
 	r := chi.NewRouter()
 
 	// ── 全局中间件 ──
@@ -78,6 +88,9 @@ func NewRouter() chi.Router {
 		r.Use(middleware.AuthenticateOrAgentReport)
 		// 初始密码未修改时仅允许 auth 模块的豁免端点（这些端点不在本组内）
 		r.Use(middleware.RequirePasswordChange)
+
+		// ── 用户管理（模块内再限 admin） ──
+		r.Mount("/api/v1/users", authmod.UserRoutes())
 
 		// ── 网络设备模块 ──
 		r.Mount("/api/v1/network-devices", routes.NetworkDeviceRoutes())
@@ -129,6 +142,7 @@ func NewRouter() chi.Router {
 
 		// ── 运维与治理（工作流/任务/容器/K8s/虚拟机/知识库/审计/工具/审批/自愈） ──
 		r.Mount("/api/v1/workflows", ops.WorkflowRoutes())
+	r.Mount("/api/v1/scripts", srvroutes.ScriptRoutes())
 		r.Mount("/api/v1/tasks", ops.TaskRoutes())
 		r.Mount("/api/v1/scheduled-tasks", ops.ScheduledTaskRoutes())
 		r.Mount("/api/v1/reports", ops.ReportRoutes())
@@ -144,8 +158,14 @@ func NewRouter() chi.Router {
 		r.Mount("/api/v1/audit-logs", ops.AuditRoutes())
 		r.Mount("/api/v1/tool-links", ops.ToolLinkRoutes())
 		r.Mount("/api/v1/approvals", ops.ApprovalRoutes())
-		r.Mount("/api/v1/remediations", ops.RemediationRoutes())
+		r.Mount("/api/v1/remediation-policies", ops.RemediationPolicyRoutes())
+		r.Mount("/api/v1/remediation-executions", ops.RemediationExecutionRoutes())
+		r.Mount("/api/v1/remediation-audits", ops.RemediationAuditRoutes())
 		r.Mount("/api/v1/ai-remediations", ops.AiRemediationRoutes())
+		r.Mount("/api/v1/auto-scale", ops.AutoScaleRoutes())
+		r.Mount("/api/v1/root-cause-analysis", ops.RcaRoutes())
+		r.Mount("/api/v1/backups", ops.BackupRoutes())
+		r.Mount("/api/v1/cost-analysis", ops.CostAnalysisRoutes())
 		// ── 通知配置与通知中心 ──
 		r.Mount("/api/v1/notification-config", ops.NotificationConfigRoutes())
 		r.Mount("/api/v1/notifications", ops.NotificationRoutes())
