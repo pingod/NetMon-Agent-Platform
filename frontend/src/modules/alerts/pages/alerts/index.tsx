@@ -103,6 +103,25 @@ export default function Alerts() {
     onError: (err) => toast.error(getAxiosErrorMessage(err, '处理告警失败')),
   });
 
+  const exportMutation = useMutation({
+    mutationFn: async () => {
+      const params: Record<string, string> = {};
+      if (statusFilter !== 'all') params.status = statusFilter;
+      if (severityFilter !== 'all') params.severity = severityFilter;
+      const res = await api.get('/alerts/export', { params, responseType: 'blob' });
+      const url = window.URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `alerts-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    },
+    onSuccess: () => toast.success('CSV 导出成功'),
+    onError: (err) => toast.error(getAxiosErrorMessage(err, '导出失败')),
+  });
+
   // 支持 URL 参数 ?alertId=... 或 ?highlight=... 自动弹出告警详情弹窗
   useEffect(() => {
     const alertIdParam = searchParams.get('alertId') || searchParams.get('highlight');
@@ -170,6 +189,8 @@ export default function Alerts() {
             onSeverityChange={setSeverityFilter}
             statusFilter={statusFilter}
             onStatusChange={setStatusFilter}
+            onExport={() => exportMutation.mutate()}
+            exporting={exportMutation.isPending}
           />
           <AlertList
             alerts={serverSideFilteredAlerts}

@@ -1,5 +1,18 @@
 {
-  "app": { "title": "NetMon", "subtitle": "Network Monitoring Platform", "brandTagline": "AI Ops Platform", "systemNormal": "System Normal", "collapseAll": "Collapse All", "expandAll": "Expand All", "logout": "Logout", "darkMode": "Switch to Dark Mode", "lightMode": "Switch to Light Mode", "searchMenu": "Search menu…", "menu": "Menu", "menuEmpty": "No matching menu. Restore entries in Settings → Appearance." },
+  "app": {
+    "title": "NetMon",
+    "subtitle": "Network Monitoring Platform",
+    "brandTagline": "AI Ops Platform",
+    "systemNormal": "System Normal",
+    "collapseAll": "Collapse All",
+    "expandAll": "Expand All",
+    "logout": "Logout",
+    "darkMode": "Switch to Dark Mode",
+    "lightMode": "Switch to Light Mode",
+    "searchMenu": "Search menu…",
+    "menu": "Menu",
+    "menuEmpty": "No matching menu. Restore entries in Settings → Appearance."
+  },
   "nav": {
     "home": "Home",
     "dashboard": "Dashboard",
@@ -32,6 +45,7 @@
     "alertRules": "Alert Rules",
     "alertMappings": "Alert Mappings",
     "alertNoise": "Alert Noise",
+    "alertSilences": "Alert Silences",
     "alertCorrelation": "Alert Correlation",
     "rootCauseAnalysis": "Root Cause Analysis",
     "aiRootCause": "AI RCA",
@@ -85,7 +99,8 @@
     "mcpExternalServers": "External Servers",
     "mcpTester": "MCP Tester",
     "alertProviders": "Alert Providers",
-    "metricTags": "Metric Tags"
+    "metricTags": "Metric Tags",
+    "snmpTraps": "SNMP Traps"
   },
   "toolLinks": {
     "title": "Ops Tool Navigator",
@@ -264,5 +279,18 @@
     "admin": "Admin",
     "operator": "Operator",
     "viewer": "Viewer"
+  },
+  "theme": {
+    "title": "Appearance",
+    "light": "Light",
+    "lightDesc": "Default indigo light",
+    "dark": "Graphite",
+    "darkDesc": "Dark for night shifts",
+    "ocean": "Ocean",
+    "oceanDesc": "Deep blue for NOC walls",
+    "sepia": "Paper",
+    "sepiaDesc": "Warm paper for long reading",
+    "contrast": "High contrast",
+    "contrastDesc": "Accessibility first"
   }
 }

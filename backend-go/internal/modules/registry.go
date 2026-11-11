@@ -164,6 +164,7 @@ func NewRouter() chi.Router {
 		r.Mount("/api/v1/ai-remediations", ops.AiRemediationRoutes())
 		r.Mount("/api/v1/auto-scale", ops.AutoScaleRoutes())
 		r.Mount("/api/v1/root-cause-analysis", ops.RcaRoutes())
+		r.Mount("/api/v1/alert-silences", ops.AlertSilenceRoutes())
 		r.Mount("/api/v1/backups", ops.BackupRoutes())
 		r.Mount("/api/v1/cost-analysis", ops.CostAnalysisRoutes())
 		// ── 通知配置与通知中心 ──

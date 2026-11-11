@@ -451,6 +451,12 @@ func triggerAlertRecord(db *sql.DB, rule repos.AlertRuleRecord, sample SampleEva
 	message = strings.ReplaceAll(message, "${if_name}", sample.IfName)
 	message = strings.ReplaceAll(message, "${value}", fmt.Sprintf("%.2f", sample.Value))
 
+	// 维护窗口静默：命中生效中的静默规则则跳过入库与分发
+	if ops.IsAlertSilenced("promql_alert", rule.Severity, title, message, sample.DeviceID) {
+		logger.Infof("Alert silenced by maintenance window: rule=%s device=%s", rule.Name, sample.DeviceID)
+		return
+	}
+
 	nowStr := time.Now().Format("2006-01-02 15:04:05")
 	metaBytes, _ := json.Marshal(map[string]interface{}{
 		"device_id":   sample.DeviceID,

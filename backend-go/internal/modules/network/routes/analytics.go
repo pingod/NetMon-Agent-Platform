@@ -60,6 +60,7 @@ func AnalyticsRoutes() chi.Router {
 	// ── 告警核心 & 夜莺规则引擎 ──
 	RegisterAlertRuleRoutes(r)
 	r.Get("/alerts", handleListAlerts)
+	r.Get("/alerts/export", handleExportAlerts)
 	r.With(middleware.RequireRole("admin")).Put("/alerts/{alertId}/acknowledge", handleAcknowledgeAlert)
 	r.With(middleware.RequireRole("admin")).Put("/alerts/{alertId}/resolve", handleResolveAlert)
 	r.With(middleware.RequireRole("admin")).Post("/alerts/{alertId}/process", handleProcessAlert)

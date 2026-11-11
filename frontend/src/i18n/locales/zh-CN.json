@@ -1,5 +1,18 @@
 {
-  "app": { "title": "NetMon", "subtitle": "网络监控平台", "brandTagline": "智能运维平台", "systemNormal": "系统正常", "collapseAll": "折叠全部", "expandAll": "展开全部", "logout": "退出登录", "darkMode": "切换深色模式", "lightMode": "切换浅色模式", "searchMenu": "搜索菜单…", "menu": "功能菜单", "menuEmpty": "没有匹配的菜单。可在「系统设置 → 界面与菜单」中恢复显示。" },
+  "app": {
+    "title": "NetMon",
+    "subtitle": "网络监控平台",
+    "brandTagline": "智能运维平台",
+    "systemNormal": "系统正常",
+    "collapseAll": "折叠全部",
+    "expandAll": "展开全部",
+    "logout": "退出登录",
+    "darkMode": "切换深色模式",
+    "lightMode": "切换浅色模式",
+    "searchMenu": "搜索菜单…",
+    "menu": "功能菜单",
+    "menuEmpty": "没有匹配的菜单。可在「系统设置 → 界面与菜单」中恢复显示。"
+  },
   "nav": {
     "home": "首页",
     "dashboard": "仪表盘",
@@ -32,6 +45,7 @@
     "alertRules": "告警规则",
     "alertMappings": "告警映射",
     "alertNoise": "告警降噪",
+    "alertSilences": "告警静默",
     "alertCorrelation": "告警关联",
     "rootCauseAnalysis": "根因分析",
     "aiRootCause": "AI根因分析",
@@ -85,7 +99,8 @@
     "mcpExternalServers": "外部服务器",
     "mcpTester": "工具调用测试",
     "alertProviders": "告警源配置",
-    "metricTags": "指标 Tag 览"
+    "metricTags": "指标 Tag 览",
+    "snmpTraps": "SNMP Trap"
   },
   "toolLinks": {
     "title": "运维工具导航",
@@ -264,5 +279,18 @@
     "admin": "管理员",
     "operator": "运维员",
     "viewer": "只读用户"
+  },
+  "theme": {
+    "title": "外观主题",
+    "light": "浅色",
+    "lightDesc": "默认 · 靛紫浅色",
+    "dark": "石墨",
+    "darkDesc": "深色 · 夜间值守",
+    "ocean": "深海",
+    "oceanDesc": "深蓝 · 监控大屏",
+    "sepia": "护眼纸",
+    "sepiaDesc": "暖纸 · 长时间阅读",
+    "contrast": "高对比",
+    "contrastDesc": "无障碍 · 黑白分明"
   }
 }

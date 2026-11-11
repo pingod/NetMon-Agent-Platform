@@ -22,6 +22,7 @@ import (
 	"itops-backend/internal/config"
 	"itops-backend/internal/crypto"
 	"itops-backend/internal/logger"
+	"itops-backend/internal/modules/ops"
 	"itops-backend/internal/repos"
 )
 
@@ -429,7 +430,7 @@ func fallbackSnmpResultsToMetricsDB(results []SnmpCollectResultRow, conn *repos.
 		}
 	}
 
-	// 记录告警，便于运维感知 InfluxDB 写入中断
+	// 记录告警，便于运维感知 InfluxDB 写入中断（维护窗口静默规则可抑制）
 	if db := appdb.DB(); db != nil {
 		content, _ := json.Marshal(map[string]string{
 			"connection_id": conn.ID,
@@ -437,9 +438,13 @@ func fallbackSnmpResultsToMetricsDB(results []SnmpCollectResultRow, conn *repos.
 			"error":         cause.Error(),
 			"fallback_rows": strconv.Itoa(len(samples)),
 		})
+		title := "InfluxDB 写入失败，已回退本地存储"
+		if ops.IsAlertSilenced("influxdb", "warning", title, string(content), "") {
+			return
+		}
 		_, err := db.Exec(`INSERT INTO alerts (id, source, severity, title, content, metadata, status, created_at, updated_at)
 			VALUES (?, 'influxdb', 'warning', ?, ?, NULL, 'firing', ?, ?)`,
-			"alert-"+uuid.NewString(), "InfluxDB 写入失败，已回退本地存储", string(content), now, now)
+			"alert-"+uuid.NewString(), title, string(content), now, now)
 		if err != nil {
 			logger.Warnf("记录 InfluxDB 写入失败告警失败: %v", err)
 		}

@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react';
+import { Search, Download, Loader2 } from 'lucide-react';
 
 interface AlertFilterBarProps {
   searchQuery: string;
@@ -7,6 +7,8 @@ interface AlertFilterBarProps {
   onSeverityChange: (value: string) => void;
   statusFilter: string;
   onStatusChange: (value: string) => void;
+  onExport: () => void;
+  exporting: boolean;
 }
 
 export default function AlertFilterBar({
@@ -16,11 +18,22 @@ export default function AlertFilterBar({
   onSeverityChange,
   statusFilter,
   onStatusChange,
+  onExport,
+  exporting,
 }: AlertFilterBarProps) {
   return (
     <div className="p-6 border-b border-border">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-text-primary">告警列表</h2>
+        <button
+          onClick={onExport}
+          disabled={exporting}
+          title="按当前级别/状态筛选导出 CSV（最多 10000 条，搜索词不参与）"
+          className="px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-background border border-border rounded-lg flex items-center gap-1.5 transition-colors disabled:opacity-50"
+        >
+          {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+          导出 CSV
+        </button>
       </div>
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1 relative">
