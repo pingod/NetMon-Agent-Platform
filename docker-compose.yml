@@ -6,6 +6,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # 国内网络直连 pypi 易超时；可用 PIP_INDEX_URL 覆盖（默认阿里云镜像）
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://mirrors.aliyun.com/pypi/simple/}
     image: itops-agent-platform:latest
     container_name: itops-agent-platform
     restart: unless-stopped

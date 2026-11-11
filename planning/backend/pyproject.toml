@@ -1,0 +1,117 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "idcbox"
+version = "0.1.0"
+description = "IDC 上架部署与布线自动化 —— 域层（geometry / cable_length / ports）"
+requires-python = ">=3.12"
+# 运行时依赖刻意保持极简：域层零第三方依赖，第三方库只允许出现在 infrastructure/
+dependencies = []
+
+[project.optional-dependencies]
+# 基础设施层（导入导出、数据库）
+infra = [
+    "openpyxl==3.1.5",
+]
+# Web API（FastAPI + ASGI 服务器 + 项目库）。
+#
+# ## 为什么这组在 v1.0 之前是缺的
+#
+# `scripts/run.sh` 的报错提示让人装 `-e 'backend[infra,api]'`，但 `api`
+# extras 一直不存在 —— 开发机的 fastapi/uvicorn/sqlalchemy 全是 uv 散装装的。
+# 后果：依赖清单不可复现、绿色包不知道该带哪些 wheel、新机器照 README
+# 装完起不来（而且起不来时看不出是"少了声明"还是"环境坏了"）。
+# 版本钉死为**当前验收环境实测版本**（1328 用例 + 导出铁线 0 格差异
+# 就是在这组版本上过的）。
+api = [
+    "fastapi==0.121.2",
+    "uvicorn==0.41.0",
+    "sqlalchemy==2.0.44",
+    "pydantic==2.14.1",
+]
+# 交付默认形态（绿色包 / Docker 都装这组）
+serve = [
+    "idcbox[infra,api]",
+]
+# 测试
+dev = [
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "import-linter==2.7",
+    "openpyxl==3.1.5",
+]
+
+[project.scripts]
+idcbox = "idcbox.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["idcbox"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+    "golden: 用 V13 真实数据回归的黄金用例（慢，但必须全过）",
+    "integration: 端到端装配用例（挂真实源文件）",
+    "perf: 性能预算用例",
+]
+
+[tool.coverage.run]
+source = ["idcbox/domain"]
+omit = ["idcbox/domain/**/__main__.py"]
+
+# ---------------------------------------------------------------------------
+# import-linter 分层合同（架构 §2.5 第 1 项：阻断域层 import 框架/IO）
+# 运行：lint-imports --config backend/pyproject.toml
+# ---------------------------------------------------------------------------
+[tool.importlinter]
+root_packages = ["idcbox"]
+# 合同里点了 fastapi/sqlalchemy/openpyxl 这些外部包名，必须开这个开关，
+# 否则 lint-imports 直接报「configuration must have include_external_packages=True」
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "L1 域层不得依赖任何外层（零 IO 铁律）"
+type = "forbidden"
+source_modules = ["idcbox.domain"]
+forbidden_modules = [
+    "idcbox.application",
+    "idcbox.infrastructure",
+    "idcbox.api",
+    "fastapi",
+    "sqlalchemy",
+    "openpyxl",
+    "pydantic",
+    "requests",
+    "httpx",
+    "aiohttp",
+]
+
+[[tool.importlinter.contracts]]
+name = "L0 基础设施不得依赖 API 层"
+type = "forbidden"
+source_modules = ["idcbox.infrastructure"]
+forbidden_modules = ["idcbox.api"]
+
+[[tool.importlinter.contracts]]
+name = "分层：api → application → domain，禁止反向"
+type = "layers"
+layers = [
+    "idcbox.api",
+    "idcbox.application",
+    "idcbox.domain",
+]
+
+[[tool.importlinter.contracts]]
+name = "应用层不得依赖基础设施（依赖倒置：靠 Protocol 注入）"
+type = "forbidden"
+source_modules = ["idcbox.application"]
+forbidden_modules = ["idcbox.infrastructure", "sqlalchemy", "openpyxl", "fastapi"]
+
+[[tool.importlinter.contracts]]
+name = "domain 内部：cable_length 不得依赖 ports"
+type = "forbidden"
+source_modules = ["idcbox.domain.cable_length"]
+forbidden_modules = ["idcbox.domain.ports", "idcbox.domain.validation", "idcbox.domain.exporting"]

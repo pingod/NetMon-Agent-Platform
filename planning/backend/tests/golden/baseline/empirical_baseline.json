@@ -1,0 +1,61 @@
+{
+ "source_file": "V13(内部)甘肃信息港-设备上架规划-20260714.xlsx",
+ "samples": 5104,
+ "gate": {
+  "min_sample_n": 10,
+  "min_purity": 0.75
+ },
+ "force_manual": {
+  "classes": [
+   "C"
+  ],
+  "cable_types": [
+   "MPO"
+  ]
+ },
+ "loo_cls_cab_path": 0.871082,
+ "loo_gated": {
+  "covered": 4303,
+  "coverage_rate": 0.843064,
+  "correct_within_covered": 4045,
+  "accuracy_within_covered": 0.940042,
+  "forced_manual": 801,
+  "forced_manual_rate": 0.156936,
+  "by_class_cable": {
+   "A|LC-LC": {
+    "covered": 2300,
+    "correct": 2197,
+    "accuracy": 0.955217
+   },
+   "A|RJ45": {
+    "covered": 1529,
+    "correct": 1463,
+    "accuracy": 0.956835
+   },
+   "B|LC-LC": {
+    "covered": 298,
+    "correct": 234,
+    "accuracy": 0.785235
+   },
+   "B|RJ45": {
+    "covered": 176,
+    "correct": 151,
+    "accuracy": 0.857955
+   }
+  }
+ },
+ "full_table_gated_no_force": {
+  "covered": 4349,
+  "coverage_rate": 0.852077,
+  "accuracy_within_covered": 0.940216,
+  "note": "含样本自身的回测口径，与早期分析 4349/85.2% 对齐；仅对内披露"
+ },
+ "full_table_gated_with_force": {
+  "covered": 4303,
+  "coverage_rate": 0.843064,
+  "accuracy_within_covered": 0.940042,
+  "note": "C 类与 MPO 强制人工后的回测口径 = 产品实际行为"
+ },
+ "l1_rules": 123,
+ "l1_advisory_rules": 97
+}

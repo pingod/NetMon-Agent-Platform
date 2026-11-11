@@ -1,6 +1,6 @@
 @echo off
 echo ============================================================
-echo [1/3] Building Frontend Web Assets (Vite)...
+echo [1/4] Building Frontend Web Assets (Vite)...
 echo ============================================================
 cd /d "%~dp0frontend"
 call npm run build
@@ -12,16 +12,44 @@ if %errorlevel% neq 0 (
 
 echo.
 echo ============================================================
-echo [2/3] Syncing Frontend Dist to Go Embed Directory...
+echo [2/4] Building IDC Planning Web Assets (Vite)...
+echo ============================================================
+cd /d "%~dp0planning\web"
+call corepack pnpm install --frozen-lockfile
+if %errorlevel% neq 0 (
+    echo [ERROR] Planning web dependency install failed!
+    pause
+    exit /b %errorlevel%
+)
+call corepack pnpm rebuild esbuild
+set VITE_BASE=/planning-app/
+set VITE_API_BASE=/api/v1/planning
+call corepack pnpm build
+if %errorlevel% neq 0 (
+    echo [ERROR] Planning web build failed!
+    pause
+    exit /b %errorlevel%
+)
+set VITE_BASE=
+set VITE_API_BASE=
+
+echo.
+echo ============================================================
+echo [3/4] Syncing Web Dist to Go Embed Directories...
 echo ============================================================
 if exist "%~dp0backend-go\internal\modules\frontend_dist" (
     rmdir /s /q "%~dp0backend-go\internal\modules\frontend_dist"
 )
 xcopy /E /I /Y "%~dp0frontend\dist" "%~dp0backend-go\internal\modules\frontend_dist"
+if exist "%~dp0backend-go\internal\modules\planning\dist" (
+    rmdir /s /q "%~dp0backend-go\internal\modules\planning\dist"
+)
+mkdir "%~dp0backend-go\internal\modules\planning\dist"
+xcopy /E /I /Y "%~dp0planning\web\dist" "%~dp0backend-go\internal\modules\planning\dist"
 
 echo.
 echo ============================================================
-echo [3/3] Cross-Compiling Standalone Binaries (Windows and Linux)...
+echo [4/4] Cross-Compiling Standalone Binaries (Windows and Linux)...
 echo ============================================================
 cd /d "%~dp0backend-go"
 if not exist "%~dp0backend-go\release" mkdir "%~dp0backend-go\release"

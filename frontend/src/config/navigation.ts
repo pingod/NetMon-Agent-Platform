@@ -118,6 +118,7 @@ export const navigationGroups: NavGroup[] = [
       { name: 'nav.dcInfrastructure', href: '/dc-manage', icon: LayoutGrid },
       { name: 'nav.dcRack2D', href: '/dc-rack-2d', icon: Server },
       { name: 'nav.dcRoom3D', href: '/data-room', icon: Monitor },
+      { name: 'nav.planning', href: '/planning', icon: Network },
     ],
   },
   {

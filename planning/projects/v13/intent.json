@@ -1,0 +1,1633 @@
+{
+  "schema": 1,
+  "project": "V13(内部)甘肃信息港-设备上架规划",
+  "site": "甘肃信息港",
+  "racks": [
+    {
+      "channel": 2,
+      "from": 1,
+      "to": 6,
+      "model": "计算节点A（ARM）"
+    },
+    {
+      "channel": 2,
+      "from": 8,
+      "to": 10,
+      "model": "计算节点A（ARM）"
+    },
+    {
+      "channel": 2,
+      "from": 12,
+      "to": 12,
+      "model": "计算节点A（ARM）"
+    },
+    {
+      "channel": 2,
+      "from": 7,
+      "to": 7,
+      "model": "计算节点A（ARM）",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "channel": 2,
+      "from": 11,
+      "to": 11,
+      "model": "计算节点A（ARM）",
+      "slotMap": {
+        "11": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          7
+        ]
+      }
+    },
+    {
+      "channel": 2,
+      "from": 13,
+      "to": 25,
+      "model": "计算节点B（C86）"
+    },
+    {
+      "channel": 3,
+      "from": 1,
+      "to": 4,
+      "model": "SSD云硬盘服务器",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "channel": 3,
+      "from": 5,
+      "to": 8,
+      "model": "SSD云硬盘服务器",
+      "slots": [
+        0,
+        1
+      ]
+    },
+    {
+      "channel": 3,
+      "from": 5,
+      "to": 8,
+      "model": "EHDD云硬盘服务器1",
+      "slots": [
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "channel": 3,
+      "from": 9,
+      "to": 12,
+      "model": "EHDD云硬盘服务器1",
+      "slots": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "channel": 3,
+      "from": 9,
+      "to": 12,
+      "model": "EHDD云硬盘服务器2",
+      "slots": [
+        4,
+        5
+      ]
+    },
+    {
+      "channel": 3,
+      "from": 13,
+      "to": 16,
+      "model": "EHDD云硬盘服务器2",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "channel": 3,
+      "from": 17,
+      "to": 20,
+      "model": "对象存储数据节点服务器",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "channel": 8,
+      "from": 1,
+      "to": 6,
+      "model": "计算节点A（ARM）"
+    },
+    {
+      "channel": 8,
+      "from": 8,
+      "to": 10,
+      "model": "计算节点A（ARM）"
+    },
+    {
+      "channel": 8,
+      "from": 12,
+      "to": 13,
+      "model": "计算节点A（ARM）"
+    },
+    {
+      "channel": 8,
+      "from": 7,
+      "to": 7,
+      "model": "计算节点A（ARM）",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "channel": 8,
+      "from": 11,
+      "to": 11,
+      "model": "计算节点A（ARM）",
+      "slotMap": {
+        "11": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          7
+        ]
+      }
+    },
+    {
+      "channel": 8,
+      "from": 14,
+      "to": 27,
+      "model": "计算节点B（C86）"
+    },
+    {
+      "channel": 9,
+      "from": 1,
+      "to": 2,
+      "model": "计算节点B（C86）"
+    },
+    {
+      "channel": 9,
+      "from": 3,
+      "to": 3,
+      "model": "计算节点B（C86）",
+      "slots": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "channel": 9,
+      "from": 3,
+      "to": 3,
+      "model": "计算节点A（ARM）",
+      "slots": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "channel": 9,
+      "from": 4,
+      "to": 6,
+      "model": "计算节点A（ARM）"
+    },
+    {
+      "channel": 9,
+      "from": 8,
+      "to": 10,
+      "model": "计算节点A（ARM）"
+    },
+    {
+      "channel": 9,
+      "from": 12,
+      "to": 16,
+      "model": "计算节点A（ARM）"
+    },
+    {
+      "channel": 9,
+      "from": 7,
+      "to": 7,
+      "model": "计算节点A（ARM）",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "channel": 9,
+      "from": 11,
+      "to": 11,
+      "model": "计算节点A（ARM）",
+      "slotMap": {
+        "11": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          7
+        ]
+      }
+    },
+    {
+      "channel": 9,
+      "from": 17,
+      "to": 17,
+      "model": "计算节点A（ARM）",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    }
+  ],
+  "switches": [
+    {
+      "instance": "业务核心交换机-1",
+      "model": "业务核心交换机",
+      "channel": 1,
+      "rack": 1,
+      "u": 3
+    },
+    {
+      "instance": "业务核心交换机-2",
+      "model": "业务核心交换机",
+      "channel": 1,
+      "rack": 27,
+      "u": 3
+    },
+    {
+      "instance": "密评接入交换机-1",
+      "model": "网络节点交换机",
+      "channel": 1,
+      "rack": 5,
+      "u": 40
+    },
+    {
+      "instance": "密评接入交换机-2",
+      "model": "网络节点交换机",
+      "channel": 1,
+      "rack": 23,
+      "u": 40
+    },
+    {
+      "instance": "带外交换机-1",
+      "model": "带外交换机1",
+      "channel": 1,
+      "rack": 5,
+      "u": 34
+    },
+    {
+      "instance": "备份接入交换机-1",
+      "model": "网络节点交换机",
+      "channel": 1,
+      "rack": 6,
+      "u": 40
+    },
+    {
+      "instance": "备份接入交换机-2",
+      "model": "网络节点交换机",
+      "channel": 1,
+      "rack": 22,
+      "u": 40
+    },
+    {
+      "instance": "NAT接入交换机-1",
+      "model": "业务接入交换机1",
+      "channel": 1,
+      "rack": 6,
+      "u": 37
+    },
+    {
+      "instance": "NAT接入交换机-2",
+      "model": "业务接入交换机1",
+      "channel": 1,
+      "rack": 22,
+      "u": 37
+    },
+    {
+      "instance": "带内交换机-1",
+      "model": "带内交换机1",
+      "channel": 1,
+      "rack": 6,
+      "u": 34
+    },
+    {
+      "instance": "带内交换机-2",
+      "model": "带内交换机1",
+      "channel": 1,
+      "rack": 22,
+      "u": 34
+    },
+    {
+      "instance": "管理核心交换机-1",
+      "model": "管理核心交换机",
+      "channel": 1,
+      "rack": 7,
+      "u": 40
+    },
+    {
+      "instance": "管理核心交换机-2",
+      "model": "管理核心交换机",
+      "channel": 1,
+      "rack": 20,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(业务)-1",
+      "model": "业务接入交换机1",
+      "channel": 2,
+      "rack": 2,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(业务)-2",
+      "model": "业务接入交换机1",
+      "channel": 2,
+      "rack": 4,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-1",
+      "model": "存储接入交换机1",
+      "channel": 2,
+      "rack": 3,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-2",
+      "model": "存储接入交换机1",
+      "channel": 2,
+      "rack": 5,
+      "u": 40
+    },
+    {
+      "instance": "计算带内交换机-1",
+      "model": "带内交换机1",
+      "channel": 2,
+      "rack": 2,
+      "u": 37
+    },
+    {
+      "instance": "计算带内交换机-2",
+      "model": "带内交换机1",
+      "channel": 2,
+      "rack": 4,
+      "u": 37
+    },
+    {
+      "instance": "计算带外交换机-1",
+      "model": "带外交换机1",
+      "channel": 2,
+      "rack": 3,
+      "u": 37
+    },
+    {
+      "instance": "计算接入交换机(业务)-3",
+      "model": "业务接入交换机1",
+      "channel": 2,
+      "rack": 7,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(业务)-4",
+      "model": "业务接入交换机1",
+      "channel": 2,
+      "rack": 9,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-3",
+      "model": "存储接入交换机1",
+      "channel": 2,
+      "rack": 8,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-4",
+      "model": "存储接入交换机1",
+      "channel": 2,
+      "rack": 10,
+      "u": 40
+    },
+    {
+      "instance": "计算带内交换机-3",
+      "model": "带内交换机1",
+      "channel": 2,
+      "rack": 7,
+      "u": 37
+    },
+    {
+      "instance": "计算带内交换机-4",
+      "model": "带内交换机1",
+      "channel": 2,
+      "rack": 9,
+      "u": 37
+    },
+    {
+      "instance": "计算带外交换机-2",
+      "model": "带外交换机1",
+      "channel": 2,
+      "rack": 8,
+      "u": 37
+    },
+    {
+      "instance": "计算接入交换机(业务)-5",
+      "model": "业务接入交换机1",
+      "channel": 2,
+      "rack": 12,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(业务)-6",
+      "model": "业务接入交换机1",
+      "channel": 2,
+      "rack": 14,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-5",
+      "model": "存储接入交换机1",
+      "channel": 2,
+      "rack": 13,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-6",
+      "model": "存储接入交换机1",
+      "channel": 2,
+      "rack": 15,
+      "u": 40
+    },
+    {
+      "instance": "计算带内交换机-5",
+      "model": "带内交换机1",
+      "channel": 2,
+      "rack": 13,
+      "u": 37
+    },
+    {
+      "instance": "计算带内交换机-6",
+      "model": "带内交换机1",
+      "channel": 2,
+      "rack": 15,
+      "u": 37
+    },
+    {
+      "instance": "计算带外交换机-3",
+      "model": "带外交换机1",
+      "channel": 2,
+      "rack": 14,
+      "u": 37
+    },
+    {
+      "instance": "计算接入交换机(业务)-7",
+      "model": "业务接入交换机1",
+      "channel": 2,
+      "rack": 18,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(业务)-8",
+      "model": "业务接入交换机1",
+      "channel": 2,
+      "rack": 20,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-7",
+      "model": "存储接入交换机1",
+      "channel": 2,
+      "rack": 19,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-8",
+      "model": "存储接入交换机1",
+      "channel": 2,
+      "rack": 21,
+      "u": 40
+    },
+    {
+      "instance": "计算带内交换机-7",
+      "model": "带内交换机1",
+      "channel": 2,
+      "rack": 18,
+      "u": 37
+    },
+    {
+      "instance": "计算带内交换机-8",
+      "model": "带内交换机1",
+      "channel": 2,
+      "rack": 20,
+      "u": 37
+    },
+    {
+      "instance": "计算带外交换机-4",
+      "model": "带外交换机1",
+      "channel": 2,
+      "rack": 19,
+      "u": 37
+    },
+    {
+      "instance": "计算接入交换机(业务)-9",
+      "model": "业务接入交换机1",
+      "channel": 2,
+      "rack": 22,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(业务)-10",
+      "model": "业务接入交换机1",
+      "channel": 2,
+      "rack": 24,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-9",
+      "model": "存储接入交换机1",
+      "channel": 2,
+      "rack": 23,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-10",
+      "model": "存储接入交换机1",
+      "channel": 2,
+      "rack": 25,
+      "u": 40
+    },
+    {
+      "instance": "计算带内交换机-9",
+      "model": "带内交换机1",
+      "channel": 2,
+      "rack": 23,
+      "u": 37
+    },
+    {
+      "instance": "计算带内交换机-10",
+      "model": "带内交换机1",
+      "channel": 2,
+      "rack": 25,
+      "u": 37
+    },
+    {
+      "instance": "计算带外交换机-5",
+      "model": "带外交换机1",
+      "channel": 2,
+      "rack": 24,
+      "u": 37
+    },
+    {
+      "instance": "存储接入交换机-1",
+      "model": "存储接入交换机1",
+      "channel": 3,
+      "rack": 3,
+      "u": 40
+    },
+    {
+      "instance": "存储接入交换机-2",
+      "model": "存储接入交换机1",
+      "channel": 3,
+      "rack": 4,
+      "u": 40
+    },
+    {
+      "instance": "存储带内交换机-1",
+      "model": "带内交换机1",
+      "channel": 3,
+      "rack": 3,
+      "u": 37
+    },
+    {
+      "instance": "存储带内交换机-2",
+      "model": "带内交换机1",
+      "channel": 3,
+      "rack": 4,
+      "u": 37
+    },
+    {
+      "instance": "存储带外交换机-1",
+      "model": "带外交换机1",
+      "channel": 3,
+      "rack": 4,
+      "u": 34
+    },
+    {
+      "instance": "存储接入交换机-3",
+      "model": "存储接入交换机1",
+      "channel": 3,
+      "rack": 10,
+      "u": 40
+    },
+    {
+      "instance": "存储接入交换机-4",
+      "model": "存储接入交换机1",
+      "channel": 3,
+      "rack": 11,
+      "u": 40
+    },
+    {
+      "instance": "存储带内交换机-3",
+      "model": "带内交换机1",
+      "channel": 3,
+      "rack": 10,
+      "u": 37
+    },
+    {
+      "instance": "存储带内交换机-4",
+      "model": "带内交换机1",
+      "channel": 3,
+      "rack": 11,
+      "u": 37
+    },
+    {
+      "instance": "存储带外交换机-2",
+      "model": "带外交换机1",
+      "channel": 3,
+      "rack": 11,
+      "u": 34
+    },
+    {
+      "instance": "存储接入交换机-5",
+      "model": "存储接入交换机1",
+      "channel": 3,
+      "rack": 16,
+      "u": 40
+    },
+    {
+      "instance": "存储接入交换机-6",
+      "model": "存储接入交换机1",
+      "channel": 3,
+      "rack": 17,
+      "u": 40
+    },
+    {
+      "instance": "存储带内交换机-5",
+      "model": "带内交换机1",
+      "channel": 3,
+      "rack": 16,
+      "u": 37
+    },
+    {
+      "instance": "存储带内交换机-6",
+      "model": "带内交换机1",
+      "channel": 3,
+      "rack": 17,
+      "u": 37
+    },
+    {
+      "instance": "存储带外交换机-3",
+      "model": "带外交换机1",
+      "channel": 3,
+      "rack": 17,
+      "u": 34
+    },
+    {
+      "instance": "计算接入交换机(业务)-11",
+      "model": "业务接入交换机1",
+      "channel": 8,
+      "rack": 2,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(业务)-12",
+      "model": "业务接入交换机1",
+      "channel": 8,
+      "rack": 4,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-11",
+      "model": "存储接入交换机1",
+      "channel": 8,
+      "rack": 3,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-12",
+      "model": "存储接入交换机1",
+      "channel": 8,
+      "rack": 5,
+      "u": 40
+    },
+    {
+      "instance": "计算带内交换机-11",
+      "model": "带内交换机1",
+      "channel": 8,
+      "rack": 2,
+      "u": 37
+    },
+    {
+      "instance": "计算带内交换机-12",
+      "model": "带内交换机1",
+      "channel": 8,
+      "rack": 4,
+      "u": 37
+    },
+    {
+      "instance": "计算带外交换机-6",
+      "model": "带外交换机1",
+      "channel": 8,
+      "rack": 3,
+      "u": 37
+    },
+    {
+      "instance": "计算接入交换机(业务)-13",
+      "model": "业务接入交换机1",
+      "channel": 8,
+      "rack": 7,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(业务)-14",
+      "model": "业务接入交换机1",
+      "channel": 8,
+      "rack": 9,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-13",
+      "model": "存储接入交换机1",
+      "channel": 8,
+      "rack": 8,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-14",
+      "model": "存储接入交换机1",
+      "channel": 8,
+      "rack": 10,
+      "u": 40
+    },
+    {
+      "instance": "计算带内交换机-13",
+      "model": "带内交换机1",
+      "channel": 8,
+      "rack": 7,
+      "u": 37
+    },
+    {
+      "instance": "计算带内交换机-14",
+      "model": "带内交换机1",
+      "channel": 8,
+      "rack": 9,
+      "u": 37
+    },
+    {
+      "instance": "计算带外交换机-7",
+      "model": "带外交换机1",
+      "channel": 8,
+      "rack": 8,
+      "u": 37
+    },
+    {
+      "instance": "计算接入交换机(业务)-15",
+      "model": "业务接入交换机1",
+      "channel": 8,
+      "rack": 12,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(业务)-16",
+      "model": "业务接入交换机1",
+      "channel": 8,
+      "rack": 14,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-15",
+      "model": "存储接入交换机1",
+      "channel": 8,
+      "rack": 13,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-16",
+      "model": "存储接入交换机1",
+      "channel": 8,
+      "rack": 15,
+      "u": 40
+    },
+    {
+      "instance": "计算带内交换机-15",
+      "model": "带内交换机1",
+      "channel": 8,
+      "rack": 13,
+      "u": 37
+    },
+    {
+      "instance": "计算带内交换机-16",
+      "model": "带内交换机1",
+      "channel": 8,
+      "rack": 15,
+      "u": 37
+    },
+    {
+      "instance": "计算带外交换机-8",
+      "model": "带外交换机1",
+      "channel": 8,
+      "rack": 14,
+      "u": 37
+    },
+    {
+      "instance": "计算接入交换机(业务)-17",
+      "model": "业务接入交换机1",
+      "channel": 8,
+      "rack": 18,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(业务)-18",
+      "model": "业务接入交换机1",
+      "channel": 8,
+      "rack": 20,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-17",
+      "model": "存储接入交换机1",
+      "channel": 8,
+      "rack": 19,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-18",
+      "model": "存储接入交换机1",
+      "channel": 8,
+      "rack": 21,
+      "u": 40
+    },
+    {
+      "instance": "计算带内交换机-17",
+      "model": "带内交换机1",
+      "channel": 8,
+      "rack": 18,
+      "u": 37
+    },
+    {
+      "instance": "计算带内交换机-18",
+      "model": "带内交换机1",
+      "channel": 8,
+      "rack": 20,
+      "u": 37
+    },
+    {
+      "instance": "计算带外交换机-9",
+      "model": "带外交换机1",
+      "channel": 8,
+      "rack": 19,
+      "u": 37
+    },
+    {
+      "instance": "计算接入交换机(业务)-19",
+      "model": "业务接入交换机1",
+      "channel": 8,
+      "rack": 24,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(业务)-20",
+      "model": "业务接入交换机1",
+      "channel": 8,
+      "rack": 26,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-19",
+      "model": "存储接入交换机1",
+      "channel": 8,
+      "rack": 25,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-20",
+      "model": "存储接入交换机1",
+      "channel": 8,
+      "rack": 27,
+      "u": 40
+    },
+    {
+      "instance": "计算带内交换机-19",
+      "model": "带内交换机1",
+      "channel": 8,
+      "rack": 24,
+      "u": 37
+    },
+    {
+      "instance": "计算带内交换机-20",
+      "model": "带内交换机1",
+      "channel": 8,
+      "rack": 26,
+      "u": 37
+    },
+    {
+      "instance": "计算带外交换机-10",
+      "model": "带外交换机1",
+      "channel": 8,
+      "rack": 25,
+      "u": 37
+    },
+    {
+      "instance": "计算接入交换机(业务)-21",
+      "model": "业务接入交换机1",
+      "channel": 9,
+      "rack": 2,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(业务)-22",
+      "model": "业务接入交换机1",
+      "channel": 9,
+      "rack": 4,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-21",
+      "model": "存储接入交换机1",
+      "channel": 9,
+      "rack": 3,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-22",
+      "model": "存储接入交换机1",
+      "channel": 9,
+      "rack": 5,
+      "u": 40
+    },
+    {
+      "instance": "计算带内交换机-21",
+      "model": "带内交换机1",
+      "channel": 9,
+      "rack": 2,
+      "u": 37
+    },
+    {
+      "instance": "计算带内交换机-22",
+      "model": "带内交换机1",
+      "channel": 9,
+      "rack": 4,
+      "u": 37
+    },
+    {
+      "instance": "计算带外交换机-11",
+      "model": "带外交换机1",
+      "channel": 9,
+      "rack": 3,
+      "u": 37
+    },
+    {
+      "instance": "计算接入交换机(业务)-23",
+      "model": "业务接入交换机1",
+      "channel": 9,
+      "rack": 7,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(业务)-24",
+      "model": "业务接入交换机1",
+      "channel": 9,
+      "rack": 9,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-23",
+      "model": "存储接入交换机1",
+      "channel": 9,
+      "rack": 8,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-24",
+      "model": "存储接入交换机1",
+      "channel": 9,
+      "rack": 10,
+      "u": 40
+    },
+    {
+      "instance": "计算带内交换机-23",
+      "model": "带内交换机1",
+      "channel": 9,
+      "rack": 7,
+      "u": 37
+    },
+    {
+      "instance": "计算带内交换机-24",
+      "model": "带内交换机1",
+      "channel": 9,
+      "rack": 9,
+      "u": 37
+    },
+    {
+      "instance": "计算带外交换机-12",
+      "model": "带外交换机1",
+      "channel": 9,
+      "rack": 8,
+      "u": 37
+    },
+    {
+      "instance": "计算接入交换机(业务)-25",
+      "model": "业务接入交换机1",
+      "channel": 9,
+      "rack": 12,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(业务)-26",
+      "model": "业务接入交换机1",
+      "channel": 9,
+      "rack": 14,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-25",
+      "model": "存储接入交换机1",
+      "channel": 9,
+      "rack": 13,
+      "u": 40
+    },
+    {
+      "instance": "计算接入交换机(存储)-26",
+      "model": "存储接入交换机1",
+      "channel": 9,
+      "rack": 15,
+      "u": 40
+    },
+    {
+      "instance": "计算带内交换机-25",
+      "model": "带内交换机1",
+      "channel": 9,
+      "rack": 13,
+      "u": 37
+    },
+    {
+      "instance": "计算带内交换机-26",
+      "model": "带内交换机1",
+      "channel": 9,
+      "rack": 15,
+      "u": 37
+    },
+    {
+      "instance": "计算带外交换机-13",
+      "model": "带外交换机1",
+      "channel": 9,
+      "rack": 14,
+      "u": 37
+    }
+  ],
+  "routes": [
+    {
+      "nodeModel": "EHDD云硬盘服务器1",
+      "nic": "25G1",
+      "switchModel": "存储接入交换机1"
+    },
+    {
+      "nodeModel": "EHDD云硬盘服务器1",
+      "nic": "25G2",
+      "switchModel": "存储接入交换机1"
+    },
+    {
+      "nodeModel": "EHDD云硬盘服务器1",
+      "nic": "IPMI",
+      "switchModel": "带外交换机1"
+    },
+    {
+      "nodeModel": "EHDD云硬盘服务器1",
+      "nic": "千兆1",
+      "switchModel": "带内交换机1"
+    },
+    {
+      "nodeModel": "EHDD云硬盘服务器1",
+      "nic": "千兆2",
+      "switchModel": "带内交换机1"
+    },
+    {
+      "nodeModel": "EHDD云硬盘服务器2",
+      "nic": "25G1",
+      "switchModel": "存储接入交换机1"
+    },
+    {
+      "nodeModel": "EHDD云硬盘服务器2",
+      "nic": "25G2",
+      "switchModel": "存储接入交换机1"
+    },
+    {
+      "nodeModel": "EHDD云硬盘服务器2",
+      "nic": "IPMI",
+      "switchModel": "带外交换机1"
+    },
+    {
+      "nodeModel": "EHDD云硬盘服务器2",
+      "nic": "千兆1",
+      "switchModel": "带内交换机1"
+    },
+    {
+      "nodeModel": "EHDD云硬盘服务器2",
+      "nic": "千兆2",
+      "switchModel": "带内交换机1"
+    },
+    {
+      "nodeModel": "SSD云硬盘服务器",
+      "nic": "25G1",
+      "switchModel": "存储接入交换机1"
+    },
+    {
+      "nodeModel": "SSD云硬盘服务器",
+      "nic": "25G2",
+      "switchModel": "存储接入交换机1"
+    },
+    {
+      "nodeModel": "SSD云硬盘服务器",
+      "nic": "IPMI",
+      "switchModel": "带外交换机1"
+    },
+    {
+      "nodeModel": "SSD云硬盘服务器",
+      "nic": "千兆1",
+      "switchModel": "带内交换机1"
+    },
+    {
+      "nodeModel": "SSD云硬盘服务器",
+      "nic": "千兆2",
+      "switchModel": "带内交换机1"
+    },
+    {
+      "nodeModel": "对象存储数据节点服务器",
+      "nic": "25G1",
+      "switchModel": "存储接入交换机1"
+    },
+    {
+      "nodeModel": "对象存储数据节点服务器",
+      "nic": "25G2",
+      "switchModel": "存储接入交换机1"
+    },
+    {
+      "nodeModel": "对象存储数据节点服务器",
+      "nic": "IPMI",
+      "switchModel": "带外交换机1"
+    },
+    {
+      "nodeModel": "对象存储数据节点服务器",
+      "nic": "千兆1",
+      "switchModel": "带内交换机1"
+    },
+    {
+      "nodeModel": "对象存储数据节点服务器",
+      "nic": "千兆2",
+      "switchModel": "带内交换机1"
+    },
+    {
+      "nodeModel": "计算节点A（ARM）",
+      "nic": "IPMI",
+      "switchModel": "带外交换机1"
+    },
+    {
+      "nodeModel": "计算节点A（ARM）",
+      "nic": "万兆1",
+      "switchModel": "业务接入交换机1"
+    },
+    {
+      "nodeModel": "计算节点A（ARM）",
+      "nic": "万兆2",
+      "switchModel": "存储接入交换机1"
+    },
+    {
+      "nodeModel": "计算节点A（ARM）",
+      "nic": "万兆3",
+      "switchModel": "业务接入交换机1"
+    },
+    {
+      "nodeModel": "计算节点A（ARM）",
+      "nic": "万兆4",
+      "switchModel": "存储接入交换机1"
+    },
+    {
+      "nodeModel": "计算节点A（ARM）",
+      "nic": "千兆1",
+      "switchModel": "带内交换机1"
+    },
+    {
+      "nodeModel": "计算节点A（ARM）",
+      "nic": "千兆3",
+      "switchModel": "带内交换机1"
+    },
+    {
+      "nodeModel": "计算节点B（C86）",
+      "nic": "IPMI",
+      "switchModel": "带外交换机1"
+    },
+    {
+      "nodeModel": "计算节点B（C86）",
+      "nic": "万兆1",
+      "switchModel": "业务接入交换机1"
+    },
+    {
+      "nodeModel": "计算节点B（C86）",
+      "nic": "万兆2",
+      "switchModel": "存储接入交换机1"
+    },
+    {
+      "nodeModel": "计算节点B（C86）",
+      "nic": "万兆3",
+      "switchModel": "业务接入交换机1"
+    },
+    {
+      "nodeModel": "计算节点B（C86）",
+      "nic": "万兆4",
+      "switchModel": "存储接入交换机1"
+    },
+    {
+      "nodeModel": "计算节点B（C86）",
+      "nic": "千兆1",
+      "switchModel": "带内交换机1"
+    },
+    {
+      "nodeModel": "计算节点B（C86）",
+      "nic": "千兆3",
+      "switchModel": "带内交换机1"
+    }
+  ],
+  "chains": [
+    {
+      "channel": 2,
+      "switchModel": "业务接入交换机1",
+      "nic": "万兆1",
+      "instances": [
+        "计算接入交换机(业务)-1",
+        "计算接入交换机(业务)-3",
+        "计算接入交换机(业务)-5",
+        "计算接入交换机(业务)-7",
+        "计算接入交换机(业务)-9"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 2,
+      "switchModel": "业务接入交换机1",
+      "nic": "万兆3",
+      "instances": [
+        "计算接入交换机(业务)-2",
+        "计算接入交换机(业务)-4",
+        "计算接入交换机(业务)-6",
+        "计算接入交换机(业务)-8",
+        "计算接入交换机(业务)-10"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 2,
+      "switchModel": "存储接入交换机1",
+      "nic": "万兆2",
+      "instances": [
+        "计算接入交换机(存储)-1",
+        "计算接入交换机(存储)-3",
+        "计算接入交换机(存储)-5",
+        "计算接入交换机(存储)-7",
+        "计算接入交换机(存储)-9"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 2,
+      "switchModel": "存储接入交换机1",
+      "nic": "万兆4",
+      "instances": [
+        "计算接入交换机(存储)-2",
+        "计算接入交换机(存储)-4",
+        "计算接入交换机(存储)-6",
+        "计算接入交换机(存储)-8",
+        "计算接入交换机(存储)-10"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 2,
+      "switchModel": "带内交换机1",
+      "nic": "千兆1",
+      "instances": [
+        "计算带内交换机-1",
+        "计算带内交换机-3",
+        "计算带内交换机-5",
+        "计算带内交换机-7",
+        "计算带内交换机-9"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 2,
+      "switchModel": "带内交换机1",
+      "nic": "千兆3",
+      "instances": [
+        "计算带内交换机-2",
+        "计算带内交换机-4",
+        "计算带内交换机-6",
+        "计算带内交换机-8",
+        "计算带内交换机-10"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 2,
+      "switchModel": "带外交换机1",
+      "nic": "IPMI",
+      "instances": [
+        "计算带外交换机-1",
+        "计算带外交换机-2",
+        "计算带外交换机-3",
+        "计算带外交换机-4",
+        "计算带外交换机-5"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 3,
+      "switchModel": "存储接入交换机1",
+      "nic": "25G1",
+      "instances": [
+        "存储接入交换机-1",
+        "存储接入交换机-3",
+        "存储接入交换机-5"
+      ],
+      "capacity": 40,
+      "order": "slot_major"
+    },
+    {
+      "channel": 3,
+      "switchModel": "存储接入交换机1",
+      "nic": "25G2",
+      "instances": [
+        "存储接入交换机-2",
+        "存储接入交换机-4",
+        "存储接入交换机-6"
+      ],
+      "capacity": 40,
+      "order": "slot_major"
+    },
+    {
+      "channel": 3,
+      "switchModel": "带内交换机1",
+      "nic": "千兆1",
+      "instances": [
+        "存储带内交换机-1",
+        "存储带内交换机-3",
+        "存储带内交换机-5"
+      ],
+      "capacity": 40,
+      "order": "slot_major"
+    },
+    {
+      "channel": 3,
+      "switchModel": "带内交换机1",
+      "nic": "千兆2",
+      "instances": [
+        "存储带内交换机-2",
+        "存储带内交换机-4",
+        "存储带内交换机-6"
+      ],
+      "capacity": 40,
+      "order": "slot_major"
+    },
+    {
+      "channel": 3,
+      "switchModel": "带外交换机1",
+      "nic": "IPMI",
+      "instances": [
+        "存储带外交换机-1",
+        "存储带外交换机-2",
+        "存储带外交换机-3"
+      ],
+      "capacity": 40,
+      "order": "slot_major"
+    },
+    {
+      "channel": 8,
+      "switchModel": "业务接入交换机1",
+      "nic": "万兆1",
+      "instances": [
+        "计算接入交换机(业务)-11",
+        "计算接入交换机(业务)-13",
+        "计算接入交换机(业务)-15",
+        "计算接入交换机(业务)-17",
+        "计算接入交换机(业务)-19"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 8,
+      "switchModel": "业务接入交换机1",
+      "nic": "万兆3",
+      "instances": [
+        "计算接入交换机(业务)-12",
+        "计算接入交换机(业务)-14",
+        "计算接入交换机(业务)-16",
+        "计算接入交换机(业务)-18",
+        "计算接入交换机(业务)-20"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 8,
+      "switchModel": "存储接入交换机1",
+      "nic": "万兆2",
+      "instances": [
+        "计算接入交换机(存储)-11",
+        "计算接入交换机(存储)-13",
+        "计算接入交换机(存储)-15",
+        "计算接入交换机(存储)-17",
+        "计算接入交换机(存储)-19"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 8,
+      "switchModel": "存储接入交换机1",
+      "nic": "万兆4",
+      "instances": [
+        "计算接入交换机(存储)-12",
+        "计算接入交换机(存储)-14",
+        "计算接入交换机(存储)-16",
+        "计算接入交换机(存储)-18",
+        "计算接入交换机(存储)-20"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 8,
+      "switchModel": "带内交换机1",
+      "nic": "千兆1",
+      "instances": [
+        "计算带内交换机-11",
+        "计算带内交换机-13",
+        "计算带内交换机-15",
+        "计算带内交换机-17",
+        "计算带内交换机-19"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 8,
+      "switchModel": "带内交换机1",
+      "nic": "千兆3",
+      "instances": [
+        "计算带内交换机-12",
+        "计算带内交换机-14",
+        "计算带内交换机-16",
+        "计算带内交换机-18",
+        "计算带内交换机-20"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 8,
+      "switchModel": "带外交换机1",
+      "nic": "IPMI",
+      "instances": [
+        "计算带外交换机-6",
+        "计算带外交换机-7",
+        "计算带外交换机-8",
+        "计算带外交换机-9",
+        "计算带外交换机-10"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 9,
+      "switchModel": "业务接入交换机1",
+      "nic": "万兆1",
+      "instances": [
+        "计算接入交换机(业务)-21",
+        "计算接入交换机(业务)-23",
+        "计算接入交换机(业务)-25"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 9,
+      "switchModel": "业务接入交换机1",
+      "nic": "万兆3",
+      "instances": [
+        "计算接入交换机(业务)-22",
+        "计算接入交换机(业务)-24",
+        "计算接入交换机(业务)-26"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 9,
+      "switchModel": "存储接入交换机1",
+      "nic": "万兆2",
+      "instances": [
+        "计算接入交换机(存储)-21",
+        "计算接入交换机(存储)-23",
+        "计算接入交换机(存储)-25"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 9,
+      "switchModel": "存储接入交换机1",
+      "nic": "万兆4",
+      "instances": [
+        "计算接入交换机(存储)-22",
+        "计算接入交换机(存储)-24",
+        "计算接入交换机(存储)-26"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 9,
+      "switchModel": "带内交换机1",
+      "nic": "千兆1",
+      "instances": [
+        "计算带内交换机-21",
+        "计算带内交换机-23",
+        "计算带内交换机-25"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 9,
+      "switchModel": "带内交换机1",
+      "nic": "千兆3",
+      "instances": [
+        "计算带内交换机-22",
+        "计算带内交换机-24",
+        "计算带内交换机-26"
+      ],
+      "capacity": 44
+    },
+    {
+      "channel": 9,
+      "switchModel": "带外交换机1",
+      "nic": "IPMI",
+      "instances": [
+        "计算带外交换机-11",
+        "计算带外交换机-12",
+        "计算带外交换机-13"
+      ],
+      "capacity": 44
+    }
+  ],
+  "explicitLinks": []
+}

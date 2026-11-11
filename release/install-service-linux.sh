@@ -30,6 +30,13 @@ sudo mkdir -p "$INSTALL_DIR"
 sudo cp "$BIN_NAME" "$INSTALL_DIR/netmon-server"
 sudo chmod +x "$INSTALL_DIR/netmon-server"
 
+# 可选：IDC 上架布线引擎（存在则一并安装；缺失时主平台仍可运行）
+if [[ -d "planning" ]]; then
+    sudo rm -rf "$INSTALL_DIR/planning"
+    sudo cp -r planning "$INSTALL_DIR/planning"
+    echo "[提示] 已安装 planning/ 引擎；如使用系统 Python，请先在 $INSTALL_DIR/planning/backend 建 venv。"
+fi
+
 # 3. 配置文件准备
 if [[ -f ".env" ]]; then
     sudo cp .env "$INSTALL_DIR/.env"

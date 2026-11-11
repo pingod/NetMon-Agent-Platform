@@ -24,6 +24,7 @@ import (
 	"itops-backend/internal/modules"
 	"itops-backend/internal/modules/inspection"
 	"itops-backend/internal/modules/network/services"
+	"itops-backend/internal/modules/planning"
 	"itops-backend/internal/repos"
 	"itops-backend/internal/services/tokenblacklist"
 )
@@ -215,6 +216,10 @@ func main() {
 	services.StartAlertRuleEvaluator()
 	logger.Infof("Network services initialized")
 
+	// ── 规划引擎（IDC 上架布线）──
+	// 异步启动：引擎不可用不应阻塞主服务；代理返回 503 与原因。
+	planning.Start()
+
 	// ── 构建路由 ──
 	router := modules.NewRouter()
 
@@ -260,6 +265,7 @@ func main() {
 		services.DeviceStatusProberInstance.Shutdown()
 		services.SnmpPollerInstance.Shutdown()
 		services.StopAlertRuleEvaluator()
+		planning.Stop()
 
 		if err := appdb.Close(); err != nil {
 			logger.Warnf("Database close error: %v", err)

@@ -24,6 +24,7 @@
   - [4. 服务器与容器/云原生统一管理](#4-服务器与容器云原生统一管理)
   - [5. 高兼容 WebShell 终端与安全审计](#5-高兼容-webshell-终端与安全审计)
   - [6. IPAM 子网规划与 3D 机房数字孪生](#6-ipam-子网规划与-3d-机房数字孪生)
+  - [7. IDC 上架规划与布线（吸收 IDCBoxLine）](#7-idc-上架规划与布线吸收-idcboxline)
 - [二、 技术架构与技术栈](#二-技术架构与技术栈)
   - [1. 总体架构拓扑图](#1-总体架构拓扑图)
   - [2. 核心技术栈清单](#2-核心技术栈清单)
@@ -123,6 +124,37 @@
 
 ---
 
+### 7. IDC 上架规划与布线（吸收 IDCBoxLine）
+
+> 原独立项目 **IDCBoxLine** 已整体并入本仓库 `planning/`：域层、Web、数据、规则、黄金向量与文档全部保留，
+> 由 NetMon 统一托管、鉴权与交付。入口：侧边栏「数据机房 → IDC上架布线」(`/planning`)。
+
+- **十二个工作台**：平面与机柜（2D 拖拽调 U 位）、接线设计（意图 → 布线表）、布线表、数据体检、
+  端口与策略、耗材清单、项目与版本、版本对比、设备台账、设备型号库、线缆标签、3D 机房。
+- **线长七公式引擎**：`N/O/P/Q/R/S/T` 从客户 5127 行 Excel 反解，导出 24 列 × 5127 行**逐格 diff = 0**；
+  端口分配规律 3850/3850 复现。公式唯一实现保留在 Python 域层，前端镜像共享同一份 golden vectors。
+- **数据体检**：自动检出几何填错、U 位重叠、缺几何量、IFS 档位多买等问题，输出评分与明细。
+- **项目版本库**：意图存为版本，支持比较与回退；SQLite 项目库随包提供种子数据（V13 / 信息港二期）。
+- **架构（为何不是 Go 重写）**：域层 25k 行 Python 已由 1328 个用例与逐格导出铁线验证，重写会同时丢掉
+  公式口径与回归证据。因此 Go 主服务内置 `internal/modules/planning`：
+  1. **进程监管**：自动发现 `planning/`，启动/健康检查/失败退避重启/优雅关停；
+  2. **认证反向代理**：`/api/v1/planning/*` 走 NetMon JWT，引擎只监听 `127.0.0.1`；
+  3. **静态内嵌**：规划前端构建产物 `//go:embed`，与主前端一起随单二进制分发（Docker 内置 Python 运行时）。
+- **独立开发**：
+
+```bash
+cd planning/backend
+python3.12 -m venv .venv
+.venv/bin/pip install -e ".[infra,api]"
+cd ../web && pnpm install && pnpm dev   # 可选：规划前端热更新，API 代理到 18001
+```
+
+  之后正常启动 Go 服务即可；引擎未就绪时页面会给出原因与修复提示，主平台其余功能不受影响。
+- **离线绿色包**：`planning/scripts/package_green.sh` 可产出含独立 Python 运行时的引擎包；
+  解压后用 `PLANNING_ROOT=/path/to/IDCBoxLine-*-offline` 指向它，Go 会自动使用 `runtime/` + `vendor/`。
+
+---
+
 ## 二、 技术架构与技术栈
 
 ### 1. 总体架构拓扑图
@@ -183,6 +215,7 @@ graph TB
 | **前端框架** | **React 18 + TypeScript 5.7** | 现代化组件化架构，类型安全，极致开发体验 |
 | **构建工具** | **Vite 5** | 毫秒级热更新，Rollup 生产打包优化 |
 | **可视化图表** | **ECharts + Three.js + Lucide Icons** | 丰富的时序波形图、网络拓扑图与 3D WebGL 数字孪生机房 |
+| **规划引擎** | **Python 3.12 + FastAPI + SQLAlchemy** | 上架布线域层经 1328 用例与逐格导出铁线验证；由 Go 监管并反向代理，保留验证资产 |
 
 ---
 
@@ -191,6 +224,8 @@ graph TB
 1. **内嵌式一体化交付 (`//go:embed`)**：
    - 前端 Vite 产物（HTML、CSS、JS、字体与图标）全量内嵌至 Go 二进制中。
    - 用户**无需在宿主机上安装 Node.js、NPM、Python 或 Nginx**，直接分发运行单个文件即可。
+   - IDC 上架布线模块的前端同样内嵌；其 Python 引擎由 Docker 镜像内置，或在独立二进制旁放置
+     `planning/`（含 venv / 绿色包运行时）后自动发现，可用 `PLANNING_ROOT` 显式指定。
 2. **纯 Go 零 CGO 编译 (`CGO_ENABLED=0`)**：
    - 彻底摆脱 GCC/MinGW 跨平台交叉编译限制，可在 Windows 上秒级构建出标准的 Linux x86_64 与 ARM64 生产包。
 3. **分库与分区滑动窗口算法**：
@@ -334,6 +369,13 @@ Compose 项目名固定为 `most_agent`（见 `name:` 字段），即使仓库�
 PORT=8088                         # 服务监听端口 (默认: 8088)
 DATABASE_PATH=./data/app.db       # SQLite 数据库文件 (默认: backend/data/app.db)
 LOG_LEVEL=info                    # 日志级别: debug / info / warn / error
+
+# IDC 上架规划与布线引擎（原 IDCBoxLine）
+PLANNING_ENABLED=true             # 关闭后 /api/v1/planning 返回 503，其余功能不受影响
+PLANNING_ROOT=                    # 引擎根目录；留空自动查找 ./planning 或二进制同级
+PLANNING_PYTHON=                  # 指定解释器；留空自动找 venv / 绿色包 / python3
+PLANNING_PORT=18001               # 引擎本地端口（仅 127.0.0.1）
+PLANNING_DB=                      # 项目版本库；留空用 <ROOT>/data/idcbox.db，缺失时播种
 
 # 安全与认证配置
 JWT_SECRET=                       # 生产必填，>=32 字符；开发留空则自动生成

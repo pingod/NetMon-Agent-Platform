@@ -24,6 +24,7 @@ import { mcpRoutes } from './mcp/routes';
 import { monitorRoutes } from './monitor/routes';
 import { networkRoutes } from './network/routes';
 import { notificationRoutes } from './notification/routes';
+import { planningRoutes } from './planning/routes';
 import { serverRoutes } from './servers/routes';
 import { workflowRoutes } from './workflow/routes';
 
@@ -52,6 +53,7 @@ export const protectedRoutes = [
   ...monitorRoutes,
   ...networkRoutes,
   ...notificationRoutes,
+  ...planningRoutes,
   ...serverRoutes,
   ...workflowRoutes,
   { path: 'frontend-tests', element: <FrontendTests /> },

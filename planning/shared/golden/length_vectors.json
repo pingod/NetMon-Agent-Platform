@@ -1,0 +1,2094 @@
+{
+ "schemaVersion": 1,
+ "generatedBy": "backend/scripts/build_golden_vectors.py",
+ "purpose": "前后端公式镜像的唯一校验契约；两侧测试都必须读它",
+ "rule": {
+  "rackSpacingM": 0.6,
+  "slackRatio": 1.2,
+  "nRowCoef": 4,
+  "nRowExtra": 4,
+  "inRackLenByType": {
+   "RJ45": 7,
+   "LC-LC": 5,
+   "MPO": 5
+  },
+  "cmaxByRoom": {
+   "403": 38,
+   "404": 18
+  },
+  "ladderMode": "ifs_compat",
+  "crossAisleOffset": 1
+ },
+ "rungs": [
+  {
+   "seq": 1,
+   "op": "le",
+   "limit": 5.0,
+   "out": 5,
+   "label": "le_5"
+  },
+  {
+   "seq": 2,
+   "op": "le",
+   "limit": 6.0,
+   "out": 7,
+   "label": "le_6"
+  },
+  {
+   "seq": 3,
+   "op": "eq",
+   "limit": 7.0,
+   "out": 7,
+   "label": "eq_7"
+  },
+  {
+   "seq": 4,
+   "op": "le",
+   "limit": 8.5,
+   "out": 10,
+   "label": "le_8.5"
+  },
+  {
+   "seq": 5,
+   "op": "le",
+   "limit": 13.0,
+   "out": 15,
+   "label": "le_13"
+  },
+  {
+   "seq": 6,
+   "op": "le",
+   "limit": 17.5,
+   "out": 20,
+   "label": "le_17.5"
+  },
+  {
+   "seq": 7,
+   "op": "le",
+   "limit": 22.0,
+   "out": 25,
+   "label": "le_22"
+  },
+  {
+   "seq": 8,
+   "op": "le",
+   "limit": 27.0,
+   "out": 30,
+   "label": "le_27"
+  },
+  {
+   "seq": 9,
+   "op": "le",
+   "limit": 32.0,
+   "out": 35,
+   "label": "le_32"
+  },
+  {
+   "seq": 10,
+   "op": "le",
+   "limit": 37.0,
+   "out": 40,
+   "label": "le_37"
+  }
+ ],
+ "linkVectors": [
+  {
+   "name": "same_rack_lc",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 0,
+    "p": 0,
+    "q": 5.0,
+    "r": 0.0,
+    "s": 5.0,
+    "t": 5
+   }
+  },
+  {
+   "name": "same_rack_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 0,
+    "p": 0,
+    "q": 7.0,
+    "r": 0.0,
+    "s": 7.0,
+    "t": 7
+   }
+  },
+  {
+   "name": "same_rack_mpo",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "MPO",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 0,
+    "p": 0,
+    "q": 5.0,
+    "r": 0.0,
+    "s": 5.0,
+    "t": 5
+   }
+  },
+  {
+   "name": "A_same_row_d0_lc",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 0,
+    "p": 0,
+    "q": 5.0,
+    "r": 0.0,
+    "s": 5.0,
+    "t": 5
+   }
+  },
+  {
+   "name": "A_same_row_d0_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 0,
+    "p": 0,
+    "q": 7.0,
+    "r": 0.0,
+    "s": 7.0,
+    "t": 7
+   }
+  },
+  {
+   "name": "A_same_row_d1_lc",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 2,
+    "side": "N",
+    "col": 37,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 1,
+    "p": 1,
+    "q": 5.0,
+    "r": 0.72,
+    "s": 5.72,
+    "t": 7
+   }
+  },
+  {
+   "name": "A_same_row_d1_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 2,
+    "side": "N",
+    "col": 37,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 1,
+    "p": 1,
+    "q": 7.0,
+    "r": 0.72,
+    "s": 7.72,
+    "t": 10
+   }
+  },
+  {
+   "name": "A_same_row_d2_lc",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 3,
+    "side": "N",
+    "col": 36,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 2,
+    "p": 2,
+    "q": 5.0,
+    "r": 1.44,
+    "s": 6.44,
+    "t": 10
+   }
+  },
+  {
+   "name": "A_same_row_d2_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 3,
+    "side": "N",
+    "col": 36,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 2,
+    "p": 2,
+    "q": 7.0,
+    "r": 1.44,
+    "s": 8.44,
+    "t": 10
+   }
+  },
+  {
+   "name": "A_same_row_d3_lc",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 4,
+    "side": "N",
+    "col": 35,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 3,
+    "p": 3,
+    "q": 5.0,
+    "r": 2.16,
+    "s": 7.16,
+    "t": 10
+   }
+  },
+  {
+   "name": "A_same_row_d3_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 4,
+    "side": "N",
+    "col": 35,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 3,
+    "p": 3,
+    "q": 7.0,
+    "r": 2.16,
+    "s": 9.16,
+    "t": 15
+   }
+  },
+  {
+   "name": "A_same_row_d4_lc",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 5,
+    "side": "N",
+    "col": 34,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 4,
+    "p": 4,
+    "q": 5.0,
+    "r": 2.88,
+    "s": 7.88,
+    "t": 10
+   }
+  },
+  {
+   "name": "A_same_row_d4_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 5,
+    "side": "N",
+    "col": 34,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 4,
+    "p": 4,
+    "q": 7.0,
+    "r": 2.88,
+    "s": 9.88,
+    "t": 15
+   }
+  },
+  {
+   "name": "A_same_row_d5_lc",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 6,
+    "side": "N",
+    "col": 33,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 5,
+    "p": 5,
+    "q": 5.0,
+    "r": 3.6,
+    "s": 8.6,
+    "t": 15
+   }
+  },
+  {
+   "name": "A_same_row_d5_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 6,
+    "side": "N",
+    "col": 33,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 5,
+    "p": 5,
+    "q": 7.0,
+    "r": 3.6,
+    "s": 10.6,
+    "t": 15
+   }
+  },
+  {
+   "name": "A_same_row_d6_lc",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 7,
+    "side": "N",
+    "col": 32,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 6,
+    "p": 6,
+    "q": 5.0,
+    "r": 4.32,
+    "s": 9.32,
+    "t": 15
+   }
+  },
+  {
+   "name": "A_same_row_d6_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 7,
+    "side": "N",
+    "col": 32,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 6,
+    "p": 6,
+    "q": 7.0,
+    "r": 4.32,
+    "s": 11.32,
+    "t": 15
+   }
+  },
+  {
+   "name": "A_same_row_d7_lc",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 8,
+    "side": "N",
+    "col": 31,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 7,
+    "p": 7,
+    "q": 5.0,
+    "r": 5.04,
+    "s": 10.04,
+    "t": 15
+   }
+  },
+  {
+   "name": "A_same_row_d7_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 8,
+    "side": "N",
+    "col": 31,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 7,
+    "p": 7,
+    "q": 7.0,
+    "r": 5.04,
+    "s": 12.04,
+    "t": 15
+   }
+  },
+  {
+   "name": "A_same_row_d8_lc",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 9,
+    "side": "N",
+    "col": 30,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 8,
+    "p": 8,
+    "q": 5.0,
+    "r": 5.76,
+    "s": 10.76,
+    "t": 15
+   }
+  },
+  {
+   "name": "A_same_row_d8_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 9,
+    "side": "N",
+    "col": 30,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 8,
+    "p": 8,
+    "q": 7.0,
+    "r": 5.76,
+    "s": 12.76,
+    "t": 15
+   }
+  },
+  {
+   "name": "A_same_row_d10_lc",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 11,
+    "side": "N",
+    "col": 28,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 10,
+    "p": 10,
+    "q": 5.0,
+    "r": 7.2,
+    "s": 12.2,
+    "t": 15
+   }
+  },
+  {
+   "name": "A_same_row_d10_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 11,
+    "side": "N",
+    "col": 28,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 10,
+    "p": 10,
+    "q": 7.0,
+    "r": 7.2,
+    "s": 14.2,
+    "t": 20
+   }
+  },
+  {
+   "name": "A_same_row_d14_lc",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 15,
+    "side": "N",
+    "col": 24,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 14,
+    "p": 14,
+    "q": 5.0,
+    "r": 10.08,
+    "s": 15.08,
+    "t": 20
+   }
+  },
+  {
+   "name": "A_same_row_d14_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 15,
+    "side": "N",
+    "col": 24,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 14,
+    "p": 14,
+    "q": 7.0,
+    "r": 10.08,
+    "s": 17.08,
+    "t": 20
+   }
+  },
+  {
+   "name": "A_same_row_d1_mpo",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 2,
+    "side": "N",
+    "col": 37,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "MPO",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 1,
+    "p": 1,
+    "q": 5.0,
+    "r": 0.72,
+    "s": 5.72,
+    "t": 7
+   }
+  },
+  {
+   "name": "A_same_row_d3_mpo",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 4,
+    "side": "N",
+    "col": 35,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "MPO",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 3,
+    "p": 3,
+    "q": 5.0,
+    "r": 2.16,
+    "s": 7.16,
+    "t": 10
+   }
+  },
+  {
+   "name": "A_same_row_d5_mpo",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 6,
+    "side": "N",
+    "col": 33,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "MPO",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 5,
+    "p": 5,
+    "q": 5.0,
+    "r": 3.6,
+    "s": 8.6,
+    "t": 15
+   }
+  },
+  {
+   "name": "A_same_row_d6_mpo",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 7,
+    "side": "N",
+    "col": 32,
+    "row": 3,
+    "room": "403"
+   },
+   "cableType": "MPO",
+   "oClass": "A",
+   "expect": {
+    "n": 0,
+    "o": 6,
+    "p": 6,
+    "q": 5.0,
+    "r": 4.32,
+    "s": 9.32,
+    "t": 15
+   }
+  },
+  {
+   "name": "B_facing_d0_lc",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 27,
+    "side": "S",
+    "col": 38,
+    "row": 4,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "B",
+   "expect": {
+    "n": 8,
+    "o": 1,
+    "p": 9,
+    "q": 5.0,
+    "r": 6.48,
+    "s": 11.48,
+    "t": 15
+   }
+  },
+  {
+   "name": "B_facing_d0_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 27,
+    "side": "S",
+    "col": 38,
+    "row": 4,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "B",
+   "expect": {
+    "n": 8,
+    "o": 1,
+    "p": 9,
+    "q": 7.0,
+    "r": 6.48,
+    "s": 13.48,
+    "t": 20
+   }
+  },
+  {
+   "name": "B_facing_d1_lc",
+   "a": {
+    "channel": 1,
+    "seq": 2,
+    "side": "N",
+    "col": 37,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 26,
+    "side": "S",
+    "col": 37,
+    "row": 4,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "B",
+   "expect": {
+    "n": 8,
+    "o": 3,
+    "p": 11,
+    "q": 5.0,
+    "r": 7.92,
+    "s": 12.92,
+    "t": 15
+   }
+  },
+  {
+   "name": "B_facing_d1_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 2,
+    "side": "N",
+    "col": 37,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 26,
+    "side": "S",
+    "col": 37,
+    "row": 4,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "B",
+   "expect": {
+    "n": 8,
+    "o": 3,
+    "p": 11,
+    "q": 7.0,
+    "r": 7.92,
+    "s": 14.92,
+    "t": 20
+   }
+  },
+  {
+   "name": "B_facing_d2_lc",
+   "a": {
+    "channel": 1,
+    "seq": 3,
+    "side": "N",
+    "col": 36,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 25,
+    "side": "S",
+    "col": 36,
+    "row": 4,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "B",
+   "expect": {
+    "n": 8,
+    "o": 5,
+    "p": 13,
+    "q": 5.0,
+    "r": 9.36,
+    "s": 14.36,
+    "t": 20
+   }
+  },
+  {
+   "name": "B_facing_d2_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 3,
+    "side": "N",
+    "col": 36,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 25,
+    "side": "S",
+    "col": 36,
+    "row": 4,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "B",
+   "expect": {
+    "n": 8,
+    "o": 5,
+    "p": 13,
+    "q": 7.0,
+    "r": 9.36,
+    "s": 16.36,
+    "t": 20
+   }
+  },
+  {
+   "name": "B_facing_d3_lc",
+   "a": {
+    "channel": 1,
+    "seq": 4,
+    "side": "N",
+    "col": 35,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 24,
+    "side": "S",
+    "col": 35,
+    "row": 4,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "B",
+   "expect": {
+    "n": 8,
+    "o": 7,
+    "p": 15,
+    "q": 5.0,
+    "r": 10.8,
+    "s": 15.8,
+    "t": 20
+   }
+  },
+  {
+   "name": "B_facing_d3_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 4,
+    "side": "N",
+    "col": 35,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 24,
+    "side": "S",
+    "col": 35,
+    "row": 4,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "B",
+   "expect": {
+    "n": 8,
+    "o": 7,
+    "p": 15,
+    "q": 7.0,
+    "r": 10.8,
+    "s": 17.8,
+    "t": 25
+   }
+  },
+  {
+   "name": "B_facing_d4_lc",
+   "a": {
+    "channel": 1,
+    "seq": 5,
+    "side": "N",
+    "col": 34,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 23,
+    "side": "S",
+    "col": 34,
+    "row": 4,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "B",
+   "expect": {
+    "n": 8,
+    "o": 9,
+    "p": 17,
+    "q": 5.0,
+    "r": 12.24,
+    "s": 17.24,
+    "t": 20
+   }
+  },
+  {
+   "name": "B_facing_d4_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 5,
+    "side": "N",
+    "col": 34,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 23,
+    "side": "S",
+    "col": 34,
+    "row": 4,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "B",
+   "expect": {
+    "n": 8,
+    "o": 9,
+    "p": 17,
+    "q": 7.0,
+    "r": 12.24,
+    "s": 19.24,
+    "t": 25
+   }
+  },
+  {
+   "name": "B_facing_d5_lc",
+   "a": {
+    "channel": 1,
+    "seq": 6,
+    "side": "N",
+    "col": 33,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 22,
+    "side": "S",
+    "col": 33,
+    "row": 4,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "B",
+   "expect": {
+    "n": 8,
+    "o": 11,
+    "p": 19,
+    "q": 5.0,
+    "r": 13.68,
+    "s": 18.68,
+    "t": 25
+   }
+  },
+  {
+   "name": "B_facing_d5_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 6,
+    "side": "N",
+    "col": 33,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 22,
+    "side": "S",
+    "col": 33,
+    "row": 4,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "B",
+   "expect": {
+    "n": 8,
+    "o": 11,
+    "p": 19,
+    "q": 7.0,
+    "r": 13.68,
+    "s": 20.68,
+    "t": 25
+   }
+  },
+  {
+   "name": "B_facing_d6_lc",
+   "a": {
+    "channel": 1,
+    "seq": 7,
+    "side": "N",
+    "col": 32,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 21,
+    "side": "S",
+    "col": 32,
+    "row": 4,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "B",
+   "expect": {
+    "n": 8,
+    "o": 13,
+    "p": 21,
+    "q": 5.0,
+    "r": 15.12,
+    "s": 20.12,
+    "t": 25
+   }
+  },
+  {
+   "name": "B_facing_d6_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 7,
+    "side": "N",
+    "col": 32,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 21,
+    "side": "S",
+    "col": 32,
+    "row": 4,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "B",
+   "expect": {
+    "n": 8,
+    "o": 13,
+    "p": 21,
+    "q": 7.0,
+    "r": 15.12,
+    "s": 22.12,
+    "t": 30
+   }
+  },
+  {
+   "name": "B_facing_d8_lc",
+   "a": {
+    "channel": 1,
+    "seq": 9,
+    "side": "N",
+    "col": 30,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 19,
+    "side": "S",
+    "col": 30,
+    "row": 4,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "B",
+   "expect": {
+    "n": 8,
+    "o": 17,
+    "p": 25,
+    "q": 5.0,
+    "r": 18.0,
+    "s": 23.0,
+    "t": 30
+   }
+  },
+  {
+   "name": "B_facing_d8_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 9,
+    "side": "N",
+    "col": 30,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 19,
+    "side": "S",
+    "col": 30,
+    "row": 4,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "B",
+   "expect": {
+    "n": 8,
+    "o": 17,
+    "p": 25,
+    "q": 7.0,
+    "r": 18.0,
+    "s": 25.0,
+    "t": 30
+   }
+  },
+  {
+   "name": "B_facing_d12_lc",
+   "a": {
+    "channel": 1,
+    "seq": 13,
+    "side": "N",
+    "col": 26,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 15,
+    "side": "S",
+    "col": 26,
+    "row": 4,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "B",
+   "expect": {
+    "n": 8,
+    "o": 25,
+    "p": 33,
+    "q": 5.0,
+    "r": 23.76,
+    "s": 28.76,
+    "t": 35
+   }
+  },
+  {
+   "name": "B_facing_d12_rj45",
+   "a": {
+    "channel": 1,
+    "seq": 13,
+    "side": "N",
+    "col": 26,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 1,
+    "seq": 15,
+    "side": "S",
+    "col": 26,
+    "row": 4,
+    "room": "403"
+   },
+   "cableType": "RJ45",
+   "oClass": "B",
+   "expect": {
+    "n": 8,
+    "o": 25,
+    "p": 33,
+    "q": 7.0,
+    "r": 23.76,
+    "s": 30.76,
+    "t": 35
+   }
+  },
+  {
+   "name": "C_ch1_to_ch2",
+   "a": {
+    "channel": 1,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 2,
+    "seq": 1,
+    "side": "N",
+    "col": 38,
+    "row": 5,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "C",
+   "expect": {
+    "n": 12,
+    "o": 1,
+    "p": 13,
+    "q": 5.0,
+    "r": 9.36,
+    "s": 14.36,
+    "t": 20
+   },
+   "issueCodes": [
+    "CROSS_AISLE_MANUAL"
+   ]
+  },
+  {
+   "name": "C_ch1_to_ch3",
+   "a": {
+    "channel": 1,
+    "seq": 3,
+    "side": "N",
+    "col": 36,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 3,
+    "seq": 3,
+    "side": "N",
+    "col": 36,
+    "row": 7,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "C",
+   "expect": {
+    "n": 20,
+    "o": 5,
+    "p": 25,
+    "q": 5.0,
+    "r": 18.0,
+    "s": 23.0,
+    "t": 30
+   },
+   "issueCodes": [
+    "CROSS_AISLE_MANUAL"
+   ]
+  },
+  {
+   "name": "C_ch1_to_ch3_far",
+   "a": {
+    "channel": 1,
+    "seq": 25,
+    "side": "S",
+    "col": 36,
+    "row": 4,
+    "room": "403"
+   },
+   "b": {
+    "channel": 3,
+    "seq": 3,
+    "side": "N",
+    "col": 36,
+    "row": 7,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "C",
+   "expect": {
+    "n": 16,
+    "o": 5,
+    "p": 21,
+    "q": 5.0,
+    "r": 15.12,
+    "s": 20.12,
+    "t": 25
+   },
+   "issueCodes": [
+    "CROSS_AISLE_MANUAL"
+   ]
+  },
+  {
+   "name": "C_ch1_to_ch2_mpo",
+   "a": {
+    "channel": 1,
+    "seq": 3,
+    "side": "N",
+    "col": 36,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 2,
+    "seq": 3,
+    "side": "N",
+    "col": 35,
+    "row": 5,
+    "room": "403"
+   },
+   "cableType": "MPO",
+   "oClass": "C",
+   "expect": {
+    "n": 12,
+    "o": 6,
+    "p": 18,
+    "q": 5.0,
+    "r": 12.96,
+    "s": 17.96,
+    "t": 25
+   },
+   "issueCodes": [
+    "CROSS_AISLE_MANUAL"
+   ]
+  },
+  {
+   "name": "over_limit_r451",
+   "a": {
+    "channel": 1,
+    "seq": 7,
+    "side": "N",
+    "col": 30,
+    "row": 3,
+    "room": "403"
+   },
+   "b": {
+    "channel": 3,
+    "seq": 16,
+    "side": "S",
+    "col": 25,
+    "row": 8,
+    "room": "403"
+   },
+   "cableType": "LC-LC",
+   "oClass": "C",
+   "expect": {
+    "n": 24,
+    "o": 22,
+    "p": 46,
+    "q": 5.0,
+    "r": 33.12,
+    "s": 38.12,
+    "t": null
+   },
+   "issueCodes": [
+    "CROSS_AISLE_MANUAL"
+   ]
+  }
+ ],
+ "ladderVectors": [
+  {
+   "s": 0.0,
+   "expect": 5
+  },
+  {
+   "s": 1.0,
+   "expect": 5
+  },
+  {
+   "s": 5.0,
+   "expect": 5
+  },
+  {
+   "s": 5.0001,
+   "expect": 7
+  },
+  {
+   "s": 5.72,
+   "expect": 7
+  },
+  {
+   "s": 6.0,
+   "expect": 7
+  },
+  {
+   "s": 6.44,
+   "expect": 10
+  },
+  {
+   "s": 6.9,
+   "expect": 10
+  },
+  {
+   "s": 7.0,
+   "expect": 7
+  },
+  {
+   "s": 7.0001,
+   "expect": 10
+  },
+  {
+   "s": 7.16,
+   "expect": 10
+  },
+  {
+   "s": 7.5,
+   "expect": 10
+  },
+  {
+   "s": 8.5,
+   "expect": 10
+  },
+  {
+   "s": 8.5001,
+   "expect": 15
+  },
+  {
+   "s": 10.0,
+   "expect": 15
+  },
+  {
+   "s": 13.0,
+   "expect": 15
+  },
+  {
+   "s": 13.0001,
+   "expect": 20
+  },
+  {
+   "s": 15.0,
+   "expect": 20
+  },
+  {
+   "s": 17.5,
+   "expect": 20
+  },
+  {
+   "s": 17.5001,
+   "expect": 25
+  },
+  {
+   "s": 20.0,
+   "expect": 25
+  },
+  {
+   "s": 22.0,
+   "expect": 25
+  },
+  {
+   "s": 22.0001,
+   "expect": 30
+  },
+  {
+   "s": 25.0,
+   "expect": 30
+  },
+  {
+   "s": 25.88,
+   "expect": 30
+  },
+  {
+   "s": 27.0,
+   "expect": 30
+  },
+  {
+   "s": 27.0001,
+   "expect": 35
+  },
+  {
+   "s": 30.0,
+   "expect": 35
+  },
+  {
+   "s": 32.0,
+   "expect": 35
+  },
+  {
+   "s": 32.0001,
+   "expect": 40
+  },
+  {
+   "s": 35.0,
+   "expect": 40
+  },
+  {
+   "s": 37.0,
+   "expect": 40
+  },
+  {
+   "s": 37.0001,
+   "expect": null
+  },
+  {
+   "s": 37.4,
+   "expect": null
+  },
+  {
+   "s": 38.12,
+   "expect": null
+  },
+  {
+   "s": 50.0,
+   "expect": null
+  }
+ ],
+ "numericVectors": [
+  {
+   "p": 0,
+   "raw": 0.0,
+   "expect": 0.0
+  },
+  {
+   "p": 1,
+   "raw": 0.72,
+   "expect": 0.72
+  },
+  {
+   "p": 2,
+   "raw": 1.44,
+   "expect": 1.44
+  },
+  {
+   "p": 3,
+   "raw": 2.1599999999999997,
+   "expect": 2.16
+  },
+  {
+   "p": 4,
+   "raw": 2.88,
+   "expect": 2.88
+  },
+  {
+   "p": 5,
+   "raw": 3.5999999999999996,
+   "expect": 3.6
+  },
+  {
+   "p": 6,
+   "raw": 4.319999999999999,
+   "expect": 4.32
+  },
+  {
+   "p": 7,
+   "raw": 5.04,
+   "expect": 5.04
+  },
+  {
+   "p": 8,
+   "raw": 5.76,
+   "expect": 5.76
+  },
+  {
+   "p": 9,
+   "raw": 6.4799999999999995,
+   "expect": 6.48
+  },
+  {
+   "p": 10,
+   "raw": 7.199999999999999,
+   "expect": 7.2
+  },
+  {
+   "p": 11,
+   "raw": 7.919999999999999,
+   "expect": 7.92
+  },
+  {
+   "p": 12,
+   "raw": 8.639999999999999,
+   "expect": 8.64
+  },
+  {
+   "p": 13,
+   "raw": 9.36,
+   "expect": 9.36
+  },
+  {
+   "p": 14,
+   "raw": 10.08,
+   "expect": 10.08
+  },
+  {
+   "p": 15,
+   "raw": 10.799999999999999,
+   "expect": 10.8
+  },
+  {
+   "p": 16,
+   "raw": 11.52,
+   "expect": 11.52
+  },
+  {
+   "p": 17,
+   "raw": 12.239999999999998,
+   "expect": 12.24
+  },
+  {
+   "p": 18,
+   "raw": 12.959999999999999,
+   "expect": 12.96
+  },
+  {
+   "p": 19,
+   "raw": 13.68,
+   "expect": 13.68
+  },
+  {
+   "p": 20,
+   "raw": 14.399999999999999,
+   "expect": 14.4
+  },
+  {
+   "p": 21,
+   "raw": 15.12,
+   "expect": 15.12
+  },
+  {
+   "p": 22,
+   "raw": 15.839999999999998,
+   "expect": 15.84
+  },
+  {
+   "p": 23,
+   "raw": 16.56,
+   "expect": 16.56
+  },
+  {
+   "p": 24,
+   "raw": 17.279999999999998,
+   "expect": 17.28
+  },
+  {
+   "p": 25,
+   "raw": 18.0,
+   "expect": 18.0
+  },
+  {
+   "p": 26,
+   "raw": 18.72,
+   "expect": 18.72
+  },
+  {
+   "p": 27,
+   "raw": 19.439999999999998,
+   "expect": 19.44
+  },
+  {
+   "p": 28,
+   "raw": 20.16,
+   "expect": 20.16
+  },
+  {
+   "p": 29,
+   "raw": 20.88,
+   "expect": 20.88
+  },
+  {
+   "p": 30,
+   "raw": 21.599999999999998,
+   "expect": 21.6
+  },
+  {
+   "p": 31,
+   "raw": 22.319999999999997,
+   "expect": 22.32
+  },
+  {
+   "p": 32,
+   "raw": 23.04,
+   "expect": 23.04
+  },
+  {
+   "p": 33,
+   "raw": 23.76,
+   "expect": 23.76
+  },
+  {
+   "p": 34,
+   "raw": 24.479999999999997,
+   "expect": 24.48
+  },
+  {
+   "p": 35,
+   "raw": 25.2,
+   "expect": 25.2
+  },
+  {
+   "p": 36,
+   "raw": 25.919999999999998,
+   "expect": 25.92
+  },
+  {
+   "p": 37,
+   "raw": 26.639999999999997,
+   "expect": 26.64
+  },
+  {
+   "p": 38,
+   "raw": 27.36,
+   "expect": 27.36
+  },
+  {
+   "p": 39,
+   "raw": 28.08,
+   "expect": 28.08
+  },
+  {
+   "p": 40,
+   "raw": 28.799999999999997,
+   "expect": 28.8
+  },
+  {
+   "p": 41,
+   "raw": 29.519999999999996,
+   "expect": 29.52
+  },
+  {
+   "p": 42,
+   "raw": 30.24,
+   "expect": 30.24
+  },
+  {
+   "p": 43,
+   "raw": 30.96,
+   "expect": 30.96
+  },
+  {
+   "p": 44,
+   "raw": 31.679999999999996,
+   "expect": 31.68
+  },
+  {
+   "p": 45,
+   "raw": 32.4,
+   "expect": 32.4
+  },
+  {
+   "p": 46,
+   "raw": 33.12,
+   "expect": 33.12
+  },
+  {
+   "p": 47,
+   "raw": 33.839999999999996,
+   "expect": 33.84
+  },
+  {
+   "p": 48,
+   "raw": 34.559999999999995,
+   "expect": 34.56
+  },
+  {
+   "p": 49,
+   "raw": 35.279999999999994,
+   "expect": 35.28
+  },
+  {
+   "p": 50,
+   "raw": 36.0,
+   "expect": 36.0
+  },
+  {
+   "p": 51,
+   "raw": 36.72,
+   "expect": 36.72
+  },
+  {
+   "p": 52,
+   "raw": 37.44,
+   "expect": 37.44
+  },
+  {
+   "p": 53,
+   "raw": 38.16,
+   "expect": 38.16
+  },
+  {
+   "p": 54,
+   "raw": 38.879999999999995,
+   "expect": 38.88
+  }
+ ]
+}

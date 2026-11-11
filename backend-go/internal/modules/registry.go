@@ -24,6 +24,7 @@ import (
 	"itops-backend/internal/modules/network/routes"
 	"itops-backend/internal/modules/network/services"
 	"itops-backend/internal/modules/ops"
+	"itops-backend/internal/modules/planning"
 	srvroutes "itops-backend/internal/modules/server/routes"
 )
 
@@ -111,6 +112,10 @@ func NewRouter() chi.Router {
 		// ── 数据中心模块（机房/机柜/机位/PDU/NetBox） ──
 		r.Mount("/api/v1/dc", dcroutes.Routes())
 
+		// ── IDC 上架规划与布线引擎（原 IDCBoxLine） ──
+		r.Mount("/api/v1/planning", planning.Routes())
+		r.Get("/api/v1/planning-status", planning.StatusHandler)
+
 		// ── 巡检模版管理 ──
 		r.Mount("/api/v1/inspection-templates", inspection.Routes())
 
@@ -140,6 +145,10 @@ func NewRouter() chi.Router {
 		// ── Copilot 智能运维助手 ──
 		r.Mount("/api/v1/copilot", copilot.Routes())
 	})
+
+	// ── 规划前端静态资源（需在 SPA 回退之前注册） ──
+	r.HandleFunc("/planning-app", planning.StaticHandler())
+	r.HandleFunc("/planning-app/*", planning.StaticHandler())
 
 	// ── SPA 回退（前端静态文件） ──
 	// 优先使用 STATIC_DIR 环境变量指定的外部目录（开发模式热更新）

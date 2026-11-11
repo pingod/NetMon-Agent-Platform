@@ -89,3 +89,29 @@ backend-go/frontend_dist/
 backend-go/internal/modules/frontend_dist/*
 # 仅保留占位文件，保证未构建前端时 go build/embed 不报错
 !backend-go/internal/modules/frontend_dist/placeholder.html
+
+# ── IDC 上架布线模块（自 IDCBoxLine 吸收）──
+# 全局的 docs/ scripts/ *.bak 规则不应吞掉该模块的资产
+!planning/docs/
+!planning/docs/**
+!planning/scripts/
+!planning/scripts/**
+!planning/backend/scripts/
+!planning/backend/scripts/**
+!planning/reports/
+!planning/reports/**
+!planning/backend/reports/
+!planning/backend/reports/**
+!planning/docs/architecture/.bak/
+!planning/docs/architecture/.bak/**
+# 交付用的项目库种子（含 V13/信息港二期 的意图版本）
+!planning/data/idcbox.db
+# 引擎构建产物 / 本地环境
+planning/backend/.venv/
+planning/backend/.pytest_cache/
+planning/backend/.import_linter_cache/
+planning/backend/.out/
+planning/web/node_modules/
+planning/.scratch/
+backend-go/internal/modules/planning/dist/*
+!backend-go/internal/modules/planning/dist/placeholder.html

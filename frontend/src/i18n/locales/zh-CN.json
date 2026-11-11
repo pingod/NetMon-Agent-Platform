@@ -16,6 +16,7 @@
     "dcInfrastructure": "数据中心管理",
     "dcRack2D": "平面机架监控",
     "dcRoom3D": "机房3D监控",
+    "planning": "IDC上架布线",
     "configTemplates": "配置模板",
     "inspectionTemplates": "巡检设备模版",
     "templateCenter": "模版管理中心",

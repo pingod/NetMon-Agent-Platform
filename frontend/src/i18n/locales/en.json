@@ -16,6 +16,7 @@
     "dcInfrastructure": "DC Management",
     "dcRack2D": "2D Rack Monitor",
     "dcRoom3D": "DC 3D Monitor",
+    "planning": "IDC Planning & Cabling",
     "configTemplates": "Config Templates",
     "inspectionTemplates": "Device Inspection Templates",
     "templateCenter": "Template Center",

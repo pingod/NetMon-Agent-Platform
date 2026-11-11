@@ -13,3 +13,11 @@ docker-data
 .env.*
 !.env.example
 *.log
+planning/backend/.venv
+planning/backend/.pytest_cache
+planning/backend/.import_linter_cache
+planning/backend/.out
+planning/web/node_modules
+planning/web/dist
+planning/.scratch
+build
