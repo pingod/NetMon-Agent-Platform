@@ -82,19 +82,29 @@ func normalizeAlertSource(s string) string {
 }
 
 func matchAlertToPolicies(info AlertDispatchInfo) {
+	matchAlertToPoliciesVerbose(info)
+}
+
+// matchAlertToPoliciesVerbose 同步匹配并返回每条命中策略的处置结果，供手动触发时诚实反馈。
+func matchAlertToPoliciesVerbose(info AlertDispatchInfo) []map[string]interface{} {
+	var outcomes []map[string]interface{}
 	for _, p := range loadEnabledPolicies() {
 		if !policyMatchesAlert(p, info) {
 			continue
 		}
 		if executionExists(p.ID, info.AlertID) {
+			outcomes = append(outcomes, map[string]interface{}{"policy_id": p.ID, "policy_name": p.Name, "result": "already_exists"})
 			continue
 		}
 		if reason := policyThrottleReason(p); reason != "" {
 			logger.Infof("remediation policy %s throttled for alert %s: %s", p.Name, info.AlertID, reason)
+			outcomes = append(outcomes, map[string]interface{}{"policy_id": p.ID, "policy_name": p.Name, "result": "throttled", "reason": reason})
 			continue
 		}
 		createExecutionForAlert(p, info)
+		outcomes = append(outcomes, map[string]interface{}{"policy_id": p.ID, "policy_name": p.Name, "result": "created"})
 	}
+	return outcomes
 }
 
 const policySelectCols = `id, name, alert_source, COALESCE(alert_severity,''), COALESCE(alert_keywords,''), COALESCE(alert_tags,''),

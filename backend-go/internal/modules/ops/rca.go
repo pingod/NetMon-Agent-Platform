@@ -40,6 +40,7 @@ type rcaRecord struct {
 	Evidence        []string `json:"evidence"`
 	Recommendations []string `json:"recommendations"`
 	Confidence      float64  `json:"confidence"`
+	FalsePositive   bool     `json:"false_positive"`
 	CreatedAt       string   `json:"created_at"`
 	UpdatedAt       string   `json:"updated_at"`
 	CompletedAt     string   `json:"completed_at"`
@@ -52,15 +53,17 @@ type rcaTimelineItem struct {
 
 const rcaSelectCols = `id, COALESCE(alert_id,''), title, COALESCE(description,''), COALESCE(status,'pending'),
 	COALESCE(root_cause,''), COALESCE(symptoms,'[]'), COALESCE(timeline,'[]'), COALESCE(evidence,'[]'),
-	COALESCE(recommendations,'[]'), COALESCE(confidence,0), COALESCE(created_at,''), COALESCE(updated_at,''), COALESCE(completed_at,'')`
+	COALESCE(recommendations,'[]'), COALESCE(confidence,0), COALESCE(false_positive,0), COALESCE(created_at,''), COALESCE(updated_at,''), COALESCE(completed_at,'')`
 
 func scanRca(scan func(dest ...interface{}) error) (*rcaRecord, error) {
 	var r rcaRecord
 	var symptoms, timeline, evidence, recs string
+	var falsePositive int
 	if err := scan(&r.ID, &r.AlertID, &r.Title, &r.Description, &r.Status, &r.RootCause,
-		&symptoms, &timeline, &evidence, &recs, &r.Confidence, &r.CreatedAt, &r.UpdatedAt, &r.CompletedAt); err != nil {
+		&symptoms, &timeline, &evidence, &recs, &r.Confidence, &falsePositive, &r.CreatedAt, &r.UpdatedAt, &r.CompletedAt); err != nil {
 		return nil, err
 	}
+	r.FalsePositive = falsePositive == 1
 	r.Symptoms = []string{}
 	r.Timeline = []rcaTimelineItem{}
 	r.Evidence = []string{}
@@ -82,6 +85,8 @@ func RcaRoutes() chi.Router {
 	r.With(write).Post("/", rcaCreate)
 	r.With(write).Post("/{id}/analyze", rcaAnalyze)
 	r.With(write).Post("/auto-analyze/{alertId}", rcaAutoAnalyze)
+	r.With(write).Post("/{id}/false-positive", rcaToggleFalsePositive)
+	r.With(write).Post("/{id}/remediate", rcaRemediate)
 	r.With(middleware.RequireRole("admin")).Delete("/{id}", rcaDelete)
 	return r
 }
@@ -113,18 +118,18 @@ func rcaDetail(w http.ResponseWriter, r *http.Request) {
 
 func rcaStats(w http.ResponseWriter, r *http.Request) {
 	db := appdb.DB()
-	var todayCount, totalCompleted, autoRemediations int
+	var todayCount, totalCompleted, autoRemediations, falsePositives int
 	var avgConfidence sql.NullFloat64
 	db.QueryRow(`SELECT COUNT(*) FROM root_cause_analyses WHERE date(created_at) = date('now','localtime')`).Scan(&todayCount)
 	db.QueryRow(`SELECT COUNT(*), AVG(confidence) FROM root_cause_analyses WHERE status = 'completed'`).Scan(&totalCompleted, &avgConfidence)
 	db.QueryRow(`SELECT COUNT(*) FROM remediation_executions WHERE alert_id IN (SELECT alert_id FROM root_cause_analyses WHERE alert_id IS NOT NULL AND alert_id != '')`).Scan(&autoRemediations)
+	db.QueryRow(`SELECT COUNT(*) FROM root_cause_analyses WHERE false_positive = 1`).Scan(&falsePositives)
 	httpx.Respond(w, map[string]interface{}{
 		"todayCount":       todayCount,
 		"totalCompleted":   totalCompleted,
 		"avgConfidence":    avgConfidence.Float64,
 		"autoRemediations": autoRemediations,
-		// 平台暂无告警误报标记能力，诚实返回 0
-		"falsePositives": 0,
+		"falsePositives":   falsePositives,
 	})
 }
 
@@ -209,6 +214,91 @@ func rcaAutoAnalyze(w http.ResponseWriter, r *http.Request) {
 	user := middleware.GetUser(r)
 	audit.CreateAuditLog(audit.AuditInput{UserID: user.ID, Action: "rca_auto_analyze", ResourceType: "root_cause_analysis", ResourceID: rec.ID, Details: map[string]interface{}{"alert_id": alertID}, IPAddress: middleware.ClientIP(r)})
 	httpx.RespondStatus(w, http.StatusCreated, map[string]interface{}{"id": rec.ID, "status": "analyzing"})
+}
+
+// rcaToggleFalsePositive 标记/取消标记误报（body: {"false_positive": true|false}，缺省取反）
+func rcaToggleFalsePositive(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	rec, err := scanRca(appdb.DB().QueryRow(`SELECT ` + rcaSelectCols + ` FROM root_cause_analyses WHERE id = ?`, id).Scan)
+	if err != nil {
+		httpx.RespondError(w, "分析记录不存在", http.StatusNotFound)
+		return
+	}
+	var b struct {
+		FalsePositive *bool `json:"false_positive"`
+	}
+	if r.Body != nil {
+		_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 4*1024)).Decode(&b)
+	}
+	target := !rec.FalsePositive
+	if b.FalsePositive != nil {
+		target = *b.FalsePositive
+	}
+	fp := 0
+	if target {
+		fp = 1
+	}
+	now := time.Now().Format("2006-01-02 15:04:05")
+	if _, err := appdb.DB().Exec(`UPDATE root_cause_analyses SET false_positive = ?, updated_at = ? WHERE id = ?`, fp, now, id); err != nil {
+		httpx.RespondError(w, "更新失败: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user := middleware.GetUser(r)
+	audit.CreateAuditLog(audit.AuditInput{UserID: user.ID, Action: "rca_false_positive", ResourceType: "root_cause_analysis", ResourceID: id, Details: map[string]interface{}{"false_positive": target}, IPAddress: middleware.ClientIP(r)})
+	httpx.Respond(w, map[string]interface{}{"id": id, "false_positive": target})
+}
+
+// rcaRemediate 对关联告警手动触发自愈策略匹配，诚实返回每条命中策略的处置结果。
+func rcaRemediate(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	rec, err := scanRca(appdb.DB().QueryRow(`SELECT ` + rcaSelectCols + ` FROM root_cause_analyses WHERE id = ?`, id).Scan)
+	if err != nil {
+		httpx.RespondError(w, "分析记录不存在", http.StatusNotFound)
+		return
+	}
+	if rec.AlertID == "" {
+		httpx.RespondError(w, "该分析未关联告警，无法触发自愈", http.StatusConflict)
+		return
+	}
+	if rec.FalsePositive {
+		httpx.RespondError(w, "已标记为误报的分析不能执行修复", http.StatusConflict)
+		return
+	}
+	var source, severity, title, content, metaStr, deviceID, status string
+	if appdb.DB().QueryRow(`SELECT source, severity, title, COALESCE(content,''), COALESCE(metadata,'{}'), COALESCE(device_id,''), COALESCE(status,'') FROM alerts WHERE id = ?`, rec.AlertID).
+		Scan(&source, &severity, &title, &content, &metaStr, &deviceID, &status) != nil {
+		httpx.RespondError(w, "关联告警已不存在", http.StatusConflict)
+		return
+	}
+	meta := map[string]interface{}{}
+	_ = json.Unmarshal([]byte(metaStr), &meta)
+	info := AlertDispatchInfo{
+		AlertID: rec.AlertID, Source: source, Title: title, Message: content, Severity: severity,
+		DeviceID: deviceID, Status: status,
+	}
+	if v, ok := meta["device_name"].(string); ok {
+		info.DeviceName = v
+	}
+	if v, ok := meta["device_ip"].(string); ok {
+		info.DeviceIP = v
+	}
+	if v, ok := meta["metric_name"].(string); ok {
+		info.MetricName = v
+	}
+	if tags, ok := meta["tags"].(map[string]interface{}); ok {
+		info.Tags = map[string]string{}
+		for k, v := range tags {
+			info.Tags[k] = wfStr(v)
+		}
+	}
+	outcomes := matchAlertToPoliciesVerbose(info)
+	if len(outcomes) == 0 {
+		httpx.RespondError(w, "没有启用中的自愈策略匹配该告警（来源/级别/关键词），请先在「自愈策略」中配置", http.StatusConflict)
+		return
+	}
+	user := middleware.GetUser(r)
+	audit.CreateAuditLog(audit.AuditInput{UserID: user.ID, Action: "rca_remediate", ResourceType: "root_cause_analysis", ResourceID: id, Details: map[string]interface{}{"alert_id": rec.AlertID, "outcomes": outcomes}, IPAddress: middleware.ClientIP(r)})
+	httpx.Respond(w, map[string]interface{}{"alert_id": rec.AlertID, "outcomes": outcomes})
 }
 
 func rcaDelete(w http.ResponseWriter, r *http.Request) {

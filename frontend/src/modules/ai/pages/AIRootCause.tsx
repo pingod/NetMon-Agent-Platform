@@ -17,6 +17,7 @@ interface RCAItem {
   timeline?: Array<{ time: string; event: string }>;
   evidence?: string[];
   recommendations?: string[];
+  false_positive?: boolean;
   created_at: string;
   updated_at: string;
   completed_at?: string;
@@ -56,6 +57,50 @@ export default function AIRootCause() {
   const handleNewAnalysis = () => {
     setAnalyzeAlertId('');
     setAnalyzeModalOpen(true);
+  };
+
+  const remediateMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.post(`/root-cause-analysis/${id}/remediate`);
+      return res.data.data as { outcomes: Array<{ policy_name: string; result: string; reason?: string }> };
+    },
+    onSuccess: (data) => {
+      const parts = (data?.outcomes || []).map(o => {
+        if (o.result === 'created') return `「${o.policy_name}」已创建执行`;
+        if (o.result === 'already_exists') return `「${o.policy_name}」已有执行记录`;
+        return `「${o.policy_name}」被限流：${o.reason || ''}`;
+      });
+      message.success(parts.join('；') || '已触发自愈匹配');
+      queryClient.invalidateQueries({ queryKey: ['root-cause-analysis'] });
+    },
+    onError: (e: any) => {
+      const detail = e?.response?.data;
+      message.error(detail?.error || detail?.message || '触发修复失败');
+    },
+  });
+
+  const falsePositiveMutation = useMutation({
+    mutationFn: async ({ id, target }: { id: string; target: boolean }) => {
+      await api.post(`/root-cause-analysis/${id}/false-positive`, { false_positive: target });
+    },
+    onSuccess: (_d, vars) => {
+      message.success(vars.target ? '已标记为误报' : '已取消误报标记');
+      queryClient.invalidateQueries({ queryKey: ['root-cause-analysis'] });
+    },
+    onError: (e: any) => {
+      const detail = e?.response?.data;
+      message.error(detail?.error || detail?.message || '操作失败');
+    },
+  });
+
+  const confirmRemediate = (item: RCAItem) => {
+    Modal.confirm({
+      title: '执行修复',
+      content: `将对关联告警触发自愈策略匹配（按策略配置可能需要审批）。确定继续？`,
+      okText: '触发修复',
+      cancelText: '取消',
+      onOk: () => remediateMutation.mutateAsync(item.id).catch(() => {}),
+    });
   };
 
   const { data: rcaItems, isLoading } = useQuery({
@@ -167,6 +212,11 @@ export default function AIRootCause() {
                     )}>
                       {statusLabels[item.status]}
                     </span>
+                    {item.false_positive && (
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                        误报
+                      </span>
+                    )}
                   </div>
 
                   <p className="text-text-secondary text-sm mb-3 line-clamp-2">{item.root_cause || item.description || '暂无分析结果'}</p>
@@ -194,12 +244,25 @@ export default function AIRootCause() {
                   >
                     <Eye className="w-4 h-4" />
                   </button>
-                  {item.status === 'completed' && (
-                    <button className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="执行修复">
+                  {item.status === 'completed' && !item.false_positive && item.alert_id && (
+                    <button
+                      onClick={() => confirmRemediate(item)}
+                      disabled={remediateMutation.isPending}
+                      className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                      title="执行修复（触发自愈策略匹配）"
+                    >
                       <Play className="w-4 h-4" />
                     </button>
                   )}
-                  <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="标记误报">
+                  <button
+                    onClick={() => falsePositiveMutation.mutate({ id: item.id, target: !item.false_positive })}
+                    disabled={falsePositiveMutation.isPending}
+                    className={clsx(
+                      'p-2 rounded-lg transition-colors disabled:opacity-50',
+                      item.false_positive ? 'text-orange-600 hover:bg-orange-50' : 'text-red-600 hover:bg-red-50'
+                    )}
+                    title={item.false_positive ? '取消误报标记' : '标记误报'}
+                  >
                     <Flag className="w-4 h-4" />
                   </button>
                 </div>

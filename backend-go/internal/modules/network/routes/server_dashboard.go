@@ -4,6 +4,7 @@ package routes
 
 import (
 	"database/sql"
+	"math"
 	"net/http"
 	"strconv"
 
@@ -39,7 +40,7 @@ func handleDashboardFull(w http.ResponseWriter, r *http.Request) {
 	db.QueryRow(`SELECT COALESCE(SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END),0) FROM tasks`).Scan(&taskFailed)
 	db.QueryRow(`SELECT COALESCE(SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END),0) FROM tasks`).Scan(&taskPending)
 	if taskTotal > 0 {
-		taskSuccessRate = float64(taskCompleted) / float64(taskTotal) * 100
+		taskSuccessRate = math.Round(float64(taskCompleted)/float64(taskTotal)*1000) / 10
 	}
 
 	// 工作流统计
@@ -367,7 +368,7 @@ func handleAgentStats(w http.ResponseWriter, r *http.Request) {
 
 		var successRate *float64
 		if execCount > 0 {
-			rate := float64(successCount) / float64(execCount) * 100
+			rate := math.Round(float64(successCount)/float64(execCount)*1000) / 10
 			successRate = &rate
 		}
 
@@ -403,7 +404,7 @@ func handleAgentStats(w http.ResponseWriter, r *http.Request) {
 
 	overallSuccessRate := 0.0
 	if totalExecutions > 0 {
-		overallSuccessRate = float64(totalSuccess) / float64(totalExecutions) * 100
+		overallSuccessRate = math.Round(float64(totalSuccess)/float64(totalExecutions)*1000) / 10
 	}
 
 	result := map[string]interface{}{
@@ -490,7 +491,7 @@ func handleRemediationStats(w http.ResponseWriter, r *http.Request) {
 
 	todaySuccessRate := 0.0
 	if todayTotal > 0 {
-		todaySuccessRate = float64(todaySuccess) / float64(todayTotal) * 100
+		todaySuccessRate = math.Round(float64(todaySuccess)/float64(todayTotal)*1000) / 10
 	}
 
 	// 待审批

@@ -1268,6 +1268,40 @@ func FullContainerRoutes() chi.Router {
 	return r
 }
 
+// handleSyncDockerImages 重新盘点指定 Docker 主机的镜像清单（列表本身即实时数据，
+// sync 的语义是连通性校验 + 返回当前镜像数）。
+func handleSyncDockerImages(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		ServerID   string `json:"serverId"`
+		EndpointID string `json:"endpointId"`
+	}
+	if r.Body != nil {
+		_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 4*1024)).Decode(&req)
+	}
+	id := req.ServerID
+	if id == "" {
+		id = req.EndpointID
+	}
+	client, host, err := getDockerSSHClient(id)
+	if err != nil {
+		respondHostUnavailable(w, err)
+		return
+	}
+	defer client.Close()
+	stdout, stderr, execErr := client.ExecCommand("docker images --format '{{json .}}'", 15*time.Second)
+	if execErr != nil {
+		httpx.RespondFailStatus(w, http.StatusBadGateway, fmt.Sprintf("同步镜像失败: %v %s", execErr, stderr))
+		return
+	}
+	count := 0
+	for _, line := range strings.Split(strings.TrimSpace(stdout), "\n") {
+		if strings.TrimSpace(line) != "" {
+			count++
+		}
+	}
+	httpx.Respond(w, map[string]interface{}{"synced": count, "host": host})
+}
+
 func handleListDockerImages(w http.ResponseWriter, r *http.Request) {
 	endpointID := r.URL.Query().Get("endpointId")
 	client, host, err := getDockerSSHClient(endpointID)
@@ -1470,9 +1504,7 @@ func handleGetContainerStats(w http.ResponseWriter, r *http.Request) {
 func ImagesRoutes() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/", handleListDockerImages)
-	r.With(middleware.RequireRole("admin")).Post("/sync", func(w http.ResponseWriter, r *http.Request) {
-		httpx.RespondFailStatus(w, http.StatusNotImplemented, "镜像同步功能尚未实现")
-	})
+	r.With(middleware.RequireRole("admin")).Post("/sync", handleSyncDockerImages)
 	r.With(middleware.RequireRole("admin")).Post("/pull", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Image      string `json:"image"`
