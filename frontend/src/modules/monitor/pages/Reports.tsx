@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Modal } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FileText, Plus, Download, Clock, Trash2, Edit2, Eye, X, FolderArchive, RefreshCw, Sparkles, CheckCircle2, Search } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
@@ -456,9 +457,14 @@ export default function Reports() {
                             </button>
                             <button
                               onClick={() => {
-                                if (window.confirm(`确定要删除报告「${report.name}」吗？`)) {
-                                  deleteReportMutation.mutate(report.id);
-                                }
+                                Modal.confirm({
+                                  title: '确认删除报告',
+                                  content: `确定要删除报告「${report.name}」吗？此操作无法撤销。`,
+                                  okText: '删除',
+                                  okType: 'danger',
+                                  cancelText: '取消',
+                                  onOk: () => deleteReportMutation.mutateAsync(report.id),
+                                });
                               }}
                               className="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg border border-transparent hover:border-rose-500/20 transition-colors"
                               title="删除此报告"

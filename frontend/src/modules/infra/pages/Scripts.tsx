@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Modal } from 'antd';
 import { FileCode, Plus, Edit, Trash2, Play, Search, Tag, Code } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import clsx from 'clsx';
@@ -84,9 +85,14 @@ export default function Scripts() {
   };
 
   const handleDelete = (id: string, name: string) => {
-    if (confirm(`确定要删除脚本 "${name}" 吗？`)) {
-      deleteMutation.mutate(id);
-    }
+    Modal.confirm({
+      title: '确认删除脚本',
+      content: `确定要删除脚本「${name}」吗？此操作无法撤销。`,
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: () => deleteMutation.mutate(id),
+    });
   };
 
   const handleExecute = (script: Script) => {

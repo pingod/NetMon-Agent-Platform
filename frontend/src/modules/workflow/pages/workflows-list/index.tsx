@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Modal } from 'antd';
 import {
   GitBranch, Plus, Sparkles, Edit, Cpu
 } from 'lucide-react';
@@ -108,12 +109,18 @@ export default function Workflows() {
       setSelectedServers([]);
       setShowServerSelectModal(true);
     } else {
-      if (confirm(`确定要执行工作流 "${workflow.name}" 吗？`)) {
-        setExecutingWorkflow(workflow.id);
-        executeMutation.mutate({ workflowId: workflow.id }, {
-          onSettled: () => setExecutingWorkflow(null),
-        });
-      }
+      Modal.confirm({
+        title: '确认执行工作流',
+        content: `确定要执行工作流「${workflow.name}」吗？`,
+        okText: '执行',
+        cancelText: '取消',
+        onOk: () => {
+          setExecutingWorkflow(workflow.id);
+          executeMutation.mutate({ workflowId: workflow.id }, {
+            onSettled: () => setExecutingWorkflow(null),
+          });
+        },
+      });
     }
   };
 
@@ -158,9 +165,13 @@ export default function Workflows() {
   };
 
   const handleDuplicate = (workflow: Workflow) => {
-    if (confirm(`确定要复制工作流 "${workflow.name}" 吗？`)) {
-      duplicateMutation.mutate(workflow);
-    }
+    Modal.confirm({
+      title: '确认复制工作流',
+      content: `确定要复制工作流「${workflow.name}」吗？将创建一个副本。`,
+      okText: '复制',
+      cancelText: '取消',
+      onOk: () => duplicateMutation.mutate(workflow),
+    });
   };
 
   const handleDelete = (workflowId: string) => {

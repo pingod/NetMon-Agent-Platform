@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Modal } from 'antd';
 import type { Connection, Edge, Node, ReactFlowInstance } from '@xyflow/react';
 import { addEdge, useNodesState, useEdgesState, MarkerType } from '@xyflow/react';
 import api from '../../../../lib/api';
@@ -378,11 +379,18 @@ export function useWorkflowEditor() {
   );
 
   const handleClear = useCallback(() => {
-    if (confirm('确定要清空画布吗？此操作不可撤销。')) {
-      setNodes([]);
-      setEdges([]);
-      setSelectedNode(null);
-    }
+    Modal.confirm({
+      title: '确认清空画布',
+      content: '确定要清空画布吗？所有节点与连线将被移除，此操作不可撤销。',
+      okText: '清空',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: () => {
+        setNodes([]);
+        setEdges([]);
+        setSelectedNode(null);
+      },
+    });
   }, [setNodes, setEdges]);
 
   const updateNodeLabel = useCallback(

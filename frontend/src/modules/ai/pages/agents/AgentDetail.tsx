@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Modal } from 'antd';
 import { ChevronLeft, Clock, Edit, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
 import api from '../../../../lib/api';
@@ -38,7 +39,7 @@ export default function AgentDetail({ agentId, onBack, deleteMutation }: AgentDe
           <div className="flex items-center gap-4">
             <button
               onClick={onBack}
-              className="p-2 hover:bg-slate-800/50 rounded-xl transition-all"
+              className="p-2 hover:bg-surface-hover rounded-xl transition-all"
             >
               <ChevronLeft className="w-5 h-5 text-text-secondary" />
             </button>
@@ -94,8 +95,8 @@ export default function AgentDetail({ agentId, onBack, deleteMutation }: AgentDe
                 <span className={clsx(
                   "px-3 py-1.5 rounded-full text-xs font-semibold",
                   agent.enabled
-                    ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 border border-green-500/30'
-                    : 'bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-400 border border-red-500/30'
+                    ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-600 border border-green-500/30'
+                    : 'bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-600 border border-red-500/30'
                 )}>
                   {agent.enabled ? '在线' : '离线'}
                 </span>
@@ -110,7 +111,7 @@ export default function AgentDetail({ agentId, onBack, deleteMutation }: AgentDe
                 {agent.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="px-3 py-1 bg-gradient-to-r from-slate-700/50 to-slate-600/50 border border-slate-600/50 text-xs text-text-primary rounded-full"
+                    className="px-3 py-1 bg-surface-2 border border-border text-xs text-text-primary rounded-full"
                   >
                     {tag}
                   </span>
@@ -155,8 +156,8 @@ export default function AgentDetail({ agentId, onBack, deleteMutation }: AgentDe
                       <span className={clsx(
                         "px-3 py-1.5 rounded-full text-xs font-semibold",
                         exec.status === 'success'
-                          ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 border border-green-500/30'
-                          : 'bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-400 border border-red-500/30'
+                          ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-600 border border-green-500/30'
+                          : 'bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-600 border border-red-500/30'
                       )}>
                         {exec.status === 'success' ? '成功' : '失败'}
                       </span>
@@ -180,8 +181,8 @@ export default function AgentDetail({ agentId, onBack, deleteMutation }: AgentDe
                   </div>
                   {exec.error_message && (
                     <div className="mt-2">
-                      <span className="text-xs text-amber-400 block mb-1">错误:</span>
-                      <p className="text-sm text-red-400">{exec.error_message}</p>
+                      <span className="text-xs text-amber-600 block mb-1">错误:</span>
+                      <p className="text-sm text-red-600">{exec.error_message}</p>
                     </div>
                   )}
                 </div>
@@ -204,12 +205,19 @@ export default function AgentDetail({ agentId, onBack, deleteMutation }: AgentDe
             {agent.is_preset !== 1 && (
               <button
                 onClick={() => {
-                  if (confirm(`确定要删除Agent "${agent.name}" 吗？`)) {
-                    deleteMutation.mutate(agent.id);
-                    onBack();
-                  }
+                  Modal.confirm({
+                    title: '确认删除 Agent',
+                    content: `确定要删除 Agent「${agent.name}」吗？此操作无法撤销。`,
+                    okText: '删除',
+                    okType: 'danger',
+                    cancelText: '取消',
+                    onOk: () => {
+                      deleteMutation.mutate(agent.id);
+                      onBack();
+                    },
+                  });
                 }}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-400 border border-red-500/30 rounded-xl hover:from-red-500/30 hover:to-rose-500/30 transition-all duration-300 font-semibold"
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-600 border border-red-500/30 rounded-xl hover:from-red-500/30 hover:to-rose-500/30 transition-all duration-300 font-semibold"
               >
                 <Trash2 className="w-4 h-4" />
                 删除 Agent

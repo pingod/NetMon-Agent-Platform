@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { Modal, Input, message } from 'antd';
 import { Search, Zap, CheckCircle, XCircle, Eye, Play, Flag, Clock, TrendingUp, AlertTriangle, BarChart3 } from 'lucide-react';
 import clsx from 'clsx';
 import api from '../../../lib/api';
@@ -32,20 +34,28 @@ export default function AIRootCause() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const [analyzeModalOpen, setAnalyzeModalOpen] = useState(false);
+  const [analyzeAlertId, setAnalyzeAlertId] = useState('');
+
   const analyzeMutation = useMutation({
     mutationFn: async (alertId: string) => {
       await api.post(`/root-cause-analysis/auto-analyze/${alertId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['root-cause-analysis'] });
-    }
+      message.success('已触发根因分析');
+      setAnalyzeModalOpen(false);
+      setAnalyzeAlertId('');
+    },
+    onError: (e: any) => {
+      const detail = e?.response?.data;
+      message.error('触发失败：' + (detail?.message || detail?.error || e?.message || '未知错误'));
+    },
   });
 
   const handleNewAnalysis = () => {
-    const alertId = prompt('请输入告警 ID 以触发根因分析：');
-    if (alertId?.trim()) {
-      analyzeMutation.mutate(alertId.trim());
-    }
+    setAnalyzeAlertId('');
+    setAnalyzeModalOpen(true);
   };
 
   const { data: rcaItems, isLoading } = useQuery({
@@ -209,6 +219,26 @@ export default function AIRootCause() {
           )}
         </div>
       )}
+
+      <Modal
+        title="新建根因分析"
+        open={analyzeModalOpen}
+        okText="开始分析"
+        cancelText="取消"
+        confirmLoading={analyzeMutation.isPending}
+        okButtonProps={{ disabled: !analyzeAlertId.trim() }}
+        onOk={() => analyzeMutation.mutate(analyzeAlertId.trim())}
+        onCancel={() => setAnalyzeModalOpen(false)}
+      >
+        <p className="text-text-secondary text-sm mb-3">输入告警 ID，系统将自动采集相关指标与日志并进行根因分析。</p>
+        <Input
+          placeholder="告警 ID"
+          value={analyzeAlertId}
+          onChange={(e) => setAnalyzeAlertId(e.target.value)}
+          onPressEnter={() => { if (analyzeAlertId.trim()) analyzeMutation.mutate(analyzeAlertId.trim()); }}
+          autoFocus
+        />
+      </Modal>
     </div>
   );
 }

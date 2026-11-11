@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { message, Modal } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Pencil, CheckCircle2, AlertCircle, Loader2, GripVertical, Power, Zap, Bot, ArrowRight, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
@@ -239,8 +240,8 @@ export default function AIModels() {
       setTestResults(prev => ({
         ...prev,
         [id]: {
-          success: data.success,
-          message: data.data?.message || ''
+          success: data.data?.success ?? data.success,
+          message: data.data?.message || data.message || ''
         }
       }));
       queryClient.invalidateQueries({ queryKey: ['aiModels'] });
@@ -280,7 +281,7 @@ export default function AIModels() {
       name: model.name,
       provider_type: model.provider_type,
       model_id: model.model_id,
-      api_key: model.api_key || '',
+      api_key: '',
       api_base: model.api_base || '',
       tags: model.tags ? model.tags.join(', ') : ''
     });
@@ -290,7 +291,7 @@ export default function AIModels() {
 
   const handleSubmit = () => {
     if (!formData.name || !formData.model_id) {
-      alert('请填写模型名称和模型 ID');
+      message.warning('请填写模型名称和模型 ID');
       return;
     }
 
@@ -371,19 +372,19 @@ export default function AIModels() {
   const getProviderColor = (type: string) => {
     switch (type) {
       case 'volcengine':
-        return 'bg-blue-500/10 text-blue-400';
+        return 'bg-blue-500/10 text-blue-600';
       case 'deepseek':
-        return 'bg-cyan-500/10 text-cyan-400';
+        return 'bg-cyan-500/10 text-cyan-600';
       case 'aliyun':
-        return 'bg-orange-500/10 text-orange-400';
+        return 'bg-orange-500/10 text-orange-600';
       case 'zhipu':
-        return 'bg-purple-500/10 text-purple-400';
+        return 'bg-purple-500/10 text-purple-600';
       case 'openai':
-        return 'bg-green-500/10 text-green-400';
+        return 'bg-green-500/10 text-green-600';
       case 'local':
-        return 'bg-slate-500/10 text-slate-400';
+        return 'bg-slate-500/10 text-text-secondary';
       default:
-        return 'bg-gray-500/10 text-gray-400';
+        return 'bg-gray-500/10 text-text-secondary';
     }
   };
 
@@ -501,9 +502,14 @@ export default function AIModels() {
                       </button>
                       <button
                         onClick={() => {
-                          if (confirm('确定要删除此模型吗？')) {
-                            deleteModelMutation.mutate(model.id);
-                          }
+                          Modal.confirm({
+                            title: '确认删除模型',
+                            content: `确定要删除模型「${model.name}」吗？使用此模型的 Agent 将无法调用。`,
+                            okText: '删除',
+                            okType: 'danger',
+                            cancelText: '取消',
+                            onOk: () => deleteModelMutation.mutate(model.id),
+                          });
                         }}
                         className="px-3 py-1.5 rounded-lg hover:bg-status-failed/10 transition-colors flex items-center gap-1.5 text-sm"
                         title="删除"
@@ -668,14 +674,19 @@ export default function AIModels() {
                     {/* API Key */}
                     {getProviderPreset(formData.provider_type)?.needApiKey && (
                       <div>
-                        <label className="block text-sm font-medium text-text-secondary mb-2">API Key *</label>
+                        <label className="block text-sm font-medium text-text-secondary mb-2">
+                          {editingModel ? 'API Key（留空表示不修改）' : 'API Key *'}
+                        </label>
                         <input
                           type="password"
-                          placeholder="sk-xxxxxxxxxxxx"
+                          placeholder={editingModel ? '留空表示不修改' : 'sk-xxxxxxxxxxxx'}
                           value={formData.api_key}
                           onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
                           className="w-full px-4 py-2 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:border-primary"
                         />
+                        {editingModel && formData.api_key === '' && editingModel.api_key && (
+                          <p className="text-xs text-text-tertiary mt-1">当前密钥: {editingModel.api_key}</p>
+                        )}
                       </div>
                     )}
 

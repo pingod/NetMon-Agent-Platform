@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Modal } from 'antd';
 import api from '../../../../lib/api';
 import type { Agent, Server, DbConnection } from './types';
 
@@ -89,9 +90,14 @@ export function useAgents() {
   });
 
   const handleDelete = (id: string, name: string) => {
-    if (confirm(`确定要删除Agent "${name}" 吗？`)) {
-      deleteMutation.mutate(id);
-    }
+    Modal.confirm({
+      title: '确认删除 Agent',
+      content: `确定要删除 Agent「${name}」吗？此操作无法撤销。`,
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: () => deleteMutation.mutate(id),
+    });
   };
 
   const handleEdit = (agent: Agent) => {

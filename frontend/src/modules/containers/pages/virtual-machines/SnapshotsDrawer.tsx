@@ -1,3 +1,4 @@
+import { Modal } from 'antd';
 import { Camera, RefreshCw, RotateCcw, Trash2 } from 'lucide-react';
 import type { Snapshot, SnapshotForm, VM } from './types';
 
@@ -61,7 +62,7 @@ export function SnapshotsDrawer({
             {snapshots.length === 0 ? (
               <div className="text-center py-12 text-text-secondary">
                 <Camera className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">暂无双照</p>
+                <p className="text-sm">暂无快照</p>
               </div>
             ) : (
               snapshots.map(snapshot => (
@@ -79,7 +80,14 @@ export function SnapshotsDrawer({
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => {
-                          if (confirm('确定恢复到此快照？当前状态将丢失。')) onRestore(snapshot.id);
+                          Modal.confirm({
+                            title: '确认恢复快照',
+                            content: `确定恢复到快照「${snapshot.name}」吗？虚拟机当前状态将丢失。`,
+                            okText: '恢复',
+                            okType: 'danger',
+                            cancelText: '取消',
+                            onOk: () => onRestore(snapshot.id),
+                          });
                         }}
                         disabled={restoring}
                         className="p-1.5 rounded hover:bg-yellow-500/10 text-yellow-400 transition-colors disabled:opacity-50"
@@ -89,7 +97,14 @@ export function SnapshotsDrawer({
                       </button>
                       <button
                         onClick={() => {
-                          if (confirm('确定删除此快照？')) onDelete(snapshot.id);
+                          Modal.confirm({
+                            title: '确认删除快照',
+                            content: `确定要删除快照「${snapshot.name}」吗？此操作无法撤销。`,
+                            okText: '删除',
+                            okType: 'danger',
+                            cancelText: '取消',
+                            onOk: () => onDelete(snapshot.id),
+                          });
                         }}
                         disabled={deleting}
                         className="p-1.5 rounded hover:bg-red-500/10 text-red-400 transition-colors disabled:opacity-50"

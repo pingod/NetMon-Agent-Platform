@@ -1,3 +1,4 @@
+import { Modal } from 'antd';
 import { Box, Search, RefreshCw, Plus, Play, Square, RotateCcw, Eye, FileText, Activity, Trash2, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { containerName, statusBadge, formatDate } from '../types';
 import type { useContainers } from './useContainers';
@@ -60,7 +61,7 @@ export function ContainersTab({ ctx }: { ctx: Ctx }) {
         </select>
         <button
           onClick={() => queryClient.invalidateQueries({ queryKey: containersQueryKey })}
-          className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary hover:bg-slate-700 transition-colors flex items-center gap-1.5 text-sm"
+          className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary hover:bg-surface-hover transition-colors flex items-center gap-1.5 text-sm"
         >
           <RefreshCw className="w-4 h-4" />
           刷新
@@ -117,7 +118,7 @@ export function ContainersTab({ ctx }: { ctx: Ctx }) {
                     const badge = statusBadge(state);
                     const ports = c.Ports?.filter((p) => p.PublicPort).map((p) => `${p.PublicPort}→${p.PrivatePort}`) || [];
                     return (
-                      <tr key={c.id} className="hover:bg-slate-700/30 transition-colors">
+                      <tr key={c.id} className="hover:bg-surface-hover transition-colors">
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="text-sm font-medium text-text-primary">{containerName(c)}</div>
                           <div className="text-xs text-text-tertiary font-mono">{c.id?.substring(0, 12)}</div>
@@ -137,23 +138,23 @@ export function ContainersTab({ ctx }: { ctx: Ctx }) {
                           </div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap hidden md:table-cell">
-                          <div className="text-xs text-text-secondary">{formatDate(c.Created || c.created)}</div>
+                          <div className="text-xs text-text-secondary">{c.Created || c.created ? formatDate(c.Created || c.created) : (c.created_at || '-')}</div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-0.5">
                             <button
                               onClick={() => containerActionMutation.mutate({ id: c.id, action: 'start' })}
-                              className="p-1.5 rounded hover:bg-green-500/10 text-text-secondary hover:text-green-400 transition-colors"
+                              className="p-1.5 rounded hover:bg-green-500/10 text-text-secondary hover:text-green-600 transition-colors"
                               title="启动"
                             ><Play className="w-3.5 h-3.5" /></button>
                             <button
                               onClick={() => containerActionMutation.mutate({ id: c.id, action: 'stop' })}
-                              className="p-1.5 rounded hover:bg-red-500/10 text-text-secondary hover:text-red-400 transition-colors"
+                              className="p-1.5 rounded hover:bg-red-500/10 text-text-secondary hover:text-red-600 transition-colors"
                               title="停止"
                             ><Square className="w-3.5 h-3.5" /></button>
                             <button
                               onClick={() => containerActionMutation.mutate({ id: c.id, action: 'restart' })}
-                              className="p-1.5 rounded hover:bg-yellow-500/10 text-text-secondary hover:text-yellow-400 transition-colors"
+                              className="p-1.5 rounded hover:bg-yellow-500/10 text-text-secondary hover:text-yellow-600 transition-colors"
                               title="重启"
                             ><RotateCcw className="w-3.5 h-3.5" /></button>
                             <button
@@ -162,7 +163,7 @@ export function ContainersTab({ ctx }: { ctx: Ctx }) {
                                 setSelectedContainerName(containerName(c));
                                 setShowDetailDrawer(true);
                               }}
-                              className="p-1.5 rounded hover:bg-blue-500/10 text-text-secondary hover:text-blue-400 transition-colors"
+                              className="p-1.5 rounded hover:bg-blue-500/10 text-text-secondary hover:text-blue-600 transition-colors"
                               title="详情"
                             ><Eye className="w-3.5 h-3.5" /></button>
                             <button
@@ -171,7 +172,7 @@ export function ContainersTab({ ctx }: { ctx: Ctx }) {
                                 setSelectedContainerName(containerName(c));
                                 setShowLogsDrawer(true);
                               }}
-                              className="p-1.5 rounded hover:bg-slate-500/10 text-text-secondary hover:text-slate-300 transition-colors"
+                              className="p-1.5 rounded hover:bg-slate-500/10 text-text-secondary hover:text-text-primary transition-colors"
                               title="日志"
                             ><FileText className="w-3.5 h-3.5" /></button>
                             <button
@@ -180,12 +181,21 @@ export function ContainersTab({ ctx }: { ctx: Ctx }) {
                                 setSelectedContainerName(containerName(c));
                                 setShowStatsDrawer(true);
                               }}
-                              className="p-1.5 rounded hover:bg-purple-500/10 text-text-secondary hover:text-purple-400 transition-colors"
+                              className="p-1.5 rounded hover:bg-purple-500/10 text-text-secondary hover:text-purple-600 transition-colors"
                               title="状态"
                             ><Activity className="w-3.5 h-3.5" /></button>
                             <button
-                              onClick={() => { if (confirm(`确定要删除容器 ${containerName(c)} 吗？`)) deleteContainerMutation.mutate(c.id); }}
-                              className="p-1.5 rounded hover:bg-red-500/10 text-text-secondary hover:text-red-400 transition-colors"
+                              onClick={() => {
+                                Modal.confirm({
+                                  title: '确认删除容器',
+                                  content: `确定要删除容器 ${containerName(c)} 吗？容器将被强制移除，未持久化的数据会丢失。`,
+                                  okText: '删除',
+                                  okType: 'danger',
+                                  cancelText: '取消',
+                                  onOk: () => deleteContainerMutation.mutate(c.id),
+                                });
+                              }}
+                              className="p-1.5 rounded hover:bg-red-500/10 text-text-secondary hover:text-red-600 transition-colors"
                               title="删除"
                             ><Trash2 className="w-3.5 h-3.5" /></button>
                           </div>
@@ -230,7 +240,7 @@ export function ContainersTab({ ctx }: { ctx: Ctx }) {
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-1">镜像 <span className="text-red-400">*</span></label>
+                <label className="block text-sm font-medium text-text-primary mb-1">镜像 <span className="text-red-600">*</span></label>
                 <input type="text" value={createImage} onChange={(e) => setCreateImage(e.target.value)} placeholder="例如 redis:latest 或 nginx:latest" className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:border-blue-500 text-sm" />
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                   <span className="text-xs text-text-tertiary">常用推荐:</span>
@@ -241,7 +251,7 @@ export function ContainersTab({ ctx }: { ctx: Ctx }) {
                       if (!createName) setCreateName('redis');
                       if (!createPorts) setCreatePorts('6379:6379');
                     }}
-                    className="px-2 py-0.5 rounded text-xs bg-surface border border-border hover:border-blue-500 text-text-secondary hover:text-blue-400 transition-colors cursor-pointer"
+                    className="px-2 py-0.5 rounded text-xs bg-surface border border-border hover:border-blue-500 text-text-secondary hover:text-blue-600 transition-colors cursor-pointer"
                   >
                     redis:latest (6379)
                   </button>
@@ -252,7 +262,7 @@ export function ContainersTab({ ctx }: { ctx: Ctx }) {
                       if (!createName) setCreateName('nginx');
                       if (!createPorts) setCreatePorts('8080:80');
                     }}
-                    className="px-2 py-0.5 rounded text-xs bg-surface border border-border hover:border-blue-500 text-text-secondary hover:text-blue-400 transition-colors cursor-pointer"
+                    className="px-2 py-0.5 rounded text-xs bg-surface border border-border hover:border-blue-500 text-text-secondary hover:text-blue-600 transition-colors cursor-pointer"
                   >
                     nginx:latest (8080)
                   </button>
@@ -271,7 +281,7 @@ export function ContainersTab({ ctx }: { ctx: Ctx }) {
                     <button
                       type="button"
                       onClick={() => setCreatePorts('6379:6379')}
-                      className="text-xs text-blue-400 hover:underline cursor-pointer"
+                      className="text-xs text-blue-600 hover:underline cursor-pointer"
                     >
                       填入 6379:6379
                     </button>
@@ -279,7 +289,7 @@ export function ContainersTab({ ctx }: { ctx: Ctx }) {
                     <button
                       type="button"
                       onClick={() => setCreatePorts('8080:80')}
-                      className="text-xs text-blue-400 hover:underline cursor-pointer"
+                      className="text-xs text-blue-600 hover:underline cursor-pointer"
                     >
                       填入 8080:80
                     </button>
@@ -314,7 +324,7 @@ export function ContainersTab({ ctx }: { ctx: Ctx }) {
                 <input type="number" value={createCpuShares} onChange={(e) => setCreateCpuShares(e.target.value)} placeholder="默认 1024" className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:border-blue-500 text-sm" />
               </div>
               <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => { setShowCreateModal(false); resetCreateForm(); }} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-text-primary rounded-lg transition-colors text-sm cursor-pointer">取消</button>
+                <button type="button" onClick={() => { setShowCreateModal(false); resetCreateForm(); }} className="flex-1 px-4 py-2 bg-surface-2 hover:bg-surface-hover text-text-primary rounded-lg transition-colors text-sm cursor-pointer">取消</button>
                 <button
                   type="button"
                   onClick={() => {

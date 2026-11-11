@@ -87,13 +87,13 @@ export default function Login() {
             </div>
 
             {error && (
-              <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-rose-400/25 bg-rose-500/10 px-3.5 py-3 text-[12.5px] text-rose-300">
+              <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-rose-400/25 bg-rose-500/10 px-3.5 py-3 text-[12.5px] text-rose-600">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span className="flex-1 leading-relaxed">{error}</span>
                 <button
                   type="button"
                   onClick={() => setError('')}
-                  className="shrink-0 text-rose-300/70 transition-colors hover:text-rose-200"
+                  className="shrink-0 text-rose-600/70 transition-colors hover:text-rose-700"
                 >
                   <X className="h-4 w-4" />
                 </button>

@@ -1,3 +1,4 @@
+import { Modal } from 'antd';
 import { Plus, RefreshCw, Eye } from 'lucide-react';
 import clsx from 'clsx';
 import { formatAge } from './types';
@@ -102,9 +103,13 @@ export default function DeploymentTable({
                   </button>
                   <button
                     onClick={() => {
-                      if (window.confirm(`确定要重启 Deployment "${dep.name}" 吗？`)) {
-                        onRestart(dep);
-                      }
+                      Modal.confirm({
+                        title: '确认重启 Deployment',
+                        content: `确定要重启 Deployment "${dep.name}" 吗？重启期间 Pod 会滚动更新。`,
+                        okText: '重启',
+                        cancelText: '取消',
+                        onOk: () => onRestart(dep),
+                      });
                     }}
                     className="flex items-center gap-1 px-2 py-1 text-xs text-text-secondary hover:text-primary bg-surface hover:bg-primary/10 rounded transition-colors border border-border"
                   >

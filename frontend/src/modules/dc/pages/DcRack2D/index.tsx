@@ -1,5 +1,6 @@
 // frontend/src/modules/dc/pages/DcRack2D/index.tsx
 import React, { useState } from 'react';
+import { Modal } from 'antd';
 import { useRack2DData } from './useRack2DData';
 import { RoomRackHeader } from './components/RoomRackHeader';
 import { DeviceLibraryPanel } from './components/DeviceLibraryPanel';
@@ -169,9 +170,14 @@ export default function DcRack2DMonitor() {
 
   // 下架设备
   const handleUnmountDevice = (slotId: string) => {
-    if (confirm('确定要从机架上下架该设备吗？')) {
-      unmountMutation.mutate(slotId);
-    }
+    Modal.confirm({
+      title: '确认下架设备',
+      content: '确定要从机架上下架该设备吗？设备将回到设备库。',
+      okText: '下架',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: () => unmountMutation.mutate(slotId),
+    });
   };
 
   return (

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Modal } from 'antd';
 import { Image, RefreshCw, Download, Trash2, X } from 'lucide-react';
 import api from '../../../lib/api';
 import { useToast } from '../../../contexts/ToastContext';
@@ -132,7 +133,16 @@ export function ImageSection({ endpointId }: ImageSectionProps) {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
                         <button
-                          onClick={() => { if (confirm('确定要删除此镜像吗？')) deleteImageMutation.mutate(img.Id || img.id || ''); }}
+                          onClick={() => {
+                            Modal.confirm({
+                              title: '确认删除镜像',
+                              content: `确定要删除镜像 ${imageRepo(img)}:${imageTagOnly(img)} 吗？此操作无法撤销。`,
+                              okText: '删除',
+                              okType: 'danger',
+                              cancelText: '取消',
+                              onOk: () => deleteImageMutation.mutate(img.Id || img.id || ''),
+                            });
+                          }}
                           className="p-1.5 rounded hover:bg-red-500/10 text-text-secondary hover:text-red-400 transition-colors"
                           title="删除"
                         ><Trash2 className="w-3.5 h-3.5" /></button>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Modal } from 'antd';
 import { BookOpen, Search, Tag, Plus, Edit, Trash2, Eye, X } from 'lucide-react';
 import clsx from 'clsx';
 import api from '../../../lib/api';
@@ -198,9 +199,14 @@ export default function Knowledge() {
                   </button>
                   <button
                     onClick={() => {
-                      if (confirm('确定要删除这个知识条目吗？')) {
-                        deleteMutation.mutate(entry.id);
-                      }
+                      Modal.confirm({
+                        title: '确认删除知识条目',
+                        content: `确定要删除「${entry.title}」吗？此操作无法撤销。`,
+                        okText: '删除',
+                        okType: 'danger',
+                        cancelText: '取消',
+                        onOk: () => deleteMutation.mutate(entry.id),
+                      });
                     }}
                     className="p-2 hover:bg-status-failed/10 rounded-lg transition-all"
                     title="删除"

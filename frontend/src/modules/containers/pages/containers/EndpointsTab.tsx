@@ -1,3 +1,4 @@
+import { Modal } from 'antd';
 import { Server, RefreshCw, Plus, Edit, Trash2, Activity, X } from 'lucide-react';
 import { statusBadge } from '../types';
 import type { useContainers } from './useContainers';
@@ -36,7 +37,7 @@ export function EndpointsTab({ ctx }: { ctx: Ctx }) {
             queryClient.invalidateQueries({ queryKey: endpointsListQueryKey });
             queryClient.invalidateQueries({ queryKey: endpointsQueryKey });
           }}
-          className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary hover:bg-slate-700 transition-colors flex items-center gap-1.5 text-sm"
+          className="px-3 py-2 bg-surface border border-border rounded-lg text-text-primary hover:bg-surface-hover transition-colors flex items-center gap-1.5 text-sm"
         >
           <RefreshCw className="w-4 h-4" /> 刷新
         </button>
@@ -83,7 +84,7 @@ export function EndpointsTab({ ctx }: { ctx: Ctx }) {
                   endpoints.map((ep) => {
                     const badge = statusBadge(ep.status);
                     return (
-                      <tr key={ep.id} className="hover:bg-slate-700/30 transition-colors">
+                      <tr key={ep.id} className="hover:bg-surface-hover transition-colors">
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="text-sm font-medium text-text-primary">{ep.name}</div>
                         </td>
@@ -94,7 +95,7 @@ export function EndpointsTab({ ctx }: { ctx: Ctx }) {
                           <div className="text-sm text-text-secondary">{ep.port || '-'}</div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <span className="text-xs px-2 py-0.5 rounded bg-slate-500/10 text-slate-400 border border-slate-500/20">{ep.protocol}</span>
+                          <span className="text-xs px-2 py-0.5 rounded bg-slate-500/10 text-text-secondary border border-slate-500/20">{ep.protocol}</span>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${badge.bg} ${badge.text}`}>
@@ -107,28 +108,37 @@ export function EndpointsTab({ ctx }: { ctx: Ctx }) {
                             {ep.id !== 'local' && (
                               <button
                                 onClick={() => openEpEditModal(ep)}
-                                className="p-1.5 rounded hover:bg-blue-500/10 text-text-secondary hover:text-blue-400 transition-colors text-xs"
+                                className="p-1.5 rounded hover:bg-blue-500/10 text-text-secondary hover:text-blue-600 transition-colors text-xs"
                                 title="编辑"
                               ><Edit className="w-3.5 h-3.5" /></button>
                             )}
                             {ep.id !== 'local' && (
                               <button
                                 onClick={() => refreshEndpointMutation.mutate(ep.id)}
-                                className="p-1.5 rounded hover:bg-green-500/10 text-text-secondary hover:text-green-400 transition-colors text-xs"
+                                className="p-1.5 rounded hover:bg-green-500/10 text-text-secondary hover:text-green-600 transition-colors text-xs"
                                 title="刷新"
                               ><RefreshCw className="w-3.5 h-3.5" /></button>
                             )}
                             {ep.id !== 'local' && (
                               <button
-                                onClick={() => testEndpointMutation.mutate({ host: ep.host, port: ep.port, protocol: ep.protocol, tlsCa: ep.tlsCa, tlsCert: ep.tlsCert, tlsKey: ep.tlsKey })}
-                                className="p-1.5 rounded hover:bg-blue-500/10 text-text-secondary hover:text-blue-400 transition-colors text-xs"
+                                onClick={() => testEndpointMutation.mutate({ host: ep.host, port: ep.port, protocol: ep.protocol })}
+                                className="p-1.5 rounded hover:bg-blue-500/10 text-text-secondary hover:text-blue-600 transition-colors text-xs"
                                 title="测试"
                               ><Activity className="w-3.5 h-3.5" /></button>
                             )}
                             {ep.id !== 'local' && (
                               <button
-                                onClick={() => { if (confirm('确定要删除此端点吗？')) deleteEndpointMutation.mutate(ep.id); }}
-                                className="p-1.5 rounded hover:bg-red-500/10 text-text-secondary hover:text-red-400 transition-colors"
+                                onClick={() => {
+                                  Modal.confirm({
+                                    title: '确认删除端点',
+                                    content: `确定要删除端点「${ep.name}」吗？删除后将无法管理该主机的容器。`,
+                                    okText: '删除',
+                                    okType: 'danger',
+                                    cancelText: '取消',
+                                    onOk: () => deleteEndpointMutation.mutate(ep.id),
+                                  });
+                                }}
+                                className="p-1.5 rounded hover:bg-red-500/10 text-text-secondary hover:text-red-600 transition-colors"
                                 title="删除"
                               ><Trash2 className="w-3.5 h-3.5" /></button>
                             )}
@@ -154,12 +164,12 @@ export function EndpointsTab({ ctx }: { ctx: Ctx }) {
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-1">名称 <span className="text-red-400">*</span></label>
+                <label className="block text-sm font-medium text-text-primary mb-1">名称 <span className="text-red-600">*</span></label>
                 <input type="text" value={epName} onChange={(e) => setEpName(e.target.value)} placeholder="生产服务器" className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:border-blue-500 text-sm" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-text-primary mb-1">主机 <span className="text-red-400">*</span></label>
+                  <label className="block text-sm font-medium text-text-primary mb-1">主机 <span className="text-red-600">*</span></label>
                   <input type="text" value={epHost} onChange={(e) => setEpHost(e.target.value)}
                     disabled={!!editingEpId} placeholder="192.168.1.100"
                     className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:border-blue-500 text-sm disabled:opacity-50" />
@@ -179,22 +189,25 @@ export function EndpointsTab({ ctx }: { ctx: Ctx }) {
               </div>
               {epProtocol === 'tcp+tls' && (
                 <>
+                  {editingEpId && (
+                    <p className="text-xs text-text-tertiary">TLS 材料保存于服务端，留空表示保留原值。</p>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-text-primary mb-1">TLS CA 证书</label>
-                    <textarea value={epTlsCa} onChange={(e) => setEpTlsCa(e.target.value)} rows={3} placeholder="-----BEGIN CERTIFICATE-----" className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:border-blue-500 text-sm font-mono" />
+                    <textarea value={epTlsCa} onChange={(e) => setEpTlsCa(e.target.value)} rows={3} placeholder={editingEpId ? '留空表示不修改' : '-----BEGIN CERTIFICATE-----'} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:border-blue-500 text-sm font-mono" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-text-primary mb-1">TLS 证书</label>
-                    <textarea value={epTlsCert} onChange={(e) => setEpTlsCert(e.target.value)} rows={3} placeholder="-----BEGIN CERTIFICATE-----" className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:border-blue-500 text-sm font-mono" />
+                    <textarea value={epTlsCert} onChange={(e) => setEpTlsCert(e.target.value)} rows={3} placeholder={editingEpId ? '留空表示不修改' : '-----BEGIN CERTIFICATE-----'} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:border-blue-500 text-sm font-mono" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-text-primary mb-1">TLS 密钥</label>
-                    <textarea value={epTlsKey} onChange={(e) => setEpTlsKey(e.target.value)} rows={3} placeholder="-----BEGIN PRIVATE KEY-----" className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:border-blue-500 text-sm font-mono" />
+                    <textarea value={epTlsKey} onChange={(e) => setEpTlsKey(e.target.value)} rows={3} placeholder={editingEpId ? '留空表示不修改' : '-----BEGIN PRIVATE KEY-----'} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text-primary placeholder-text-tertiary focus:outline-none focus:border-blue-500 text-sm font-mono" />
                   </div>
                 </>
               )}
               <div className="flex gap-2">
-                <button onClick={() => { setShowEpCreateModal(false); resetEpForm(); }} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-text-primary rounded-lg transition-colors text-sm">取消</button>
+                <button onClick={() => { setShowEpCreateModal(false); resetEpForm(); }} className="flex-1 px-4 py-2 bg-surface-2 hover:bg-surface-hover text-text-primary rounded-lg transition-colors text-sm">取消</button>
                 <button
                   onClick={() => editingEpId ? updateEndpointMutation.mutate() : createEndpointMutation.mutate()}
                   disabled={!epName.trim() || (!editingEpId && !epHost.trim()) || createEndpointMutation.isPending || updateEndpointMutation.isPending}

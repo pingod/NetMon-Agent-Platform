@@ -154,7 +154,7 @@ export default function ForcePasswordChange() {
             </div>
 
             {passwordError && (
-              <div className="flex items-center gap-2 rounded-xl border border-rose-400/25 bg-rose-500/10 p-3 text-[12.5px] text-rose-300">
+              <div className="flex items-center gap-2 rounded-xl border border-rose-400/25 bg-rose-500/10 p-3 text-[12.5px] text-rose-600">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 {passwordError}
               </div>

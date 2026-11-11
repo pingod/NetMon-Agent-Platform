@@ -1,3 +1,4 @@
+import { Modal } from 'antd';
 import { Globe, RefreshCw, Plus, Eye, Trash2, X, Box } from 'lucide-react';
 import type { useContainers } from './useContainers';
 
@@ -146,7 +147,16 @@ export function NetworksTab({ ctx }: { ctx: Ctx }) {
                               title="详情"
                             ><Eye className="w-3.5 h-3.5" /></button>
                             <button
-                              onClick={() => { if (confirm('确定要删除此网络吗？')) deleteNetworkMutation.mutate(net.Id || net.id || ''); }}
+                              onClick={() => {
+                                Modal.confirm({
+                                  title: '确认删除网络',
+                                  content: `确定要删除网络 ${net.Name || net.name || ''} 吗？仍有容器连接时删除会失败。`,
+                                  okText: '删除',
+                                  okType: 'danger',
+                                  cancelText: '取消',
+                                  onOk: () => deleteNetworkMutation.mutate(net.Id || net.id || ''),
+                                });
+                              }}
                               className="p-1.5 rounded hover:bg-red-500/10 text-text-secondary hover:text-red-400 transition-colors"
                               title="删除"
                             ><Trash2 className="w-3.5 h-3.5" /></button>

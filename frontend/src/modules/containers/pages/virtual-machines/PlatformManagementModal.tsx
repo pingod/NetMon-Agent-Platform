@@ -1,3 +1,4 @@
+import { Modal } from 'antd';
 import { Plus, RefreshCw, Server, Trash2, Wifi, Loader2 } from 'lucide-react';
 import type { Platform, PlatformForm } from './types';
 import { platformStatusIcon } from './vmDisplay';
@@ -67,9 +68,14 @@ export function PlatformManagementModal({
                     </button>
                     <button
                       onClick={() => {
-                        if (confirm(`确定要删除平台 "${platform.name}" 吗？`)) {
-                          onDelete(platform.id);
-                        }
+                        Modal.confirm({
+                          title: '确认删除平台',
+                          content: `确定要删除平台「${platform.name}」吗？该平台下的虚拟机将无法继续管理。`,
+                          okText: '删除',
+                          okType: 'danger',
+                          cancelText: '取消',
+                          onOk: () => onDelete(platform.id),
+                        });
                       }}
                       className="p-2 rounded hover:bg-red-500/10 text-text-secondary hover:text-red-400 transition-colors"
                       title="删除"

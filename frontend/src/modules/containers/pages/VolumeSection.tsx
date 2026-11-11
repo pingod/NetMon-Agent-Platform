@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Modal } from 'antd';
 import { HardDrive, RefreshCw, Plus, Trash2, X } from 'lucide-react';
 import api from '../../../lib/api';
 import { useToast } from '../../../contexts/ToastContext';
@@ -130,7 +131,16 @@ export function VolumeSection({ endpointId }: VolumeSectionProps) {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
                         <button
-                          onClick={() => { if (confirm('确定要删除此数据卷吗？')) deleteVolumeMutation.mutate(v.Name || v.name || ''); }}
+                          onClick={() => {
+                            Modal.confirm({
+                              title: '确认删除数据卷',
+                              content: `确定要删除数据卷 ${v.Name || v.name || ''} 吗？卷内数据将丢失且无法恢复。`,
+                              okText: '删除',
+                              okType: 'danger',
+                              cancelText: '取消',
+                              onOk: () => deleteVolumeMutation.mutate(v.Name || v.name || ''),
+                            });
+                          }}
                           className="p-1.5 rounded hover:bg-red-500/10 text-text-secondary hover:text-red-400 transition-colors"
                           title="删除"
                         ><Trash2 className="w-3.5 h-3.5" /></button>

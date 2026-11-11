@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Modal } from 'antd';
 import {
   Network, Plus, Trash2, Search, RefreshCw, Edit, Globe,
   Router, MapPin, Layers, ArrowLeft, Check, X, AlertCircle,
@@ -717,7 +718,14 @@ export default function Networks() {
                   </button>
                   <button onClick={(e) => {
                     e.stopPropagation();
-                    if (confirm(`确定要删除子网 ${s.cidr} 吗？`)) deleteMutation.mutate(s.id);
+                    Modal.confirm({
+                      title: '确认删除子网',
+                      content: `确定要删除子网 ${s.cidr} 吗？此操作无法撤销。`,
+                      okText: '删除',
+                      okType: 'danger',
+                      cancelText: '取消',
+                      onOk: () => deleteMutation.mutate(s.id),
+                    });
                   }}
                     className="p-1.5 rounded-lg text-text-tertiary hover:text-red-400 hover:bg-red-500/10 transition-colors">
                     <Trash2 size={14} />

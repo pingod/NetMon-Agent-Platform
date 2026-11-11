@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Modal } from 'antd';
 import {
   Cpu, HardDrive, Camera, RotateCcw, Trash2, RefreshCw as _RefreshCw,
   Play as _Play, Square as _Square, AlertCircle as _AlertCircle,
@@ -246,9 +247,14 @@ export default function VmDetailPanel({ open, onClose, vm }: VmDetailPanelProps)
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => {
-                            if (confirm('确定恢复到此快照？当前状态将丢失。')) {
-                              restoreSnapshot(snap.id);
-                            }
+                            Modal.confirm({
+                              title: '确认恢复快照',
+                              content: `确定恢复到快照「${snap.name}」吗？虚拟机当前状态将丢失。`,
+                              okText: '恢复',
+                              okType: 'danger',
+                              cancelText: '取消',
+                              onOk: () => restoreSnapshot(snap.id),
+                            });
                           }}
                           className="p-1.5 rounded hover:bg-yellow-500/10 text-yellow-400 transition-colors"
                           title="恢复快照"
@@ -257,9 +263,14 @@ export default function VmDetailPanel({ open, onClose, vm }: VmDetailPanelProps)
                         </button>
                         <button
                           onClick={() => {
-                            if (confirm('确定删除此快照？')) {
-                              deleteSnapshot(snap.id);
-                            }
+                            Modal.confirm({
+                              title: '确认删除快照',
+                              content: `确定要删除快照「${snap.name}」吗？此操作无法撤销。`,
+                              okText: '删除',
+                              okType: 'danger',
+                              cancelText: '取消',
+                              onOk: () => deleteSnapshot(snap.id),
+                            });
                           }}
                           className="p-1.5 rounded hover:bg-red-500/10 text-red-400 transition-colors"
                           title="删除快照"
