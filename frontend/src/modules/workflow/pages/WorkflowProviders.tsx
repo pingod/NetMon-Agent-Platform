@@ -55,23 +55,23 @@ export default function WorkflowProviders() {
 
   if (isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-slate-900">
+      <div className="h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-slate-900 overflow-hidden">
-      <div className="p-6 border-b border-slate-700 flex items-center justify-between">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
+      <div className="p-6 border-b border-border flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100 mb-2">工作流 Provider 管理</h1>
-          <p className="text-slate-400">管理和查看工作流 Provider</p>
+          <h1 className="text-2xl font-bold text-text-primary mb-2">工作流 Provider 管理</h1>
+          <p className="text-text-secondary">管理和查看工作流 Provider</p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: ['workflow-providers'] })}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-100 rounded-lg hover:bg-slate-700 transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-surface text-text-primary rounded-lg hover:bg-surface-hover transition-all"
           >
             <RefreshCw className="w-4 h-4" />
             刷新
@@ -79,27 +79,27 @@ export default function WorkflowProviders() {
         </div>
       </div>
 
-      <div className="p-4 border-b border-slate-700 flex flex-wrap gap-3 items-center">
+      <div className="p-4 border-b border-border flex flex-wrap gap-3 items-center">
         <div className="flex items-center gap-2">
-          <Search className="w-4 h-4 text-slate-400" />
+          <Search className="w-4 h-4 text-text-secondary" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="搜索 Provider..."
-            className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-blue-500 w-64"
+            className="px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500 w-64"
           />
         </div>
 
         <div className="flex gap-2 items-center">
-          <span className="text-sm text-slate-400">类型:</span>
+          <span className="text-sm text-text-secondary">类型:</span>
           <button
             onClick={() => setSelectedType(null)}
             className={clsx(
               "px-3 py-1.5 rounded-full text-sm font-medium transition-all",
               !selectedType
                 ? "bg-blue-600 text-white"
-                : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                : "bg-surface text-text-secondary hover:bg-surface-hover"
             )}
           >
             全部
@@ -114,7 +114,7 @@ export default function WorkflowProviders() {
                   "px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-1.5 transition-all",
                   selectedType === type
                     ? "bg-blue-600 text-white"
-                    : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                    : "bg-surface text-text-secondary hover:bg-surface-hover"
                 )}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -132,24 +132,24 @@ export default function WorkflowProviders() {
             return (
               <div
                 key={provider.id}
-                className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-slate-600 transition-all"
+                className="bg-surface border border-border rounded-xl p-5 hover:border-border-strong transition-all"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/20">
-                      <Icon className="w-5 h-5 text-blue-400" />
+                      <Icon className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-100">{provider.name}</h3>
-                      <span className="text-xs text-slate-400">{provider.type}</span>
+                      <h3 className="text-lg font-semibold text-text-primary">{provider.name}</h3>
+                      <span className="text-xs text-text-secondary">{provider.type}</span>
                     </div>
                   </div>
                 </div>
                 
                 {provider.configSchema ? (
-                  <div className="mb-4 p-3 bg-slate-900/50 rounded-lg border border-slate-700">
-                    <p className="text-xs text-slate-400 mb-1.5">配置 Schema:</p>
-                    <pre className="text-xs text-slate-300 overflow-x-auto max-h-32">
+                  <div className="mb-4 p-3 bg-background rounded-lg border border-border">
+                    <p className="text-xs text-text-secondary mb-1.5">配置 Schema:</p>
+                    <pre className="text-xs text-text-secondary overflow-x-auto max-h-32">
                       {JSON.stringify((provider.configSchema as { properties?: unknown }).properties, null, 2)}
                     </pre>
                   </div>

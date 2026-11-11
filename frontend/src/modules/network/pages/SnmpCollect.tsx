@@ -64,13 +64,13 @@ export function getHardwareTags(name: string = '', desc: string = '', syntax: st
 
   // CPU: cpu, processor, cpuratio, cpuusage, cpuload, cpuutil, 处理器
   if (!lowerName.startsWith('lldp') && /(cpu|processor|cpuload|cpuusage|cpuutil|cpuratio|cpupcent|zxancpu|zxr10cpu|处理器)/i.test(text)) {
-    tags.push({ key: 'cpu', label: 'CPU', bg: 'bg-purple-500/15', text: 'text-purple-400', border: 'border-purple-500/30', icon: Cpu });
+    tags.push({ key: 'cpu', label: 'CPU', bg: 'bg-purple-500/15', text: 'text-purple-600', border: 'border-purple-500/30', icon: Cpu });
   }
 
   // 内存 (Memory): memory, memusage, memutil, memsize, memfree, memused, memtotal, memratio, zxanmem, zxr10mem, ram, flash, buffer, 内存
   if (!isLldpOrMeta && /(memory|memusage|memutil|memsize|memfree|memused|memtotal|memcapacity|memratio|ramusage|flashsize|bufferpool|zxanmem|zxr10mem|内存|\bmem\b)/i.test(text)) {
     if (!/(remote|lldprem|member|frame|element|comment|dimension|summary|timestamp)/i.test(lowerName)) {
-      tags.push({ key: 'memory', label: '内存', bg: 'bg-indigo-500/15', text: 'text-indigo-400', border: 'border-indigo-500/30', icon: HardDrive });
+      tags.push({ key: 'memory', label: '内存', bg: 'bg-indigo-500/15', text: 'text-indigo-600', border: 'border-indigo-500/30', icon: HardDrive });
     }
   }
 
@@ -81,17 +81,17 @@ export function getHardwareTags(name: string = '', desc: string = '', syntax: st
 
   // 风扇 (Fan): fan, fanspeed, fanstatus, fanstate, rackfan, shelffan, envfan, wind, cooler, ventilator, 风扇
   if (!lowerName.startsWith('lldp') && /(fan|fanspeed|fanstatus|fanstate|rackfan|shelffan|envfan|wind|cooler|ventilator|风扇)/i.test(text)) {
-    tags.push({ key: 'fan', label: '风扇', bg: 'bg-cyan-500/15', text: 'text-cyan-400', border: 'border-cyan-500/30', icon: Wind });
+    tags.push({ key: 'fan', label: '风扇', bg: 'bg-cyan-500/15', text: 'text-cyan-600', border: 'border-cyan-500/30', icon: Wind });
   }
 
   // 电源 (Power): power, psu, voltage, current, powervoltage, powerstatus, supply, 电源, 电压, 电流, 供电
   if (!lowerName.startsWith('lldp') && /(power|psu|voltage|current|supply|powervoltage|powerstatus|电源|电压|电流|电源状态|供电)/i.test(text) && !/powerof2/i.test(text)) {
-    tags.push({ key: 'power', label: '电源', bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30', icon: Zap });
+    tags.push({ key: 'power', label: '电源', bg: 'bg-amber-500/15', text: 'text-amber-600', border: 'border-amber-500/30', icon: Zap });
   }
 
   // 光模块 (Optical): optical, optic, transceiver, sfp, qsfp, txpower, rxpower, bias, laser, light, opticalpower, 光模块, 收光, 发光, 光功率
   if (!lowerName.startsWith('lldp') && /(optical|optic|transceiver|sfp|sfp\+|qsfp|txpower|rxpower|bias|laser|light|opticalpower|光模块|收光|发光|光功率|偏置电流)/i.test(text)) {
-    tags.push({ key: 'optical', label: '光模块', bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', icon: Sun });
+    tags.push({ key: 'optical', label: '光模块', bg: 'bg-emerald-500/15', text: 'text-emerald-600', border: 'border-emerald-500/30', icon: Sun });
   }
 
   return tags;
@@ -170,11 +170,11 @@ function HardwareMetricsTab({ onOpenTest }: { onOpenTest: (target: { moduleId?: 
       {/* 顶部高频指标概览卡片 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { key: 'cpu', label: 'CPU 利用率与负荷', icon: Cpu, color: 'from-purple-500/20 to-purple-950/30 border-purple-500/30 text-purple-400', countKey: 'cpu' },
-          { key: 'memory', label: '内存与存储空间', icon: HardDrive, color: 'from-indigo-500/20 to-indigo-950/30 border-indigo-500/30 text-indigo-400', countKey: 'memory' },
-          { key: 'fan', label: '风扇转速与风道状态', icon: Wind, color: 'from-cyan-500/20 to-cyan-950/30 border-cyan-500/30 text-cyan-400', countKey: 'fan' },
-          { key: 'power', label: '电源模块与供电电压', icon: Zap, color: 'from-amber-500/20 to-amber-950/30 border-amber-500/30 text-amber-400', countKey: 'power' },
-          { key: 'optical', label: '光模块收发光功率', icon: Sun, color: 'from-emerald-500/20 to-emerald-950/30 border-emerald-500/30 text-emerald-400', countKey: 'optical' },
+          { key: 'cpu', label: 'CPU 利用率与负荷', icon: Cpu, color: 'from-purple-500/20 to-purple-950/30 border-purple-500/30 text-purple-600', countKey: 'cpu' },
+          { key: 'memory', label: '内存与存储空间', icon: HardDrive, color: 'from-indigo-500/20 to-indigo-950/30 border-indigo-500/30 text-indigo-600', countKey: 'memory' },
+          { key: 'fan', label: '风扇转速与风道状态', icon: Wind, color: 'from-cyan-500/20 to-cyan-950/30 border-cyan-500/30 text-cyan-600', countKey: 'fan' },
+          { key: 'power', label: '电源模块与供电电压', icon: Zap, color: 'from-amber-500/20 to-amber-950/30 border-amber-500/30 text-amber-600', countKey: 'power' },
+          { key: 'optical', label: '光模块收发光功率', icon: Sun, color: 'from-emerald-500/20 to-emerald-950/30 border-emerald-500/30 text-emerald-600', countKey: 'optical' },
         ].map(card => {
           const count = categoryCounts[card.countKey as keyof typeof categoryCounts] || 0;
           return (
@@ -191,7 +191,7 @@ function HardwareMetricsTab({ onOpenTest }: { onOpenTest: (target: { moduleId?: 
                   {count} OIDs
                 </span>
               </div>
-              <p className="mt-3 text-sm font-semibold text-text">{card.label}</p>
+              <p className="mt-3 text-sm font-semibold text-text-primary">{card.label}</p>
               <p className="text-[11px] text-text-secondary mt-1">支持 SNMP GET/WALK 轮询</p>
             </div>
           );
@@ -215,7 +215,7 @@ function HardwareMetricsTab({ onOpenTest }: { onOpenTest: (target: { moduleId?: 
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
                 selectedCategory === item.key
                   ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-surface-secondary/40 text-text-secondary hover:text-text hover:bg-surface-secondary'
+                  : 'bg-surface-2/40 text-text-secondary hover:text-text-primary hover:bg-surface-2'
               }`}
             >
               <item.icon className="w-3.5 h-3.5" />
@@ -234,7 +234,7 @@ function HardwareMetricsTab({ onOpenTest }: { onOpenTest: (target: { moduleId?: 
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             placeholder="搜索 OID, 名称, 中文描述..."
-            className="w-full pl-9 pr-3 py-1.5 bg-surface-secondary border border-border rounded-lg text-xs text-text focus:outline-none focus:border-blue-500"
+            className="w-full pl-9 pr-3 py-1.5 bg-surface-2 border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:border-blue-500"
           />
         </div>
       </div>
@@ -253,7 +253,7 @@ function HardwareMetricsTab({ onOpenTest }: { onOpenTest: (target: { moduleId?: 
           </div>
         ) : (
           <table className="w-full text-left">
-            <thead className="bg-surface-secondary border-b border-border">
+            <thead className="bg-surface-2 border-b border-border">
               <tr>
                 <th className="px-4 py-3 text-xs font-semibold text-text-secondary">硬件高亮标签</th>
                 <th className="px-4 py-3 text-xs font-semibold text-text-secondary">OID 编号</th>
@@ -285,19 +285,19 @@ function HardwareMetricsTab({ onOpenTest }: { onOpenTest: (target: { moduleId?: 
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 font-mono text-xs text-blue-400 font-medium">
+                    <td className="px-4 py-2.5 font-mono text-xs text-blue-600 font-medium">
                       <div className="flex items-center gap-1.5">
                         <span>{obj.oid}</span>
                         <button
                           onClick={() => copyOid(obj.oid)}
-                          className="p-1 hover:bg-blue-500/10 rounded text-text-secondary hover:text-blue-400 transition-colors"
+                          className="p-1 hover:bg-blue-500/10 rounded text-text-secondary hover:text-blue-600 transition-colors"
                           title="复制 OID"
                         >
-                          {copiedOid === obj.oid ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          {copiedOid === obj.oid ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                         </button>
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 text-xs font-semibold text-text">
+                    <td className="px-4 py-2.5 text-xs font-semibold text-text-primary">
                       {obj.name}
                       {obj.syntax && <span className="ml-2 text-[10px] font-mono text-text-secondary">({obj.syntax})</span>}
                     </td>
@@ -305,14 +305,14 @@ function HardwareMetricsTab({ onOpenTest }: { onOpenTest: (target: { moduleId?: 
                       {obj.description || '-'}
                     </td>
                     <td className="px-4 py-2.5 text-xs text-text-secondary">
-                      <span className="px-2 py-0.5 rounded bg-surface-secondary text-text font-mono text-[11px]">
+                      <span className="px-2 py-0.5 rounded bg-surface-2 text-text-primary font-mono text-[11px]">
                         {obj.module_name || 'MIB'}
                       </span>
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <button
                         onClick={() => onOpenTest({ oid: obj.oid, name: obj.name, is_table: obj.is_table, moduleId: obj.module_id })}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-500/10 rounded-md transition-colors"
                       >
                         <Zap className="w-3.5 h-3.5" />
                         采集测试
@@ -326,7 +326,7 @@ function HardwareMetricsTab({ onOpenTest }: { onOpenTest: (target: { moduleId?: 
         )}
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 bg-surface-secondary border-t border-border text-xs text-text-secondary">
+          <div className="flex items-center justify-between px-4 py-3 bg-surface-2 border-t border-border text-xs text-text-secondary">
             <span>显示第 {(page - 1) * pageSize + 1} - {Math.min(page * pageSize, filteredObjects.length)} 条，共 {filteredObjects.length} 条对象</span>
             <div className="flex items-center gap-1">
               <button
@@ -366,12 +366,12 @@ export default function SnmpCollect() {
     <div className="p-6 h-full flex flex-col">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-text">SNMP 采集</h1>
+          <h1 className="text-2xl font-bold text-text-primary">SNMP 采集</h1>
           <p className="text-sm text-text-secondary mt-1">SNMP OID 采集管理，支持自定义 MIB、高频硬件筛选、定时采集和数据查看</p>
         </div>
         <button
           onClick={() => navigate('/metric-tags')}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 rounded-xl text-sm font-medium transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 text-blue-600 hover:bg-blue-500/20 rounded-xl text-sm font-medium transition-all"
         >
           <Tag className="w-4 h-4" />
           指标 Tag 览 (Prometheus 规范)
@@ -392,7 +392,7 @@ export default function SnmpCollect() {
             className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
               activeTab === tab.key
                 ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-sm'
-                : 'text-text-secondary hover:text-text hover:bg-surface-secondary'
+                : 'text-text-secondary hover:text-text-primary hover:bg-surface-2'
             }`}
           >
             <tab.icon className="w-4 h-4" />
@@ -590,7 +590,7 @@ function MibTab() {
           {modules.length > 0 && (
             <button
               onClick={() => setTransferModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-md transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-md transition-colors"
             >
               <ChevronRight className="w-3.5 h-3.5" />
               穿梭框选指标到大屏
@@ -610,7 +610,7 @@ function MibTab() {
           <button
             onClick={() => folderInputRef.current?.click()}
             disabled={uploading}
-            className="flex items-center gap-2 px-4 py-2 bg-surface border border-border text-text text-sm font-medium rounded-md hover:bg-surface-secondary transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-surface border border-border text-text-primary text-sm font-medium rounded-md hover:bg-surface-2 transition-all disabled:opacity-50"
           >
             <FolderOpen className="w-4 h-4" />
             上传文件夹
@@ -646,8 +646,8 @@ function MibTab() {
       {uploadResults && (
         <div className="bg-surface rounded-xl border border-border p-4">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-text">上传结果</h3>
-            <button onClick={() => setUploadResults(null)} className="p-1 hover:bg-surface-secondary rounded-md">
+            <h3 className="text-sm font-medium text-text-primary">上传结果</h3>
+            <button onClick={() => setUploadResults(null)} className="p-1 hover:bg-surface-2 rounded-md">
               <X className="w-3.5 h-3.5 text-text-secondary" />
             </button>
           </div>
@@ -655,13 +655,13 @@ function MibTab() {
             {uploadResults.results?.map((r: any, i: number) => (
               <div key={i} className="flex items-center gap-2 text-sm">
                 {r.error ? (
-                  <><XCircle className="w-4 h-4 text-red-400 flex-shrink-0" /><span className="text-text">{r.fileName}</span><span className="text-red-400 text-xs">{r.error}</span></>
+                  <><XCircle className="w-4 h-4 text-red-600 flex-shrink-0" /><span className="text-text-primary">{r.fileName}</span><span className="text-red-600 text-xs">{r.error}</span></>
                 ) : r.type === 'zip' ? (
-                  <><FileArchive className="w-4 h-4 text-blue-400 flex-shrink-0" /><span className="text-text">{r.fileName}</span><span className="text-text-secondary text-xs">{r.successCount} 成功{r.failCount > 0 ? `, ${r.failCount} 失败` : ''}</span></>
+                  <><FileArchive className="w-4 h-4 text-blue-600 flex-shrink-0" /><span className="text-text-primary">{r.fileName}</span><span className="text-text-secondary text-xs">{r.successCount} 成功{r.failCount > 0 ? `, ${r.failCount} 失败` : ''}</span></>
                 ) : r.type === 'excel' ? (
-                  <><FileSpreadsheet className="w-4 h-4 text-emerald-400 flex-shrink-0" /><span className="text-text">{r.fileName}</span><span className="text-emerald-400 text-xs">{r.objectCount} 个 OID</span></>
+                  <><FileSpreadsheet className="w-4 h-4 text-emerald-600 flex-shrink-0" /><span className="text-text-primary">{r.fileName}</span><span className="text-emerald-600 text-xs">{r.objectCount} 个 OID</span></>
                 ) : (
-                  <><FileText className="w-4 h-4 text-emerald-400 flex-shrink-0" /><span className="text-text">{r.fileName}</span><span className="text-emerald-400 text-xs">{r.objectCount} 个对象</span></>
+                  <><FileText className="w-4 h-4 text-emerald-600 flex-shrink-0" /><span className="text-text-primary">{r.fileName}</span><span className="text-emerald-600 text-xs">{r.objectCount} 个对象</span></>
                 )}
               </div>
             ))}
@@ -676,7 +676,7 @@ function MibTab() {
             aria-label="搜索类型"
             value={searchType}
             onChange={e => setSearchType(e.target.value)}
-            className="flex-shrink-0 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500 cursor-pointer"
+            className="flex-shrink-0 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500 cursor-pointer"
           >
             <option value="all">全部</option>
             <option value="oid_name">OID 名称</option>
@@ -696,7 +696,7 @@ function MibTab() {
                 : searchType === 'brand' ? '搜索品牌/厂商（如 Huawei、Cisco）...'
                 : '搜索 OID、模块名或品牌（如 sysUpTime、Huawei、IF-MIB）...'
               }
-              className="w-full pl-9 pr-4 py-2 bg-surface border border-border rounded-lg text-sm text-text placeholder:text-text-secondary focus:outline-none focus:border-blue-500"
+              className="w-full pl-9 pr-4 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-blue-500"
             />
           </div>
         </div>
@@ -718,10 +718,10 @@ function MibTab() {
                 {searchResults.map((obj: any, i: number) => {
                   const matchType = obj.match_type || 'oid_name';
                   const matchLabel: Record<string, { text: string; cls: string }> = {
-                    oid_name: { text: 'OID名', cls: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
-                    oid_number: { text: 'OID号', cls: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30' },
+                    oid_name: { text: 'OID名', cls: 'bg-blue-500/15 text-blue-600 border-blue-500/30' },
+                    oid_number: { text: 'OID号', cls: 'bg-cyan-500/15 text-cyan-600 border-cyan-500/30' },
                     module_name: { text: '模块', cls: 'bg-violet-500/15 text-violet-400 border-violet-500/30' },
-                    brand: { text: '品牌', cls: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
+                    brand: { text: '品牌', cls: 'bg-amber-500/15 text-amber-600 border-amber-500/30' },
                   };
                   const badge = matchLabel[matchType] || matchLabel.oid_name;
                   const cls = obj.classification || {};
@@ -736,7 +736,7 @@ function MibTab() {
                   };
                   const catColor = catColors[cls.subcategory] || catColors[cls.category] || '#6b7280';
                   return (
-                    <tr key={i} className="border-b border-border/30 hover:bg-surface-secondary/20 transition-colors"
+                    <tr key={i} className="border-b border-border/30 hover:bg-surface-2/20 transition-colors"
                       style={isHighlighted ? { borderLeft: `3px solid ${catColor}` } : {}}>
                       <td className="px-3 py-2">
                         {isHighlighted ? (
@@ -750,8 +750,8 @@ function MibTab() {
                           <span className="text-[10px] text-text-secondary">-</span>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-xs font-mono text-blue-400">{obj.oid}</td>
-                      <td className={`px-3 py-2 text-sm ${isHighlighted ? 'font-medium text-text' : 'text-text'}`}>{obj.name}</td>
+                      <td className="px-3 py-2 text-xs font-mono text-blue-600">{obj.oid}</td>
+                      <td className={`px-3 py-2 text-sm ${isHighlighted ? 'font-medium text-text-primary' : 'text-text-primary'}`}>{obj.name}</td>
                       <td className="px-3 py-2 text-xs text-text-secondary">{obj.module_name || '-'}</td>
                       <td className="px-3 py-2 text-xs text-text-secondary">{obj.organization || '-'}</td>
                       <td className="px-3 py-2">
@@ -780,9 +780,9 @@ function MibTab() {
           {/* 批量操作栏 */}
           <div className="bg-surface rounded-xl border border-border p-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={selectAllModules} className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-text transition-colors">
+              <button onClick={selectAllModules} className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors">
                 {selectedModuleIds.size === modules.length ? (
-                  <CheckSquare className="w-4 h-4 text-blue-400" />
+                  <CheckSquare className="w-4 h-4 text-blue-600" />
                 ) : (
                   <Square className="w-4 h-4" />
                 )}
@@ -790,7 +790,7 @@ function MibTab() {
               </button>
               {selectedModuleIds.size > 0 && (
                 <span className="text-sm text-text-secondary">
-                  已选择 <span className="text-blue-400 font-medium">{selectedModuleIds.size}</span> 个模块
+                  已选择 <span className="text-blue-600 font-medium">{selectedModuleIds.size}</span> 个模块
                 </span>
               )}
             </div>
@@ -798,21 +798,21 @@ function MibTab() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setTransferModalOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-400 hover:bg-emerald-500/10 rounded-md transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-600 hover:bg-emerald-500/10 rounded-md transition-colors"
                 >
                   <ChevronRight className="w-3.5 h-3.5" />
                   穿梭框选指标 ({selectedModuleIds.size})
                 </button>
                 <button
                   onClick={() => setBatchTestModalOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-500/10 rounded-md transition-colors"
                 >
                   <Zap className="w-3.5 h-3.5" />
                   批量采集测试 ({selectedModuleIds.size})
                 </button>
                 <button
                   onClick={() => setConfirmBatchDelete(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-500/10 rounded-md transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   批量删除 ({selectedModuleIds.size})
@@ -842,11 +842,11 @@ function MibTab() {
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <button onClick={() => toggleGroupSelect(group.key)} className="flex-shrink-0">
                           {allGroupSelected ? (
-                            <CheckSquare className="w-4 h-4 text-blue-400" />
+                            <CheckSquare className="w-4 h-4 text-blue-600" />
                           ) : someGroupSelected ? (
                             <CheckSquare className="w-4 h-4 text-blue-300 opacity-60" />
                           ) : (
-                            <Square className="w-4 h-4 text-text-secondary hover:text-blue-400 transition-colors" />
+                            <Square className="w-4 h-4 text-text-secondary hover:text-blue-600 transition-colors" />
                           )}
                         </button>
                         <button
@@ -854,12 +854,12 @@ function MibTab() {
                           className="flex items-center gap-2 min-w-0 flex-1 text-left"
                         >
                           {isExpanded ? (
-                            <ChevronDown className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                            <ChevronDown className="w-4 h-4 text-blue-600 flex-shrink-0" />
                           ) : (
                             <ChevronRight className="w-4 h-4 text-text-secondary flex-shrink-0" />
                           )}
-                          <FileIcon className={`w-4 h-4 flex-shrink-0 ${isExcel ? 'text-emerald-400' : isZip ? 'text-blue-400' : 'text-text-secondary'}`} />
-                          <span className="text-sm font-medium text-text truncate">{group.fileName}</span>
+                          <FileIcon className={`w-4 h-4 flex-shrink-0 ${isExcel ? 'text-emerald-600' : isZip ? 'text-blue-600' : 'text-text-secondary'}`} />
+                          <span className="text-sm font-medium text-text-primary truncate">{group.fileName}</span>
                         </button>
                       </div>
 
@@ -872,7 +872,7 @@ function MibTab() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => setConfirmGroupDelete(group.key)}
-                            className="p-1.5 text-text-secondary hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+                            className="p-1.5 text-text-secondary hover:text-red-600 hover:bg-red-500/10 rounded-md transition-colors"
                             title="删除整个文件的所有模块"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -899,20 +899,20 @@ function MibTab() {
                           <tbody>
                             {group.modules.map((m: any) => (
                               <tr key={m.id} className={`border-b border-border/30 transition-colors ${
-                                selectedModuleIds.has(m.id) ? 'bg-blue-500/5' : 'hover:bg-surface-secondary/20'
+                                selectedModuleIds.has(m.id) ? 'bg-blue-500/5' : 'hover:bg-surface-2/20'
                               }`}>
                                 <td className="px-3 py-2">
                                   <button onClick={() => toggleModuleSelect(m.id)}>
                                     {selectedModuleIds.has(m.id) ? (
-                                      <CheckSquare className="w-3.5 h-3.5 text-blue-400" />
+                                      <CheckSquare className="w-3.5 h-3.5 text-blue-600" />
                                     ) : (
-                                      <Square className="w-3.5 h-3.5 text-text-secondary hover:text-blue-400 transition-colors" />
+                                      <Square className="w-3.5 h-3.5 text-text-secondary hover:text-blue-600 transition-colors" />
                                     )}
                                   </button>
                                 </td>
                                 <td className="px-3 py-2">
                                   <span
-                                    className="text-sm text-text cursor-pointer hover:text-blue-400 transition-colors"
+                                    className="text-sm text-text-primary cursor-pointer hover:text-blue-600 transition-colors"
                                     onClick={() => setExpandedModuleId(expandedModuleId === m.id ? null : m.id)}
                                   >
                                     {m.name}
@@ -928,14 +928,14 @@ function MibTab() {
                                   <div className="flex items-center gap-1">
                                     <button
                                       onClick={() => openCollectTest(m.id)}
-                                      className="p-1 text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
+                                      className="p-1 text-blue-600 hover:bg-blue-500/10 rounded transition-colors"
                                       title="采集测试"
                                     >
                                       <Zap className="w-3 h-3" />
                                     </button>
                                     <button
                                       onClick={() => setConfirmDeleteId(m.id)}
-                                      className="p-1 text-text-secondary hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                                      className="p-1 text-text-secondary hover:text-red-600 hover:bg-red-500/10 rounded transition-colors"
                                       title="删除"
                                     >
                                       <Trash2 className="w-3 h-3" />
@@ -960,13 +960,13 @@ function MibTab() {
           {expandedModuleId && (
             <div className="bg-surface rounded-xl border border-blue-500/30">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                <h3 className="text-sm font-medium text-text flex items-center gap-2">
-                  <Database className="w-4 h-4 text-blue-400" />
+                <h3 className="text-sm font-medium text-text-primary flex items-center gap-2">
+                  <Database className="w-4 h-4 text-blue-600" />
                   {(modules as any[]).find((m: any) => m.id === expandedModuleId)?.name || ''} - OID 对象
                 </h3>
                 <button 
                   onClick={() => setExpandedModuleId(null)}
-                  className="p-1 hover:bg-surface-secondary rounded-md"
+                  className="p-1 hover:bg-surface-2 rounded-md"
                 >
                   <X className="w-4 h-4 text-text-secondary" />
                 </button>
@@ -991,7 +991,7 @@ function MibTab() {
                         const isHighlighted = tags.length > 0;
                         return (
                           <tr key={i} className={`border-b border-border/30 transition-colors ${
-                            isHighlighted ? 'bg-blue-500/5 hover:bg-blue-500/10' : 'hover:bg-surface-secondary/20'
+                            isHighlighted ? 'bg-blue-500/5 hover:bg-blue-500/10' : 'hover:bg-surface-2/20'
                           }`}>
                             <td className="px-3 py-1.5">
                               <div className="flex flex-wrap gap-1">
@@ -1004,8 +1004,8 @@ function MibTab() {
                                 {tags.length === 0 && <span className="text-[10px] text-text-secondary">-</span>}
                               </div>
                             </td>
-                            <td className="px-3 py-1.5 text-xs font-mono text-blue-400">{obj.oid}</td>
-                            <td className={`px-3 py-1.5 text-xs ${isHighlighted ? 'font-semibold text-text' : 'text-text'}`}>{obj.name}</td>
+                            <td className="px-3 py-1.5 text-xs font-mono text-blue-600">{obj.oid}</td>
+                            <td className={`px-3 py-1.5 text-xs ${isHighlighted ? 'font-semibold text-text-primary' : 'text-text-primary'}`}>{obj.name}</td>
                             <td className="px-3 py-1.5 text-xs text-text-secondary max-w-xs truncate" title={obj.description}>{obj.description || '-'}</td>
                             <td className="px-3 py-1.5 text-xs text-text-secondary">{obj.syntax || '-'}</td>
                           </tr>
@@ -1024,10 +1024,10 @@ function MibTab() {
       {confirmDeleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setConfirmDeleteId(null)}>
           <div className="bg-surface border border-border rounded-xl w-full max-w-sm p-6 shadow-xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-base font-semibold text-text mb-2">确认删除</h3>
+            <h3 className="text-base font-semibold text-text-primary mb-2">确认删除</h3>
             <p className="text-sm text-text-secondary mb-4">确定删除此 MIB 模块？关联的 OID 对象也将被删除。</p>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setConfirmDeleteId(null)} className="px-4 py-2 text-sm text-text-secondary hover:text-text transition-colors">取消</button>
+              <button onClick={() => setConfirmDeleteId(null)} className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors">取消</button>
               <button onClick={() => { deleteMutation.mutate(confirmDeleteId); setConfirmDeleteId(null); }}
                 className="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition-colors">删除</button>
             </div>
@@ -1039,12 +1039,12 @@ function MibTab() {
       {confirmBatchDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setConfirmBatchDelete(false)}>
           <div className="bg-surface border border-border rounded-xl w-full max-w-sm p-6 shadow-xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-base font-semibold text-text mb-2">确认批量删除</h3>
+            <h3 className="text-base font-semibold text-text-primary mb-2">确认批量删除</h3>
             <p className="text-sm text-text-secondary mb-4">
-              确定删除选中的 <span className="text-red-400 font-medium">{selectedModuleIds.size}</span> 个 MIB 模块？关联的 OID 对象也将被删除，此操作不可撤销。
+              确定删除选中的 <span className="text-red-600 font-medium">{selectedModuleIds.size}</span> 个 MIB 模块？关联的 OID 对象也将被删除，此操作不可撤销。
             </p>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setConfirmBatchDelete(false)} className="px-4 py-2 text-sm text-text-secondary hover:text-text transition-colors">取消</button>
+              <button onClick={() => setConfirmBatchDelete(false)} className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors">取消</button>
               <button
                 onClick={() => batchDeleteMutation.mutate(Array.from(selectedModuleIds))}
                 disabled={batchDeleteMutation.isPending}
@@ -1062,9 +1062,9 @@ function MibTab() {
       {confirmGroupDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setConfirmGroupDelete(null)}>
           <div className="bg-surface border border-border rounded-xl w-full max-w-sm p-6 shadow-xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-base font-semibold text-text mb-2">确认删除文件</h3>
+            <h3 className="text-base font-semibold text-text-primary mb-2">确认删除文件</h3>
             <p className="text-sm text-text-secondary mb-4">
-              确定删除文件 <span className="text-text font-medium">{confirmGroupDelete}</span> 下的所有 MIB 模块？
+              确定删除文件 <span className="text-text-primary font-medium">{confirmGroupDelete}</span> 下的所有 MIB 模块？
               {(() => {
                 const g = moduleGroups.find(g => g.key === confirmGroupDelete);
                 return g ? `共 ${g.modules.length} 个模块、${g.totalObjects} 个 OID，` : '';
@@ -1072,7 +1072,7 @@ function MibTab() {
               此操作不可撤销。
             </p>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setConfirmGroupDelete(null)} className="px-4 py-2 text-sm text-text-secondary hover:text-text transition-colors">取消</button>
+              <button onClick={() => setConfirmGroupDelete(null)} className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors">取消</button>
               <button
                 onClick={() => { deleteGroup(confirmGroupDelete); setConfirmGroupDelete(null); }}
                 disabled={batchDeleteMutation.isPending}
@@ -1252,11 +1252,11 @@ function CollectTestModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-surface border border-border rounded-xl w-full max-w-3xl max-h-[85vh] overflow-y-auto p-6 shadow-2xl shadow-black/40" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
-          <h2 className="text-lg font-bold text-text flex items-center gap-2">
-            <Zap className="w-5 h-5 text-blue-400" />
+          <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
+            <Zap className="w-5 h-5 text-blue-600" />
             {isSingleOid ? `单点 OID 采集测试` : `模块采集测试`}
           </h2>
-          <button onClick={onClose} className="p-1.5 hover:bg-surface-secondary rounded-md text-text-secondary hover:text-text transition-colors"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="p-1.5 hover:bg-surface-2 rounded-md text-text-secondary hover:text-text-primary transition-colors"><X className="w-4 h-4" /></button>
         </div>
 
         {/* 预选目标单 OID 信息 Banner */}
@@ -1264,13 +1264,13 @@ function CollectTestModal({
           <div className="mb-4 p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-blue-400">已自动选中 OID:</span>
-                <span className="text-sm font-bold text-text">{targetItem.name || '未命名节点'}</span>
+                <span className="text-xs font-semibold text-blue-600">已自动选中 OID:</span>
+                <span className="text-sm font-bold text-text-primary">{targetItem.name || '未命名节点'}</span>
               </div>
               <p className="text-xs font-mono text-cyan-300 mt-0.5">{targetItem.oid}</p>
             </div>
             <span className="text-xs px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 font-semibold flex items-center gap-1 border border-blue-500/30">
-              <Check className="w-3.5 h-3.5 text-emerald-400" /> 免选 OID 模式
+              <Check className="w-3.5 h-3.5 text-emerald-600" /> 免选 OID 模式
             </span>
           </div>
         ) : null}
@@ -1279,8 +1279,8 @@ function CollectTestModal({
           {/* 设备选择 */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-semibold text-text">1. 选择测试设备</label>
-              <button onClick={selectAllDevices} className="text-xs text-blue-400 hover:text-blue-300 font-medium">
+              <label className="text-sm font-semibold text-text-primary">1. 选择测试设备</label>
+              <button onClick={selectAllDevices} className="text-xs text-blue-600 hover:text-blue-300 font-medium">
                 {selectedDeviceIds.size === networkDevices.length ? '取消全选' : '全选设备'}
               </button>
             </div>
@@ -1291,7 +1291,7 @@ function CollectTestModal({
                 <div key={d.id}
                   onClick={() => toggleDevice(d.id)}
                   className={`flex items-center gap-2.5 px-3.5 py-2.5 cursor-pointer transition-colors border-b border-border/30 last:border-0 ${
-                    selectedDeviceIds.has(d.id) ? 'bg-blue-500/10' : 'hover:bg-surface-secondary/50'
+                    selectedDeviceIds.has(d.id) ? 'bg-blue-500/10' : 'hover:bg-surface-2/50'
                   }`}
                 >
                   <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
@@ -1300,7 +1300,7 @@ function CollectTestModal({
                     {selectedDeviceIds.has(d.id) && <CheckCircle2 className="w-3 h-3 text-white" />}
                   </div>
                   <Monitor className="w-4 h-4 text-text-secondary flex-shrink-0" />
-                  <span className="text-sm font-medium text-text truncate">{d.name}</span>
+                  <span className="text-sm font-medium text-text-primary truncate">{d.name}</span>
                   <span className="text-xs text-cyan-300 font-mono font-semibold ml-auto bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">{d.ip_address}</span>
                 </div>
               ))}
@@ -1311,8 +1311,8 @@ function CollectTestModal({
           {!isSingleOid && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-semibold text-text">2. 模块下的 OID 列表</label>
-                <button onClick={selectAllOids} className="text-xs text-blue-400 hover:text-blue-300 font-medium">
+                <label className="text-sm font-semibold text-text-primary">2. 模块下的 OID 列表</label>
+                <button onClick={selectAllOids} className="text-xs text-blue-600 hover:text-blue-300 font-medium">
                   {selectedOids.size === validObjects.length ? '取消全选' : '全选 OID'}
                 </button>
               </div>
@@ -1323,7 +1323,7 @@ function CollectTestModal({
                   <div key={o.id}
                     onClick={() => toggleOid(o.id)}
                     className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer transition-colors border-b border-border/30 last:border-0 ${
-                      selectedOids.has(o.id) ? 'bg-blue-500/10' : 'hover:bg-surface-secondary/50'
+                      selectedOids.has(o.id) ? 'bg-blue-500/10' : 'hover:bg-surface-2/50'
                     }`}
                   >
                     <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${
@@ -1331,8 +1331,8 @@ function CollectTestModal({
                     }`}>
                       {selectedOids.has(o.id) && <CheckCircle2 className="w-2.5 h-2.5 text-white" />}
                     </div>
-                    <span className="text-xs font-mono text-blue-400 flex-shrink-0">{o.oid}</span>
-                    <span className="text-sm text-text truncate">{o.name || '-'}</span>
+                    <span className="text-xs font-mono text-blue-600 flex-shrink-0">{o.oid}</span>
+                    <span className="text-sm text-text-primary truncate">{o.name || '-'}</span>
                   </div>
                 ))}
               </div>
@@ -1341,16 +1341,16 @@ function CollectTestModal({
 
           {/* SNMP 参数设置 */}
           <div className="pt-2 border-t border-border/40">
-            <label className="text-sm font-semibold text-text block mb-2">{isSingleOid ? '2. SNMP 连接参数' : '3. SNMP 连接参数'}</label>
+            <label className="text-sm font-semibold text-text-primary block mb-2">{isSingleOid ? '2. SNMP 连接参数' : '3. SNMP 连接参数'}</label>
 
-            <div className="space-y-3.5 bg-surface-secondary/40 p-4 rounded-xl border border-border/60">
+            <div className="space-y-3.5 bg-surface-2/40 p-4 rounded-xl border border-border/60">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-text-secondary mb-1">SNMP 版本</label>
                   <select
                     value={snmpVersion}
                     onChange={e => setSnmpVersion(e.target.value)}
-                    className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500 cursor-pointer"
+                    className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500 cursor-pointer"
                   >
                     {SNMP_VERSION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
@@ -1361,7 +1361,7 @@ function CollectTestModal({
                     type="number"
                     value={snmpTimeout}
                     onChange={e => setSnmpTimeout(parseInt(e.target.value) || 10000)}
-                    className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text font-mono focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary font-mono focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
@@ -1370,8 +1370,8 @@ function CollectTestModal({
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-semibold text-text-secondary">快速套用凭据库</label>
-                    <span className="text-[11px] text-blue-400 font-medium flex items-center gap-1">
-                      <Key className="w-3 h-3 text-amber-400" /> 已连通 SNMP 密码库
+                    <span className="text-[11px] text-blue-600 font-medium flex items-center gap-1">
+                      <Key className="w-3 h-3 text-amber-600" /> 已连通 SNMP 密码库
                     </span>
                   </div>
                   <select
@@ -1392,7 +1392,7 @@ function CollectTestModal({
                         }
                       }
                     }}
-                    className="w-full px-3 py-2 bg-background border border-blue-500/30 hover:border-blue-400 rounded-lg text-xs text-blue-400 font-semibold focus:outline-none cursor-pointer truncate shadow-sm transition-colors"
+                    className="w-full px-3 py-2 bg-background border border-blue-500/30 hover:border-blue-400 rounded-lg text-xs text-blue-600 font-semibold focus:outline-none cursor-pointer truncate shadow-sm transition-colors"
                   >
                     <option value="">🔑 选择已保存 SNMP 凭证 / 只读串...</option>
                     {savedCredentials.map((c: any) => (
@@ -1407,7 +1407,7 @@ function CollectTestModal({
               {snmpVersion !== 'v3' ? (
                 <div>
                   <label className="block text-xs font-semibold text-text-secondary mb-1.5">
-                    SNMP 只读串密码 (Community) <span className="text-red-400">*</span>
+                    SNMP 只读串密码 (Community) <span className="text-red-600">*</span>
                   </label>
                   <input
                     value={community}
@@ -1419,13 +1419,13 @@ function CollectTestModal({
               ) : (
                 <div className="bg-[#090d1a] border border-blue-500/20 rounded-xl p-3.5 space-y-3">
                   <div className="flex items-center gap-2 pb-1.5 border-b border-blue-500/15">
-                    <Shield className="w-4 h-4 text-blue-400" />
+                    <Shield className="w-4 h-4 text-blue-600" />
                     <span className="text-xs font-bold text-blue-300">SNMP v3 安全参数 (USM)</span>
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-text-secondary mb-1">
-                      安全用户名 (Username) <span className="text-red-400">*</span>
+                      安全用户名 (Username) <span className="text-red-600">*</span>
                     </label>
                     <input
                       type="text"
@@ -1442,7 +1442,7 @@ function CollectTestModal({
                       <select
                         value={snmpAuthProtocol}
                         onChange={e => setSnmpAuthProtocol(e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text focus:outline-none focus:border-blue-500"
+                        className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:border-blue-500"
                       >
                         <option value="">无 (NoAuth)</option>
                         <option value="SHA">SHA / SHA1</option>
@@ -1459,12 +1459,12 @@ function CollectTestModal({
                           value={snmpAuthKey}
                           onChange={e => setSnmpAuthKey(e.target.value)}
                           placeholder="认证密钥密码"
-                          className="w-full pl-2.5 pr-7 py-1.5 bg-surface border border-border rounded-lg text-xs font-mono text-text focus:outline-none focus:border-blue-500"
+                          className="w-full pl-2.5 pr-7 py-1.5 bg-surface border border-border rounded-lg text-xs font-mono text-text-primary focus:outline-none focus:border-blue-500"
                         />
                         <button
                           type="button"
                           onClick={() => setShowAuthKey(!showAuthKey)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary"
                         >
                           {showAuthKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
@@ -1478,7 +1478,7 @@ function CollectTestModal({
                       <select
                         value={snmpPrivProtocol}
                         onChange={e => setSnmpPrivProtocol(e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text focus:outline-none focus:border-blue-500"
+                        className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:border-blue-500"
                       >
                         <option value="">无 (NoPriv)</option>
                         <option value="AES">AES / AES128 (推荐)</option>
@@ -1495,12 +1495,12 @@ function CollectTestModal({
                           value={snmpPrivKey}
                           onChange={e => setSnmpPrivKey(e.target.value)}
                           placeholder="数据隐私加密密码"
-                          className="w-full pl-2.5 pr-7 py-1.5 bg-surface border border-border rounded-lg text-xs font-mono text-text focus:outline-none focus:border-blue-500"
+                          className="w-full pl-2.5 pr-7 py-1.5 bg-surface border border-border rounded-lg text-xs font-mono text-text-primary focus:outline-none focus:border-blue-500"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPrivKey(!showPrivKey)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary"
                         >
                           {showPrivKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
@@ -1515,7 +1515,7 @@ function CollectTestModal({
 
         {/* 触发测试按钮 */}
         <div className="mt-6 flex justify-end gap-3 border-t border-border pt-4">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-text-secondary hover:text-text transition-colors">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors">
             取消
           </button>
           <button
@@ -1531,7 +1531,7 @@ function CollectTestModal({
         {/* 测试结果 */}
         {testResults && (
           <div className="mt-6 space-y-3 border-t border-border pt-4">
-            <h3 className="text-sm font-semibold text-text flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-text-primary flex items-center justify-between">
               <span>测试结果 ({testResults.length} 条)</span>
               <span className="text-xs font-normal text-text-secondary">SNMP GET / WALK 响应结果</span>
             </h3>
@@ -1541,11 +1541,11 @@ function CollectTestModal({
                   r.status === 'success' ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-red-500/5 border-red-500/30'
                 }`}>
                   <div className="flex items-center justify-between font-sans mb-1.5">
-                    <span className="font-semibold text-text">{r.deviceName} ({r.deviceIp})</span>
+                    <span className="font-semibold text-text-primary">{r.deviceName} ({r.deviceIp})</span>
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] text-text-secondary">耗时 {r.durationMs}ms</span>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                        r.status === 'success' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
+                        r.status === 'success' ? 'bg-emerald-500/20 text-emerald-600' : 'bg-red-500/20 text-red-600'
                       }`}>
                         {r.status === 'success' ? '成功' : '失败'}
                       </span>
@@ -1555,10 +1555,10 @@ function CollectTestModal({
                   {r.metrics?.length > 0 && (
                     <div className="space-y-1 mt-1">
                       {r.metrics.map((m: any, j: number) => (
-                        <div key={j} className="flex items-center justify-between bg-surface-secondary/40 p-2 rounded border border-border/40">
-                          <span className="text-blue-400 font-semibold">{m.metric_name || m.oid}:</span>
+                        <div key={j} className="flex items-center justify-between bg-surface-2/40 p-2 rounded border border-border/40">
+                          <span className="text-blue-600 font-semibold">{m.metric_name || m.oid}:</span>
                           {m.error ? (
-                            <span className="text-red-400">{m.error}</span>
+                            <span className="text-red-600">{m.error}</span>
                           ) : m.metric_value && m.metric_value.includes('; ') ? (
                             <div className="flex flex-col gap-1 w-full mt-1.5 font-mono text-xs">
                               {m.metric_value.split('; ').map((part: string, pIdx: number) => {
@@ -1567,9 +1567,9 @@ function CollectTestModal({
                                 const subVal = eqIdx > -1 ? part.substring(eqIdx + 1) : part;
                                 return (
                                   <div key={pIdx} className="flex items-center justify-between px-2.5 py-1.5 rounded bg-surface/60 border border-border/40 hover:border-blue-500/30 transition-colors">
-                                    <span className="text-text-secondary">实例 ID <code className="text-blue-400 font-semibold">{subIdx}</code></span>
+                                    <span className="text-text-secondary">实例 ID <code className="text-blue-600 font-semibold">{subIdx}</code></span>
                                     <div className="flex items-center gap-2.5">
-                                      <span className="text-emerald-400 font-semibold font-mono">{subVal}</span>
+                                      <span className="text-emerald-600 font-semibold font-mono">{subVal}</span>
                                       <button
                                         onClick={() => setSendToDashboardData({
                                           oid: subIdx,
@@ -1582,7 +1582,7 @@ function CollectTestModal({
                                           community,
                                           is_table: 1,
                                         })}
-                                        className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded transition-all shadow-sm"
+                                        className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold text-blue-600 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded transition-all shadow-sm"
                                       >
                                         <Monitor className="w-3 h-3" />
                                         发送到监控大屏
@@ -1594,7 +1594,7 @@ function CollectTestModal({
                             </div>
                           ) : (
                             <div className="flex items-center gap-2.5">
-                              <span className="text-emerald-400 font-semibold font-mono">{m.metric_value ?? '-'}</span>
+                              <span className="text-emerald-600 font-semibold font-mono">{m.metric_value ?? '-'}</span>
                               {m.metric_value !== null && m.metric_value !== undefined && m.metric_value !== 'N/A' && !m.error && (
                                 <button
                                   onClick={() => setSendToDashboardData({
@@ -1608,7 +1608,7 @@ function CollectTestModal({
                                     community,
                                     is_table: m.is_table || 0,
                                   })}
-                                  className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded transition-all shadow-sm"
+                                  className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold text-blue-600 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded transition-all shadow-sm"
                                 >
                                   <Monitor className="w-3 h-3" />
                                   发送到监控大屏
@@ -1789,18 +1789,18 @@ function BatchCollectTestModal({ moduleIds, modules, onClose }: { moduleIds: str
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-surface border border-border rounded-xl w-full max-w-5xl max-h-[85vh] overflow-y-auto p-6 shadow-xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-text flex items-center gap-2">
-            <Zap className="w-5 h-5 text-blue-400" />
+          <h2 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+            <Zap className="w-5 h-5 text-blue-600" />
             批量采集测试
           </h2>
-          <button onClick={onClose} className="p-1.5 hover:bg-surface-secondary rounded-md"><X className="w-4 h-4 text-text-secondary" /></button>
+          <button onClick={onClose} className="p-1.5 hover:bg-surface-2 rounded-md"><X className="w-4 h-4 text-text-secondary" /></button>
         </div>
 
         {/* 模块概览 */}
         <div className="mb-4 p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
           <p className="text-sm text-text-secondary mb-1">
-            已选择 <span className="text-blue-400 font-medium">{moduleIds.length}</span> 个模块，
-            共 <span className="text-blue-400 font-medium">{validObjects.length}</span> 个去重后 OID
+            已选择 <span className="text-blue-600 font-medium">{moduleIds.length}</span> 个模块，
+            共 <span className="text-blue-600 font-medium">{validObjects.length}</span> 个去重后 OID
           </p>
           <p className="text-xs text-text-tertiary truncate">{selectedModuleNames.join(', ')}</p>
         </div>
@@ -1809,8 +1809,8 @@ function BatchCollectTestModal({ moduleIds, modules, onClose }: { moduleIds: str
           {/* 设备选择 */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-text">选择设备</label>
-              <button onClick={selectAllDevices} className="text-xs text-blue-400 hover:text-blue-300">
+              <label className="text-sm font-medium text-text-primary">选择设备</label>
+              <button onClick={selectAllDevices} className="text-xs text-blue-600 hover:text-blue-300">
                 {selectedDeviceIds.size === networkDevices.length ? '取消全选' : '全选'}
               </button>
             </div>
@@ -1818,10 +1818,10 @@ function BatchCollectTestModal({ moduleIds, modules, onClose }: { moduleIds: str
               {networkDevices.map((d: any) => (
                 <div key={d.id} onClick={() => toggleDevice(d.id)}
                   className={`flex items-center gap-2 px-2.5 py-1.5 rounded cursor-pointer transition-colors ${
-                    selectedDeviceIds.has(d.id) ? 'bg-blue-500/10 text-blue-400' : 'hover:bg-surface-secondary'
+                    selectedDeviceIds.has(d.id) ? 'bg-blue-500/10 text-blue-600' : 'hover:bg-surface-2'
                   }`}>
                   <input type="checkbox" checked={selectedDeviceIds.has(d.id)} onChange={() => {}} className="rounded" />
-                  <span className="text-sm text-text truncate">{d.name}</span>
+                  <span className="text-sm text-text-primary truncate">{d.name}</span>
                   <span className="text-xs text-text-secondary font-mono ml-auto">{d.ip_address}</span>
                 </div>
               ))}
@@ -1831,20 +1831,20 @@ function BatchCollectTestModal({ moduleIds, modules, onClose }: { moduleIds: str
           {/* OID 按模块分组预览 */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-text">OID 列表（按模块分组）</label>
+              <label className="text-sm font-medium text-text-primary">OID 列表（按模块分组）</label>
               <span className="text-xs text-text-secondary">{validObjects.length} 个</span>
             </div>
             <div className="max-h-48 overflow-y-auto border border-border rounded-lg">
               {objectsLoading ? (
-                <div className="flex items-center justify-center py-4"><Loader2 className="w-4 h-4 animate-spin text-blue-400" /></div>
+                <div className="flex items-center justify-center py-4"><Loader2 className="w-4 h-4 animate-spin text-blue-600" /></div>
               ) : objectsByModule.map(([modName, objs]) => (
                 <div key={modName}>
-                  <div className="px-3 py-1.5 bg-surface-secondary/30 text-xs font-medium text-text-secondary sticky top-0">{modName} ({objs.length})</div>
+                  <div className="px-3 py-1.5 bg-surface-2/30 text-xs font-medium text-text-secondary sticky top-0">{modName} ({objs.length})</div>
                   {objs.slice(0, 20).map((o: any) => (
                     <div key={o.id} className="flex items-center gap-2 px-3 py-1 border-b border-border/20">
-                      <span className="text-xs font-mono text-blue-400 flex-shrink-0">{o.oid}</span>
-                      <span className="text-xs text-text truncate">{o.name || '-'}</span>
-                      {o.is_table === 1 && <span className="text-[10px] text-yellow-400 flex-shrink-0">TABLE</span>}
+                      <span className="text-xs font-mono text-blue-600 flex-shrink-0">{o.oid}</span>
+                      <span className="text-xs text-text-primary truncate">{o.name || '-'}</span>
+                      {o.is_table === 1 && <span className="text-[10px] text-yellow-600 flex-shrink-0">TABLE</span>}
                     </div>
                   ))}
                   {objs.length > 20 && (
@@ -1857,21 +1857,21 @@ function BatchCollectTestModal({ moduleIds, modules, onClose }: { moduleIds: str
         </div>
 
         {/* SNMP 参数 */}
-        <div className="mt-4 p-3.5 bg-surface-secondary/30 border border-border/60 rounded-xl space-y-3">
+        <div className="mt-4 p-3.5 bg-surface-2/30 border border-border/60 rounded-xl space-y-3">
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-text mb-1">SNMP 版本</label>
+              <label className="block text-xs font-medium text-text-primary mb-1">SNMP 版本</label>
               <select
                 value={snmpVersion}
                 onChange={e => setSnmpVersion(e.target.value)}
-                className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500 cursor-pointer"
+                className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500 cursor-pointer"
               >
                 {SNMP_VERSION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             {savedCredentials.length > 0 && (
               <div>
-                <label className="block text-xs font-medium text-text mb-1">选择已存凭据</label>
+                <label className="block text-xs font-medium text-text-primary mb-1">选择已存凭据</label>
                 <select
                   value={snmpCredentialId}
                   onChange={e => {
@@ -1890,7 +1890,7 @@ function BatchCollectTestModal({ moduleIds, modules, onClose }: { moduleIds: str
                       }
                     }
                   }}
-                  className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-xs text-blue-400 focus:outline-none focus:border-blue-500 cursor-pointer truncate"
+                  className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-xs text-blue-600 focus:outline-none focus:border-blue-500 cursor-pointer truncate"
                 >
                   <option value="">🔑 选 SNMP 凭据...</option>
                   {savedCredentials.map((c: any) => (
@@ -1902,30 +1902,30 @@ function BatchCollectTestModal({ moduleIds, modules, onClose }: { moduleIds: str
               </div>
             )}
             <div>
-              <label className="block text-xs font-medium text-text mb-1">超时(ms)</label>
+              <label className="block text-xs font-medium text-text-primary mb-1">超时(ms)</label>
               <input
                 type="number"
                 value={snmpTimeout}
                 onChange={e => setSnmpTimeout(parseInt(e.target.value) || 15000)}
-                className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
               />
             </div>
           </div>
 
           {snmpVersion !== 'v3' ? (
             <div>
-              <label className="block text-xs font-medium text-text mb-1">Community (只读串)</label>
+              <label className="block text-xs font-medium text-text-primary mb-1">Community (只读串)</label>
               <input
                 value={community}
                 onChange={e => setCommunity(e.target.value)}
-                className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text font-mono focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary font-mono focus:outline-none focus:border-blue-500"
               />
             </div>
           ) : (
             <div className="bg-[#090d1a] border border-blue-500/20 rounded-lg p-3 space-y-2.5">
               <div>
                 <label className="block text-xs font-semibold text-text-secondary mb-1">
-                  安全用户名 (Username) <span className="text-red-400">*</span>
+                  安全用户名 (Username) <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
@@ -1941,7 +1941,7 @@ function BatchCollectTestModal({ moduleIds, modules, onClose }: { moduleIds: str
                   <select
                     value={snmpAuthProtocol}
                     onChange={e => setSnmpAuthProtocol(e.target.value)}
-                    className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text focus:outline-none focus:border-blue-500"
+                    className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:border-blue-500"
                   >
                     <option value="">无 (NoAuth)</option>
                     <option value="SHA">SHA / SHA1</option>
@@ -1958,12 +1958,12 @@ function BatchCollectTestModal({ moduleIds, modules, onClose }: { moduleIds: str
                       value={snmpAuthKey}
                       onChange={e => setSnmpAuthKey(e.target.value)}
                       placeholder="认证密码"
-                      className="w-full pl-2.5 pr-7 py-1.5 bg-surface border border-border rounded-lg text-xs font-mono text-text focus:outline-none focus:border-blue-500"
+                      className="w-full pl-2.5 pr-7 py-1.5 bg-surface border border-border rounded-lg text-xs font-mono text-text-primary focus:outline-none focus:border-blue-500"
                     />
                     <button
                       type="button"
                       onClick={() => setShowAuthKey(!showAuthKey)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary"
                     >
                       {showAuthKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
@@ -1976,7 +1976,7 @@ function BatchCollectTestModal({ moduleIds, modules, onClose }: { moduleIds: str
                   <select
                     value={snmpPrivProtocol}
                     onChange={e => setSnmpPrivProtocol(e.target.value)}
-                    className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text focus:outline-none focus:border-blue-500"
+                    className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:border-blue-500"
                   >
                     <option value="">无 (NoPriv)</option>
                     <option value="AES">AES / AES128 (推荐)</option>
@@ -1993,12 +1993,12 @@ function BatchCollectTestModal({ moduleIds, modules, onClose }: { moduleIds: str
                       value={snmpPrivKey}
                       onChange={e => setSnmpPrivKey(e.target.value)}
                       placeholder="加密密码"
-                      className="w-full pl-2.5 pr-7 py-1.5 bg-surface border border-border rounded-lg text-xs font-mono text-text focus:outline-none focus:border-blue-500"
+                      className="w-full pl-2.5 pr-7 py-1.5 bg-surface border border-border rounded-lg text-xs font-mono text-text-primary focus:outline-none focus:border-blue-500"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPrivKey(!showPrivKey)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary"
                     >
                       {showPrivKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
@@ -2020,7 +2020,7 @@ function BatchCollectTestModal({ moduleIds, modules, onClose }: { moduleIds: str
           </button>
           {testing && testProgress && (
             <div className="w-64">
-              <div className="w-full bg-surface-secondary rounded-full h-1.5">
+              <div className="w-full bg-surface-2 rounded-full h-1.5">
                 <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${(testProgress.current / testProgress.total) * 100}%` }} />
               </div>
               <p className="text-xs text-text-secondary text-center mt-1">
@@ -2033,8 +2033,8 @@ function BatchCollectTestModal({ moduleIds, modules, onClose }: { moduleIds: str
         {/* 测试结果 */}
         {testResults && (
           <div className="mt-4 border border-border rounded-xl overflow-hidden">
-            <div className="px-4 py-2 bg-surface-secondary/30 border-b border-border flex items-center justify-between">
-              <h3 className="text-sm font-medium text-text">测试结果</h3>
+            <div className="px-4 py-2 bg-surface-2/30 border-b border-border flex items-center justify-between">
+              <h3 className="text-sm font-medium text-text-primary">测试结果</h3>
               <button
                 onClick={async () => {
                   // 批量保存所有有值的指标到面板
@@ -2063,7 +2063,7 @@ function BatchCollectTestModal({ moduleIds, modules, onClose }: { moduleIds: str
                     toast.error(err.response?.data?.error || '保存失败');
                   }
                 }}
-                className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors"
+                className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-500/10 rounded-md transition-colors"
               >
                 <CheckSquare className="w-3 h-3" />
                 全部保存到面板
@@ -2073,10 +2073,10 @@ function BatchCollectTestModal({ moduleIds, modules, onClose }: { moduleIds: str
               {testResults.map((r: any, i: number) => (
                 <div key={i} className="border-b border-border/50 last:border-0">
                   <div className="flex items-center gap-2 px-4 py-2">
-                    {r.status === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> :
-                     r.status === 'partial' ? <AlertTriangle className="w-4 h-4 text-yellow-400" /> :
-                     <XCircle className="w-4 h-4 text-red-400" />}
-                    <span className="text-sm font-medium text-text">{r.deviceName}</span>
+                    {r.status === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> :
+                     r.status === 'partial' ? <AlertTriangle className="w-4 h-4 text-yellow-600" /> :
+                     <XCircle className="w-4 h-4 text-red-600" />}
+                    <span className="text-sm font-medium text-text-primary">{r.deviceName}</span>
                     <span className="text-xs text-text-secondary font-mono">{r.deviceIp}</span>
                     <span className="text-xs text-text-secondary ml-auto">{r.durationMs}ms</span>
                   </div>
@@ -2094,10 +2094,10 @@ function BatchCollectTestModal({ moduleIds, modules, onClose }: { moduleIds: str
                         <tbody>
                           {r.metrics.map((m: any, j: number) => (
                             <tr key={j} className="border-t border-border/10">
-                              <td className="py-0.5 text-[10px] font-mono text-blue-400">{m.oid}</td>
-                              <td className="py-0.5 text-[10px] text-text pl-2">{m.metric_name}</td>
-                              <td className="py-0.5 text-[10px] text-text pl-2">
-                                {m.error ? <span className="text-red-400">{m.error}</span> : <span className="font-mono">{m.metric_value ?? '-'}</span>}
+                              <td className="py-0.5 text-[10px] font-mono text-blue-600">{m.oid}</td>
+                              <td className="py-0.5 text-[10px] text-text-primary pl-2">{m.metric_name}</td>
+                              <td className="py-0.5 text-[10px] text-text-primary pl-2">
+                                {m.error ? <span className="text-red-600">{m.error}</span> : <span className="font-mono">{m.metric_value ?? '-'}</span>}
                               </td>
                               <td className="py-0.5 pl-2">
                                 {m.metric_value !== null && m.metric_value !== undefined && m.metric_value !== 'N/A' && !m.error && (
@@ -2113,7 +2113,7 @@ function BatchCollectTestModal({ moduleIds, modules, onClose }: { moduleIds: str
                                       community,
                                       is_table: m.is_table || 0,
                                     })}
-                                    className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] text-blue-400 hover:bg-blue-500/10 rounded transition-colors font-medium"
+                                    className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] text-blue-600 hover:bg-blue-500/10 rounded transition-colors font-medium"
                                   >
                                     <Monitor className="w-2.5 h-2.5" />
                                     发送到监控大屏
@@ -2136,28 +2136,28 @@ function BatchCollectTestModal({ moduleIds, modules, onClose }: { moduleIds: str
         {editingMetricName && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setEditingMetricName(null)}>
             <div className="bg-surface border border-border rounded-xl w-full max-w-sm p-5 shadow-xl" onClick={e => e.stopPropagation()}>
-              <h3 className="text-sm font-semibold text-text mb-3">保存到监控面板</h3>
+              <h3 className="text-sm font-semibold text-text-primary mb-3">保存到监控面板</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-text mb-1">OID</label>
-                  <p className="text-xs font-mono text-blue-400">{editingMetricName.oid}</p>
+                  <label className="block text-xs font-medium text-text-primary mb-1">OID</label>
+                  <p className="text-xs font-mono text-blue-600">{editingMetricName.oid}</p>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-text mb-1">设备</label>
-                  <p className="text-xs text-text">{editingMetricName.deviceName}</p>
+                  <label className="block text-xs font-medium text-text-primary mb-1">设备</label>
+                  <p className="text-xs text-text-primary">{editingMetricName.deviceName}</p>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-text mb-1">自定义名称</label>
+                  <label className="block text-xs font-medium text-text-primary mb-1">自定义名称</label>
                   <input
                     value={editingMetricName.name}
                     onChange={e => setEditingMetricName({ ...editingMetricName, name: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
                     autoFocus
                   />
                 </div>
               </div>
               <div className="flex justify-end gap-2 mt-4">
-                <button onClick={() => setEditingMetricName(null)} className="px-3 py-1.5 text-xs text-text-secondary hover:text-text">取消</button>
+                <button onClick={() => setEditingMetricName(null)} className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary">取消</button>
                 <button
                   onClick={async () => {
                     try {
@@ -2286,10 +2286,10 @@ function TasksTab() {
         <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-blue-500" /></div>
       ) : tasks.length === 0 ? (
         <div className="text-center py-16 bg-surface rounded-xl border border-dashed border-border p-8">
-          <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center mx-auto mb-3">
+          <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-600 flex items-center justify-center mx-auto mb-3">
             <Zap className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-semibold text-text mb-1">暂无采集任务</h3>
+          <h3 className="text-base font-semibold text-text-primary mb-1">暂无采集任务</h3>
           <p className="text-sm text-text-secondary max-w-md mx-auto mb-5">
             您可以直接使用「自定义 OID 探测与下发」测试任意标量 (GET) 或表量 (WALK) OID 并配置 Tag 添加到设备，或点击「新建任务」批量创建定时轮询任务。
           </p>
@@ -2303,7 +2303,7 @@ function TasksTab() {
             </button>
             <button
               onClick={() => { setEditingTask(null); setShowModal(true); }}
-              className="flex items-center gap-2 px-4 py-2 bg-surface border border-border text-text hover:bg-surface-secondary text-sm font-medium rounded-lg transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-surface border border-border text-text-primary hover:bg-surface-2 text-sm font-medium rounded-lg transition-all"
             >
               <Plus className="w-4 h-4" />
               ➕ 新建定时采集任务
@@ -2314,7 +2314,7 @@ function TasksTab() {
         <div className="bg-surface rounded-xl border border-border overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-border bg-surface-secondary/30">
+              <tr className="border-b border-border bg-surface-2/30">
                 <th className="text-left text-xs font-medium text-text-secondary px-4 py-3">任务名称</th>
                 <th className="text-left text-xs font-medium text-text-secondary px-4 py-3">设备数</th>
                 <th className="text-left text-xs font-medium text-text-secondary px-4 py-3">OID 数</th>
@@ -2327,10 +2327,10 @@ function TasksTab() {
             </thead>
             <tbody>
               {tasks.map((task: any) => (
-                <tr key={task.id} className="border-b border-border/50 hover:bg-surface-secondary/20 transition-colors">
+                <tr key={task.id} className="border-b border-border/50 hover:bg-surface-2/20 transition-colors">
                   <td className="px-4 py-3">
                     <div>
-                      <span className="font-medium text-text">{task.name}</span>
+                      <span className="font-medium text-text-primary">{task.name}</span>
                       {task.description && <p className="text-xs text-text-secondary mt-0.5">{task.description}</p>}
                     </div>
                   </td>
@@ -2346,7 +2346,7 @@ function TasksTab() {
                   <td className="px-4 py-3">
                     <button onClick={() => toggleMutation.mutate(task.id)} className="flex items-center gap-1.5">
                       {task.enabled ? (
-                        <><ToggleRight className="w-5 h-5 text-emerald-400" /><span className="text-xs text-emerald-400">启用</span></>
+                        <><ToggleRight className="w-5 h-5 text-emerald-600" /><span className="text-xs text-emerald-600">启用</span></>
                       ) : (
                         <><ToggleLeft className="w-5 h-5 text-text-secondary" /><span className="text-xs text-text-secondary">禁用</span></>
                       )}
@@ -2355,9 +2355,9 @@ function TasksTab() {
                   <td className="px-4 py-3">
                     {task.last_run_at ? (
                       <div className="flex items-center gap-1.5">
-                        {task.last_run_status === 'success' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> :
-                         task.last_run_status === 'failed' ? <XCircle className="w-3.5 h-3.5 text-red-400" /> :
-                         <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />}
+                        {task.last_run_status === 'success' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> :
+                         task.last_run_status === 'failed' ? <XCircle className="w-3.5 h-3.5 text-red-600" /> :
+                         <AlertTriangle className="w-3.5 h-3.5 text-yellow-600" />}
                         <span className="text-xs text-text-secondary">{new Date(task.last_run_at).toLocaleString()}</span>
                       </div>
                     ) : <span className="text-xs text-text-secondary">未执行</span>}
@@ -2367,20 +2367,20 @@ function TasksTab() {
                       <button
                         onClick={() => executeMutation.mutate(task.id)}
                         disabled={executingId === task.id}
-                        className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-blue-400 hover:bg-blue-500/10 rounded-md transition-colors disabled:opacity-50"
+                        className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-500/10 rounded-md transition-colors disabled:opacity-50"
                       >
                         {executingId === task.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
                         执行
                       </button>
                       <button
                         onClick={() => { setEditingTask(task); setShowModal(true); }}
-                        className="p-1.5 text-text-secondary hover:text-text hover:bg-surface-secondary rounded-md transition-colors"
+                        className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-2 rounded-md transition-colors"
                       >
                         <Settings className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setConfirmDeleteTaskId(task.id)}
-                        className="p-1.5 text-text-secondary hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+                        className="p-1.5 text-text-secondary hover:text-red-600 hover:bg-red-500/10 rounded-md transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -2397,10 +2397,10 @@ function TasksTab() {
       {confirmDeleteTaskId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setConfirmDeleteTaskId(null)}>
           <div className="bg-surface border border-border rounded-xl w-full max-w-sm p-6 shadow-xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-base font-semibold text-text mb-2">确认删除</h3>
+            <h3 className="text-base font-semibold text-text-primary mb-2">确认删除</h3>
             <p className="text-sm text-text-secondary mb-4">确定删除此任务？关联的采集数据也将被删除。</p>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setConfirmDeleteTaskId(null)} className="px-4 py-2 text-sm text-text-secondary hover:text-text transition-colors">取消</button>
+              <button onClick={() => setConfirmDeleteTaskId(null)} className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors">取消</button>
               <button onClick={() => { deleteMutation.mutate(confirmDeleteTaskId); setConfirmDeleteTaskId(null); }}
                 className="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition-colors">删除</button>
             </div>
@@ -2474,7 +2474,7 @@ function DataTab() {
         <select
           value={selectedTask}
           onChange={e => { setSelectedTask(e.target.value); setSelectedDevice(''); }}
-          className="px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500 min-w-[160px]"
+          className="px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500 min-w-[160px]"
         >
           <option value="">全部任务</option>
           {tasks.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -2484,7 +2484,7 @@ function DataTab() {
           <select
             value={selectedDevice}
             onChange={e => setSelectedDevice(e.target.value)}
-            className="px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500 min-w-[160px]"
+            className="px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500 min-w-[160px]"
           >
             <option value="">全部设备</option>
             {networkDevices.map((d: any) => <option key={d.id} value={d.id}>{d.name} ({d.ip_address})</option>)}
@@ -2500,7 +2500,7 @@ function DataTab() {
         <div className="bg-surface rounded-xl border border-border overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-border bg-surface-secondary/30">
+              <tr className="border-b border-border bg-surface-2/30">
                 <th className="text-left text-xs font-medium text-text-secondary px-4 py-3">时间</th>
                 <th className="text-left text-xs font-medium text-text-secondary px-4 py-3">设备</th>
                 <th className="text-left text-xs font-medium text-text-secondary px-4 py-3">OID 名称</th>
@@ -2511,22 +2511,22 @@ function DataTab() {
             </thead>
             <tbody>
               {filteredResults.map((r: any, i: number) => (
-                <tr key={r.id || i} className="border-b border-border/50 hover:bg-surface-secondary/20 transition-colors">
+                <tr key={r.id || i} className="border-b border-border/50 hover:bg-surface-2/20 transition-colors">
                   <td className="px-4 py-3 text-xs text-text-secondary">{r.sampled_at ? new Date(r.sampled_at).toLocaleString() : '-'}</td>
                   <td className="px-4 py-3">
                     <div>
-                      <span className="text-sm text-text">{r.device_name || '-'}</span>
+                      <span className="text-sm text-text-primary">{r.device_name || '-'}</span>
                       <span className="text-xs text-text-secondary font-mono ml-2">{r.device_ip || ''}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
                     <div>
-                      <span className="text-sm text-text">{r.metric_name || '-'}</span>
+                      <span className="text-sm text-text-primary">{r.metric_name || '-'}</span>
                       <span className="text-xs text-text-secondary font-mono ml-2">{r.oid || ''}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-text font-mono">
-                    {r.error_message ? <span className="text-red-400">{r.error_message}</span> : (r.metric_value ?? '-')}
+                  <td className="px-4 py-3 text-sm text-text-primary font-mono">
+                    {r.error_message ? <span className="text-red-600">{r.error_message}</span> : (r.metric_value ?? '-')}
                   </td>
                   <td className="px-4 py-3 text-xs text-text-secondary">{r.metric_type || '-'}</td>
                   <td className="px-4 py-3 text-xs text-text-secondary">{formatDuration(r.duration_ms)}</td>
@@ -2680,22 +2680,22 @@ function TaskModal({ task, onClose, onSave }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-surface border border-border rounded-xl w-full max-w-3xl max-h-[85vh] overflow-y-auto p-6 shadow-xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-text">{task ? '编辑任务' : '新建任务'}</h2>
-          <button onClick={onClose} className="p-1.5 hover:bg-surface-secondary rounded-md"><X className="w-4 h-4 text-text-secondary" /></button>
+          <h2 className="text-lg font-semibold text-text-primary">{task ? '编辑任务' : '新建任务'}</h2>
+          <button onClick={onClose} className="p-1.5 hover:bg-surface-2 rounded-md"><X className="w-4 h-4 text-text-secondary" /></button>
         </div>
 
         <div className="space-y-4">
           {/* 基本信息 */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-text mb-1">任务名称</label>
+              <label className="block text-sm font-medium text-text-primary mb-1">任务名称</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="如：核心交换机流量采集"
-                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500" />
+                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-text mb-1">描述</label>
+              <label className="block text-sm font-medium text-text-primary mb-1">描述</label>
               <input value={description} onChange={e => setDescription(e.target.value)} placeholder="可选"
-                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500" />
+                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500" />
             </div>
           </div>
 
@@ -2703,9 +2703,9 @@ function TaskModal({ task, onClose, onSave }: {
           <div>
             <div className="grid grid-cols-2 gap-4 mb-3">
               <div>
-                <label className="block text-sm font-medium text-text mb-1">设备类型</label>
+                <label className="block text-sm font-medium text-text-primary mb-1">设备类型</label>
                 <select value={deviceType} onChange={e => { setDeviceType(e.target.value); setSelectedDeviceIds(new Set()); }}
-                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500">
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500">
                   {DEVICE_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
@@ -2716,11 +2716,11 @@ function TaskModal({ task, onClose, onSave }: {
             <div className="relative mb-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-secondary" />
               <input value={deviceSearch} onChange={e => setDeviceSearch(e.target.value)} placeholder="搜索设备..."
-                className="w-full pl-9 pr-4 py-1.5 bg-surface border border-border rounded-lg text-sm text-text placeholder:text-text-secondary focus:outline-none focus:border-blue-500" />
+                className="w-full pl-9 pr-4 py-1.5 bg-surface border border-border rounded-lg text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-blue-500" />
             </div>
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs text-text-secondary">设备列表</span>
-              <button onClick={selectAllDevices} className="text-xs text-blue-400 hover:text-blue-300">
+              <button onClick={selectAllDevices} className="text-xs text-blue-600 hover:text-blue-300">
                 {selectedDeviceIds.size === filteredDevices.length ? '取消全选' : '全选'}
               </button>
             </div>
@@ -2731,7 +2731,7 @@ function TaskModal({ task, onClose, onSave }: {
                 <div key={d.id}
                   onClick={() => toggleDevice(d.id)}
                   className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors border-b border-border/30 last:border-0 ${
-                    selectedDeviceIds.has(d.id) ? 'bg-blue-500/10' : 'hover:bg-surface-secondary/50'
+                    selectedDeviceIds.has(d.id) ? 'bg-blue-500/10' : 'hover:bg-surface-2/50'
                   }`}
                 >
                   <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
@@ -2740,7 +2740,7 @@ function TaskModal({ task, onClose, onSave }: {
                     {selectedDeviceIds.has(d.id) && <CheckCircle2 className="w-3 h-3 text-white" />}
                   </div>
                   {deviceType === 'server' ? <Server className="w-4 h-4 text-text-secondary flex-shrink-0" /> : <Monitor className="w-4 h-4 text-text-secondary flex-shrink-0" />}
-                  <span className="text-sm text-text">{d.name}</span>
+                  <span className="text-sm text-text-primary">{d.name}</span>
                   <span className="text-xs text-text-secondary font-mono">{d.ip_address}</span>
                   {d.vendor && <span className="text-xs text-text-secondary ml-auto">{d.vendor}</span>}
                 </div>
@@ -2751,41 +2751,41 @@ function TaskModal({ task, onClose, onSave }: {
           {/* OID 列表 */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-text">OID 列表</label>
-              <button onClick={() => setOidSearchModal(true)} className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
+              <label className="block text-sm font-medium text-text-primary">OID 列表</label>
+              <button onClick={() => setOidSearchModal(true)} className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-300">
                 <Search className="w-3 h-3" /> 从 MIB 搜索添加
               </button>
             </div>
             <textarea value={oidsText} onChange={e => setOidsText(e.target.value)}
               placeholder={"每行一个 OID，格式: OID|名称\n1.3.6.1.2.1.1.3.0|sysUpTime\n1.3.6.1.2.1.2.2.1.10|ifInOctets"}
               rows={5}
-              className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm font-mono text-text focus:outline-none focus:border-blue-500 resize-y" />
+              className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm font-mono text-text-primary focus:outline-none focus:border-blue-500 resize-y" />
             <p className="mt-1 text-xs text-text-secondary">每行一个，格式: OID|名称（名称可选）</p>
           </div>
 
           {/* 采集频率 */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-text mb-1">采集频率</label>
+              <label className="block text-sm font-medium text-text-primary mb-1">采集频率</label>
               <select value={frequencyMode} onChange={e => setFrequencyMode(e.target.value)}
-                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500">
+                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500">
                 {FREQUENCY_MODE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             {frequencyMode === 'interval' && (
               <div>
-                <label className="block text-sm font-medium text-text mb-1">采集间隔</label>
+                <label className="block text-sm font-medium text-text-primary mb-1">采集间隔</label>
                 <select value={intervalSeconds} onChange={e => setIntervalSeconds(parseInt(e.target.value))}
-                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500">
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500">
                   {INTERVAL_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
             )}
             {frequencyMode === 'cron' && (
               <div>
-                <label className="block text-sm font-medium text-text mb-1">Cron 表达式</label>
+                <label className="block text-sm font-medium text-text-primary mb-1">Cron 表达式</label>
                 <input value={scheduleCron} onChange={e => setScheduleCron(e.target.value)} placeholder="*/5 * * * *"
-                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm font-mono text-text focus:outline-none focus:border-blue-500" />
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm font-mono text-text-primary focus:outline-none focus:border-blue-500" />
               </div>
             )}
           </div>
@@ -2793,40 +2793,40 @@ function TaskModal({ task, onClose, onSave }: {
           {/* SNMP 参数 */}
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-text mb-1">SNMP 版本</label>
+              <label className="block text-sm font-medium text-text-primary mb-1">SNMP 版本</label>
               <select value={snmpVersion} onChange={e => setSnmpVersion(e.target.value)}
-                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500">
+                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500">
                 {SNMP_VERSION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-text mb-1">Community</label>
+              <label className="block text-sm font-medium text-text-primary mb-1">Community</label>
               <input value={community} onChange={e => setCommunity(e.target.value)} placeholder="public"
-                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500" />
+                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-text mb-1">超时(ms)</label>
+              <label className="block text-sm font-medium text-text-primary mb-1">超时(ms)</label>
               <input type="number" value={snmpTimeout} onChange={e => setSnmpTimeout(parseInt(e.target.value) || 10000)}
-                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500" />
+                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500" />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-text mb-1">重试次数</label>
+              <label className="block text-sm font-medium text-text-primary mb-1">重试次数</label>
               <input type="number" value={retryCount} onChange={e => setRetryCount(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500" />
+                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-text mb-1">数据保留天数</label>
+              <label className="block text-sm font-medium text-text-primary mb-1">数据保留天数</label>
               <input type="number" value={retentionDays} onChange={e => setRetentionDays(parseInt(e.target.value) || 90)}
-                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500" />
+                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500" />
             </div>
           </div>
         </div>
 
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-text-secondary hover:text-text transition-colors">取消</button>
+          <button onClick={onClose} className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors">取消</button>
           <button onClick={handleSave}
             className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-medium rounded-md hover:from-blue-700 hover:to-blue-800 transition-all">
             保存
@@ -2838,15 +2838,15 @@ function TaskModal({ task, onClose, onSave }: {
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setOidSearchModal(false)}>
             <div className="bg-surface border border-border rounded-xl w-full max-w-lg max-h-[70vh] overflow-hidden shadow-xl" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between p-4 border-b border-border">
-                <h3 className="text-sm font-semibold text-text">从 MIB 搜索添加 OID</h3>
-                <button onClick={() => setOidSearchModal(false)} className="p-1 hover:bg-surface-secondary rounded-md"><X className="w-4 h-4 text-text-secondary" /></button>
+                <h3 className="text-sm font-semibold text-text-primary">从 MIB 搜索添加 OID</h3>
+                <button onClick={() => setOidSearchModal(false)} className="p-1 hover:bg-surface-2 rounded-md"><X className="w-4 h-4 text-text-secondary" /></button>
               </div>
               <div className="p-4">
                 <div className="relative mb-3">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
                   <input value={oidSearchQuery} onChange={e => setOidSearchQuery(e.target.value)}
                     placeholder="搜索 OID、模块名或品牌..."
-                    className="w-full pl-9 pr-4 py-2 bg-surface border border-border rounded-lg text-sm text-text placeholder:text-text-secondary focus:outline-none focus:border-blue-500" />
+                    className="w-full pl-9 pr-4 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-blue-500" />
                 </div>
                 <div className="max-h-56 overflow-y-auto">
                   {debouncedOidSearch && oidSearchResults.length === 0 ? (
@@ -2854,24 +2854,24 @@ function TaskModal({ task, onClose, onSave }: {
                   ) : oidSearchResults.map((obj: any, i: number) => {
                     const matchType = obj.match_type || 'oid_name';
                     const matchLabel: Record<string, { text: string; cls: string }> = {
-                      oid_name: { text: 'OID名', cls: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
-                      oid_number: { text: 'OID号', cls: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30' },
+                      oid_name: { text: 'OID名', cls: 'bg-blue-500/15 text-blue-600 border-blue-500/30' },
+                      oid_number: { text: 'OID号', cls: 'bg-cyan-500/15 text-cyan-600 border-cyan-500/30' },
                       module_name: { text: '模块', cls: 'bg-violet-500/15 text-violet-400 border-violet-500/30' },
-                      brand: { text: '品牌', cls: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
+                      brand: { text: '品牌', cls: 'bg-amber-500/15 text-amber-600 border-amber-500/30' },
                     };
                     const badge = matchLabel[matchType] || matchLabel.oid_name;
                     return (
-                      <div key={i} className="flex items-center justify-between px-3 py-2 border-b border-border/30 hover:bg-surface-secondary/20 transition-colors">
+                      <div key={i} className="flex items-center justify-between px-3 py-2 border-b border-border/30 hover:bg-surface-2/20 transition-colors">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="text-sm text-text truncate">{obj.name}</p>
+                            <p className="text-sm text-text-primary truncate">{obj.name}</p>
                             <span className={`inline-block px-1.5 py-0.5 text-[10px] font-medium rounded border flex-shrink-0 ${badge.cls}`}>{badge.text}</span>
                           </div>
                           <p className="text-xs text-text-secondary font-mono">{obj.oid}</p>
                           {obj.organization && <p className="text-xs text-text-secondary">{obj.organization}</p>}
                         </div>
                         <button onClick={() => addOidFromSearch(obj.oid, obj.name)}
-                          className="ml-3 flex-shrink-0 px-2 py-1 text-xs text-blue-400 hover:bg-blue-500/10 rounded transition-colors">
+                          className="ml-3 flex-shrink-0 px-2 py-1 text-xs text-blue-600 hover:bg-blue-500/10 rounded transition-colors">
                           添加
                         </button>
                       </div>

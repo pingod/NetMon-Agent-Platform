@@ -176,26 +176,26 @@ export const VirtualMachineFormModal: React.FC<VirtualMachineFormModalProps> = (
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl bg-[#0b0f19] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden text-slate-100 font-sans">
+      <div className="relative w-full max-w-xl bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden text-text-primary font-sans">
         
         {/* 顶部栏 */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/60">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-600">
               <Cpu className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-text-primary">
                 {isEdit ? '编辑虚拟机' : '新建虚拟机'}
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-text-secondary">
                 硬件规格由 netmon-agent 安装后自动采集上报，无需手动填写
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-400 hover:text-white transition"
+            className="p-2 rounded-xl bg-surface-2 border border-border text-text-secondary hover:text-text-primary transition"
           >
             <X className="w-4 h-4" />
           </button>
@@ -207,8 +207,8 @@ export const VirtualMachineFormModal: React.FC<VirtualMachineFormModalProps> = (
           {/* 基本信息 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">
-                虚拟机名称 <span className="text-red-400">*</span>
+              <label className="text-xs font-semibold text-text-secondary block mb-1">
+                虚拟机名称 <span className="text-red-600">*</span>
               </label>
               <input
                 type="text"
@@ -216,13 +216,13 @@ export const VirtualMachineFormModal: React.FC<VirtualMachineFormModalProps> = (
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="如: web-server-vm-01"
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:border-indigo-500 focus:outline-none"
+                className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-text-primary focus:border-indigo-500 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">
-                主机名 / IP 地址 <span className="text-red-400">*</span>
+              <label className="text-xs font-semibold text-text-secondary block mb-1">
+                主机名 / IP 地址 <span className="text-red-600">*</span>
               </label>
               <input
                 type="text"
@@ -230,7 +230,7 @@ export const VirtualMachineFormModal: React.FC<VirtualMachineFormModalProps> = (
                 value={formData.hostname}
                 onChange={(e) => setFormData({ ...formData, hostname: e.target.value })}
                 placeholder="192.168.1.100 或 vm.local"
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:border-indigo-500 focus:outline-none"
+                className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-text-primary focus:border-indigo-500 focus:outline-none"
               />
             </div>
           </div>
@@ -238,11 +238,11 @@ export const VirtualMachineFormModal: React.FC<VirtualMachineFormModalProps> = (
           {/* 系统类型与所属分组 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">系统类型</label>
+              <label className="text-xs font-semibold text-text-secondary block mb-1">系统类型</label>
               <select
                 value={formData.os_type}
                 onChange={(e) => setFormData({ ...formData, os_type: e.target.value as any })}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:border-indigo-500 focus:outline-none"
+                className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-text-primary focus:border-indigo-500 focus:outline-none"
               >
                 <option value="linux">Linux</option>
                 <option value="windows">Windows</option>
@@ -250,11 +250,11 @@ export const VirtualMachineFormModal: React.FC<VirtualMachineFormModalProps> = (
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">所属分组</label>
+              <label className="text-xs font-semibold text-text-secondary block mb-1">所属分组</label>
               <select
                 value={formData.group_id}
                 onChange={(e) => setFormData({ ...formData, group_id: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:border-indigo-500 focus:outline-none"
+                className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-text-primary focus:border-indigo-500 focus:outline-none"
               >
                 <option value="">未分组</option>
                 {groups.map((g) => (
@@ -267,38 +267,38 @@ export const VirtualMachineFormModal: React.FC<VirtualMachineFormModalProps> = (
           </div>
 
           {/* SSH 认证信息 */}
-          <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800 space-y-3">
-            <label className="text-xs font-semibold text-slate-300 block">SSH 认证凭据 (用于下发 Agent 采集器)</label>
+          <div className="p-4 rounded-xl bg-background border border-border space-y-3">
+            <label className="text-xs font-semibold text-text-secondary block">SSH 认证凭据 (用于下发 Agent 采集器)</label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="text-[11px] text-slate-400 block mb-1">SSH 端口</label>
+                <label className="text-[11px] text-text-secondary block mb-1">SSH 端口</label>
                 <input
                   type="number"
                   value={formData.port}
                   onChange={(e) => setFormData({ ...formData, port: Number(e.target.value) })}
-                  className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:border-indigo-500"
+                  className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-xs text-text-primary focus:border-indigo-500"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] text-slate-400 block mb-1">用户名</label>
+                <label className="text-[11px] text-text-secondary block mb-1">用户名</label>
                 <input
                   type="text"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   placeholder="root / administrator"
-                  className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:border-indigo-500"
+                  className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-xs text-text-primary focus:border-indigo-500"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] text-slate-400 block mb-1">密码</label>
+                <label className="text-[11px] text-text-secondary block mb-1">密码</label>
                 <input
                   type="password"
                   value={formData.password}
                   placeholder={isEdit ? '留空保持原密码' : '输入虚拟机密码'}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:border-indigo-500"
+                  className="w-full px-3 py-1.5 bg-background border border-border rounded-lg text-xs text-text-primary focus:border-indigo-500"
                 />
               </div>
             </div>
@@ -309,16 +309,16 @@ export const VirtualMachineFormModal: React.FC<VirtualMachineFormModalProps> = (
                 type="button"
                 onClick={handleTestConnection}
                 disabled={isTesting}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-medium transition disabled:opacity-50"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-2 hover:bg-surface-hover border border-border text-text-primary text-xs font-medium transition disabled:opacity-50"
               >
-                <RotateCw className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin text-indigo-400' : ''}`} />
+                <RotateCw className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin text-indigo-600' : ''}`} />
                 <span>{isTesting ? '正在测试连接...' : '测试 SSH 连接'}</span>
               </button>
 
               {testResult && (
                 <div
                   className={`flex items-center gap-1.5 text-xs font-medium ${
-                    testResult.success ? 'text-emerald-400' : 'text-red-400'
+                    testResult.success ? 'text-emerald-600' : 'text-red-600'
                   }`}
                 >
                   {testResult.success ? (
@@ -335,34 +335,34 @@ export const VirtualMachineFormModal: React.FC<VirtualMachineFormModalProps> = (
           {/* 标签与描述 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">标签 (逗号分隔)</label>
+              <label className="text-xs font-semibold text-text-secondary block mb-1">标签 (逗号分隔)</label>
               <input
                 type="text"
                 value={formData.tags}
                 onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                 placeholder="生产环境, k8s-worker, 核心业务"
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:border-indigo-500 focus:outline-none"
+                className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-text-primary focus:border-indigo-500 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">描述备注</label>
+              <label className="text-xs font-semibold text-text-secondary block mb-1">描述备注</label>
               <input
                 type="text"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="虚拟机用途、归属团队等备注"
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:border-indigo-500 focus:outline-none"
+                className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-text-primary focus:border-indigo-500 focus:outline-none"
               />
             </div>
           </div>
 
           {/* 底部按钮栏 */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition"
+              className="px-4 py-2 rounded-xl bg-surface-2 hover:bg-surface-hover text-text-secondary text-xs font-medium transition"
             >
               取消
             </button>

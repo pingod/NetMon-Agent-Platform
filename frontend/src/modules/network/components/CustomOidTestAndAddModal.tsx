@@ -394,7 +394,7 @@ export default function CustomOidTestAndAddModal({
         <div className="flex items-start justify-between border-b border-border pb-4">
           <div>
             <h2 className="text-xl font-bold text-text-primary flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-purple-500/30 text-purple-400">
+              <span className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-purple-500/30 text-purple-600">
                 <Zap className="w-5 h-5" />
               </span>
               自定义 OID 探测、测试与设备指标下发
@@ -405,16 +405,16 @@ export default function CustomOidTestAndAddModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-surface-secondary text-text-secondary hover:text-text-primary transition-colors"
+            className="p-1.5 rounded-lg hover:bg-surface-2 text-text-secondary hover:text-text-primary transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* 1. OID 输入与采集模式选择 */}
-        <div className="space-y-4 bg-surface-secondary/40 border border-border rounded-xl p-4">
+        <div className="space-y-4 bg-surface-2/40 border border-border rounded-xl p-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-purple-600 flex items-center gap-1.5">
               <Sliders className="w-4 h-4" /> 1. 自定义 OID 与采集模式配置
             </h3>
             <span className="text-[11px] text-text-tertiary">支持标准 OID 及厂商私有 MIB 节点</span>
@@ -432,7 +432,7 @@ export default function CustomOidTestAndAddModal({
                   className="px-2.5 py-1 rounded-lg bg-surface hover:bg-purple-500/10 border border-border hover:border-purple-500/30 text-xs text-text-secondary hover:text-purple-300 transition-all flex items-center gap-1"
                 >
                   <span className="font-medium">{p.label}</span>
-                  <span className="text-[10px] px-1 rounded bg-purple-500/10 text-purple-400 font-mono">
+                  <span className="text-[10px] px-1 rounded bg-purple-500/10 text-purple-600 font-mono">
                     {p.type.toUpperCase()}
                   </span>
                 </button>
@@ -536,9 +536,9 @@ export default function CustomOidTestAndAddModal({
         </div>
 
         {/* 2. 目标测试设备 */}
-        <div className="space-y-3 bg-surface-secondary/40 border border-border rounded-xl p-4">
+        <div className="space-y-3 bg-surface-2/40 border border-border rounded-xl p-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
               <Server className="w-4 h-4" /> 2. 测试目标设备与 SNMP 凭据
             </h3>
             <label className="flex items-center gap-1.5 text-xs text-text-secondary cursor-pointer">
@@ -575,7 +575,7 @@ export default function CustomOidTestAndAddModal({
                   <span className="font-semibold text-text-primary">{currentDevice.name}</span>
                   <span className="font-mono text-text-secondary ml-2">({currentDevice.ip_address})</span>
                 </div>
-                <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-semibold uppercase">
+                <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 font-semibold uppercase">
                   {currentDevice.vendor || 'SNMP'}
                 </span>
               </div>
@@ -618,7 +618,7 @@ export default function CustomOidTestAndAddModal({
                           }
                         }
                       }}
-                      className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-xs text-blue-400 focus:outline-none focus:border-blue-500 cursor-pointer truncate"
+                      className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-xs text-blue-600 focus:outline-none focus:border-blue-500 cursor-pointer truncate"
                     >
                       <option value="">🔑 选 SNMP 凭据...</option>
                       {savedCredentials.map((c: any) => (
@@ -654,7 +654,7 @@ export default function CustomOidTestAndAddModal({
                 <div className="bg-[#090d1a] border border-blue-500/20 rounded-lg p-3 space-y-2.5">
                   <div>
                     <label className="block text-xs font-semibold text-text-secondary mb-1">
-                      安全用户名 (Username) <span className="text-red-400">*</span>
+                      安全用户名 (Username) <span className="text-red-600">*</span>
                     </label>
                     <input
                       type="text"
@@ -670,7 +670,7 @@ export default function CustomOidTestAndAddModal({
                       <select
                         value={snmpAuthProtocol}
                         onChange={e => setSnmpAuthProtocol(e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text focus:outline-none focus:border-blue-500"
+                        className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:border-blue-500"
                       >
                         <option value="">无 (NoAuth)</option>
                         <option value="SHA">SHA / SHA1</option>
@@ -687,12 +687,12 @@ export default function CustomOidTestAndAddModal({
                           value={snmpAuthKey}
                           onChange={e => setSnmpAuthKey(e.target.value)}
                           placeholder="认证密码"
-                          className="w-full pl-2.5 pr-7 py-1.5 bg-surface border border-border rounded-lg text-xs font-mono text-text focus:outline-none focus:border-blue-500"
+                          className="w-full pl-2.5 pr-7 py-1.5 bg-surface border border-border rounded-lg text-xs font-mono text-text-primary focus:outline-none focus:border-blue-500"
                         />
                         <button
                           type="button"
                           onClick={() => setShowAuthKey(!showAuthKey)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary"
                         >
                           {showAuthKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
@@ -705,7 +705,7 @@ export default function CustomOidTestAndAddModal({
                       <select
                         value={snmpPrivProtocol}
                         onChange={e => setSnmpPrivProtocol(e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text focus:outline-none focus:border-blue-500"
+                        className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:border-blue-500"
                       >
                         <option value="">无 (NoPriv)</option>
                         <option value="AES">AES / AES128 (推荐)</option>
@@ -722,12 +722,12 @@ export default function CustomOidTestAndAddModal({
                           value={snmpPrivKey}
                           onChange={e => setSnmpPrivKey(e.target.value)}
                           placeholder="加密密码"
-                          className="w-full pl-2.5 pr-7 py-1.5 bg-surface border border-border rounded-lg text-xs font-mono text-text focus:outline-none focus:border-blue-500"
+                          className="w-full pl-2.5 pr-7 py-1.5 bg-surface border border-border rounded-lg text-xs font-mono text-text-primary focus:outline-none focus:border-blue-500"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPrivKey(!showPrivKey)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary"
                         >
                           {showPrivKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
@@ -755,17 +755,17 @@ export default function CustomOidTestAndAddModal({
 
         {/* 3. 测试结果面板 */}
         {testResult && (
-          <div className="space-y-3 bg-slate-950/80 border border-slate-800 rounded-xl p-4 shadow-inner">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+          <div className="space-y-3 bg-background border border-border rounded-xl p-4 shadow-inner">
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-600 flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4" /> 3. 实时采集测试返回结果
               </h3>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-slate-400">
-                  耗时: <strong className="text-emerald-400">{testResult.durationMs}ms</strong>
+                <span className="text-xs font-mono text-text-secondary">
+                  耗时: <strong className="text-emerald-600">{testResult.durationMs}ms</strong>
                 </span>
                 <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                  testResult.status === 'success' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                  testResult.status === 'success' ? 'bg-emerald-500/20 text-emerald-600 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                 }`}>
                   {testResult.status === 'success' ? '✅ 探测成功' : '❌ 探测失败'}
                 </span>
@@ -785,12 +785,12 @@ export default function CustomOidTestAndAddModal({
               <div className="space-y-3">
                 {/* 标量 GET 结果 */}
                 {collectType === 'get' && (
-                  <div className="p-3 bg-slate-900 rounded-lg border border-slate-800">
-                    <span className="text-[11px] text-slate-400 block mb-1">标量采样值 (Scalar Value):</span>
-                    <div className="text-lg font-bold font-mono text-emerald-400 break-all">
+                  <div className="p-3 bg-surface rounded-lg border border-border">
+                    <span className="text-[11px] text-text-secondary block mb-1">标量采样值 (Scalar Value):</span>
+                    <div className="text-lg font-bold font-mono text-emerald-600 break-all">
                       {testResult.metrics?.[0]?.metric_value || '无返回值'} {unit}
                     </div>
-                    <span className="text-[10px] text-slate-500 font-mono mt-1 block">
+                    <span className="text-[10px] text-text-tertiary font-mono mt-1 block">
                       返回节点: {testResult.metrics?.[0]?.oid || oid}
                     </span>
                   </div>
@@ -799,23 +799,23 @@ export default function CustomOidTestAndAddModal({
                 {/* 表量 WALK 结果 */}
                 {collectType === 'walk' && (
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between text-xs text-slate-400">
+                    <div className="flex items-center justify-between text-xs text-text-secondary">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-slate-300">表量遍历实例 (Table Instances):</span>
+                        <span className="font-semibold text-text-secondary">表量遍历实例 (Table Instances):</span>
                         <span className="font-mono text-purple-300 font-semibold px-2 py-0.5 rounded bg-purple-500/15 border border-purple-500/25">
                           共 {parsedWalkItems.length} 行数据
                         </span>
                       </div>
                       {parsedWalkItems.some(item => item.hasValue) && (
-                        <span className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
+                        <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
                           <Check className="w-3.5 h-3.5" /> 已智能推荐含有效值的实例
                         </span>
                       )}
                     </div>
 
-                    <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px] text-slate-300 flex items-center justify-between">
+                    <div className="p-2.5 rounded-lg bg-surface border border-border text-[11px] text-text-secondary flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
-                        <Info className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
+                        <Info className="w-3.5 h-3.5 text-purple-600 flex-shrink-0" />
                         <span>💡 点击下方任意一行即可<strong>选择该实例发送至大屏</strong>；有非零数值的行已用绿色高亮标识</span>
                       </span>
                       {selectedWalkItem && (
@@ -826,7 +826,7 @@ export default function CustomOidTestAndAddModal({
                             className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
                               sendMode === 'selected'
                                 ? 'bg-purple-600 text-white border-purple-400'
-                                : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
+                                : 'bg-surface-2 text-text-secondary border-border hover:text-text-primary'
                             }`}
                           >
                             🎯 仅发送选中行 (#{selectedWalkItem.rowNum})
@@ -837,7 +837,7 @@ export default function CustomOidTestAndAddModal({
                             className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
                               sendMode === 'all'
                                 ? 'bg-purple-600 text-white border-purple-400'
-                                : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
+                                : 'bg-surface-2 text-text-secondary border-border hover:text-text-primary'
                             }`}
                           >
                             📦 整表遍历 (WALK)
@@ -847,7 +847,7 @@ export default function CustomOidTestAndAddModal({
                     </div>
 
                     {parsedWalkItems.length > 0 ? (
-                      <div className="max-h-52 overflow-y-auto rounded-xl border border-slate-800 bg-slate-900/90 divide-y divide-slate-800/60">
+                      <div className="max-h-52 overflow-y-auto rounded-xl border border-border bg-surface divide-y divide-border">
                         {parsedWalkItems.map((item) => {
                           const isSelected = selectedWalkRow === item.rowNum && sendMode === 'selected';
                           return (
@@ -860,29 +860,29 @@ export default function CustomOidTestAndAddModal({
                               className={`flex items-center justify-between px-3 py-2 text-xs font-mono cursor-pointer transition-all ${
                                 isSelected
                                   ? 'bg-purple-950/60 border-l-4 border-l-purple-500 text-white shadow-sm ring-1 ring-purple-500/30'
-                                  : 'hover:bg-slate-800/70 text-slate-300'
+                                  : 'hover:bg-surface-hover text-text-secondary'
                               }`}
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <div className={`w-4 h-4 rounded-full flex items-center justify-center border transition-colors ${
-                                  isSelected ? 'border-purple-400 bg-purple-500 text-white' : 'border-slate-600 bg-slate-800'
+                                  isSelected ? 'border-purple-400 bg-purple-500 text-white' : 'border-border bg-surface-2'
                                 }`}>
                                   {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
                                 </div>
-                                <span className="font-semibold text-slate-400">
+                                <span className="font-semibold text-text-secondary">
                                   #{item.rowNum}
                                 </span>
-                                <span className="text-slate-400 truncate" title={item.fullOid}>
+                                <span className="text-text-secondary truncate" title={item.fullOid}>
                                   (索引: <span className="text-purple-300 font-bold">{item.displayIndex}</span>)
                                 </span>
                                 {item.hasValue && (
-                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-0.5">
+                                  <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-600 border border-emerald-500/30 flex items-center gap-0.5">
                                     ★ 有效值
                                   </span>
                                 )}
                               </div>
                               <div className="flex items-center gap-2.5">
-                                <span className={`font-bold font-mono ${item.hasValue ? 'text-emerald-400 text-sm' : 'text-slate-500'}`}>
+                                <span className={`font-bold font-mono ${item.hasValue ? 'text-emerald-600 text-sm' : 'text-text-tertiary'}`}>
                                   {item.value} {unit}
                                 </span>
                                 {isSelected ? (
@@ -890,7 +890,7 @@ export default function CustomOidTestAndAddModal({
                                     已选
                                   </span>
                                 ) : (
-                                  <span className="text-[10px] text-slate-500 hover:text-slate-300">
+                                  <span className="text-[10px] text-text-tertiary hover:text-text-secondary">
                                     选择
                                   </span>
                                 )}
@@ -900,7 +900,7 @@ export default function CustomOidTestAndAddModal({
                         })}
                       </div>
                     ) : (
-                      <div className="p-3 bg-slate-900 rounded-lg text-xs font-mono text-slate-400 break-all">
+                      <div className="p-3 bg-surface rounded-lg text-xs font-mono text-text-secondary break-all">
                         {testResult.metrics?.[0]?.metric_value || '无数据'}
                       </div>
                     )}
@@ -911,17 +911,17 @@ export default function CustomOidTestAndAddModal({
                         <div className="flex items-center gap-2">
                           <span className="p-1.5 rounded-lg bg-purple-500/20 text-purple-300 font-bold">🎯</span>
                           <div>
-                            <span className="text-slate-200 font-semibold">
+                            <span className="text-text-primary font-semibold">
                               已选择发送实例: <strong className="text-purple-300">#{selectedWalkItem.rowNum}</strong> (索引: <code className="text-cyan-300 font-mono">{selectedWalkItem.displayIndex}</code>)
                             </span>
-                            <div className="text-[11px] text-slate-400 font-mono mt-0.5">
-                              下发 OID: <span className="text-emerald-400">{selectedWalkItem.fullOid}</span>
+                            <div className="text-[11px] text-text-secondary font-mono mt-0.5">
+                              下发 OID: <span className="text-emerald-600">{selectedWalkItem.fullOid}</span>
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <span className="text-[11px] text-slate-400 block">实时采样值</span>
-                          <span className="text-sm font-bold font-mono text-emerald-400">
+                          <span className="text-[11px] text-text-secondary block">实时采样值</span>
+                          <span className="text-sm font-bold font-mono text-emerald-600">
                             {selectedWalkItem.value} {unit}
                           </span>
                         </div>
@@ -935,10 +935,10 @@ export default function CustomOidTestAndAddModal({
         )}
 
         {/* 4. 💾 发送到具体设备添加自定义指标采集 (必须输入自定义 Tag) */}
-        <div className="space-y-4 bg-surface-secondary/50 border-2 border-dashed border-purple-500/40 rounded-xl p-4">
+        <div className="space-y-4 bg-surface-2/50 border-2 border-dashed border-purple-500/40 rounded-xl p-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
-              <Tag className="w-4 h-4 text-purple-400" /> 4. 发送到具体设备添加自定义指标采集 (添加前必须输入自定义 Tag)
+            <h3 className="text-xs font-bold uppercase tracking-wider text-purple-600 flex items-center gap-1.5">
+              <Tag className="w-4 h-4 text-purple-600" /> 4. 发送到具体设备添加自定义指标采集 (添加前必须输入自定义 Tag)
             </h3>
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/30 font-semibold">
               Tag 标签为必填项
@@ -950,9 +950,9 @@ export default function CustomOidTestAndAddModal({
             <div className="p-3 bg-purple-950/40 border border-purple-500/30 rounded-xl flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
                 <span className="p-1 rounded bg-purple-500/20 text-purple-300 font-bold">🎯</span>
-                <span className="text-slate-300">
+                <span className="text-text-secondary">
                   已切换为<strong>指定实例标量采集</strong>：实例 <strong className="text-purple-300">#{selectedWalkItem.rowNum} (索引: {selectedWalkItem.displayIndex})</strong>，
-                  当前值: <strong className="text-emerald-400 font-mono">{selectedWalkItem.value} {unit}</strong>
+                  当前值: <strong className="text-emerald-600 font-mono">{selectedWalkItem.value} {unit}</strong>
                   （下发 OID: <code className="text-cyan-300 font-mono">{selectedWalkItem.fullOid}</code>）
                 </span>
               </div>
@@ -985,7 +985,7 @@ export default function CustomOidTestAndAddModal({
               <button
                 type="button"
                 onClick={handleAddTag}
-                className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 font-semibold transition-colors"
+                className="text-xs text-purple-600 hover:text-purple-300 flex items-center gap-1 font-semibold transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" /> 添加新 Tag 标签
               </button>

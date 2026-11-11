@@ -180,7 +180,7 @@ export default function RemoteDesktop() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/servers')}
-            className="flex items-center gap-2 px-4 py-2 bg-background border border-border rounded-lg hover:bg-background-hover transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-background border border-border rounded-lg hover:bg-surface-hover transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>返回</span>
@@ -242,7 +242,7 @@ export default function RemoteDesktop() {
             {connectionState === 'disconnected' && selectedServer && (
               <button
                 onClick={() => connectToVNC(selectedServer)}
-                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-strong text-white rounded-lg transition-colors"
               >
                 <Cable className="w-4 h-4" />
                 <span>重新连接</span>

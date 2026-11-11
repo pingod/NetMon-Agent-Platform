@@ -42,7 +42,7 @@ const _RETRY_CONFIG = { retry: 3, retryDelay: (attemptIndex: number) => Math.min
 
 const StatCard = ({ icon: Icon, label, value, subValue, color, onClick }: StatCardProps) => (
   <div
-    className={`bg-slate-800/40 backdrop-blur-md rounded-2xl p-4 border border-border cursor-pointer transition-all hover:border-slate-600/50 hover:bg-slate-800/60 ${onClick ? '' : ''}`}
+    className={`bg-slate-800/40 backdrop-blur-md rounded-2xl p-4 border border-slate-700/50 cursor-pointer transition-all hover:border-slate-600/50 hover:bg-slate-800/60 ${onClick ? '' : ''}`}
     onClick={onClick}
   >
     <div className="flex items-center justify-between mb-3">
@@ -51,8 +51,8 @@ const StatCard = ({ icon: Icon, label, value, subValue, color, onClick }: StatCa
       </div>
       {onClick && <ChevronRight className="w-4 h-4 text-slate-500" />}
     </div>
-    <div className="text-2xl font-bold text-text-primary">{value}</div>
-    <div className="text-xs text-text-secondary mt-1">{label}</div>
+    <div className="text-2xl font-bold text-white">{value}</div>
+    <div className="text-xs text-slate-400 mt-1">{label}</div>
     {subValue && <div className="text-xs text-slate-500 mt-0.5">{subValue}</div>}
   </div>
 );
@@ -63,7 +63,7 @@ function getStatusColor(status: string) {
     case 'running': return 'text-status-running';
     case 'failed': return 'text-status-failed';
     case 'pending': return 'text-status-pending';
-    default: return 'text-text-secondary';
+    default: return 'text-slate-400';
   }
 }
 
@@ -157,7 +157,7 @@ export default function BigScreenDashboard() {
               </div>
             ) : (
               <div className="flex items-center gap-3 cursor-pointer group" onClick={() => data.setIsEditingTitle(true)}>
-                <h1 className="text-2xl font-bold text-text-primary tracking-tight group-hover:text-blue-300 transition-colors">{data.dashboardTitle}</h1>
+                <h1 className="text-2xl font-bold text-white tracking-tight group-hover:text-blue-300 transition-colors">{data.dashboardTitle}</h1>
                 <svg className="w-4 h-4 text-slate-500 opacity-0 group-hover:opacity-100 transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -175,35 +175,35 @@ export default function BigScreenDashboard() {
                <div key={item.label} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/40 border border-slate-700/30 hover:border-slate-600/50 transition-all cursor-pointer"
                  onClick={() => navigate(item.href)}>
                 <item.icon className={`w-4 h-4 ${item.color}`} />
-                <span className="text-xs text-text-primary">{item.label}</span>
+                <span className="text-xs text-white">{item.label}</span>
               </div>
             ))}
           </div>
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 backdrop-blur-sm rounded-lg border border-border cursor-pointer hover:border-blue-500/30 transition-all" onClick={() => navigate('/servers')}>
-                <Server className="w-4 h-4 text-purple-400" /><span className="text-text-primary">服务器</span><span className="text-text-primary font-bold">{data.stats?.servers.enabled || 0}/{data.stats?.servers.total || 0}</span>
+              <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700/50 cursor-pointer hover:border-blue-500/30 transition-all" onClick={() => navigate('/servers')}>
+                <Server className="w-4 h-4 text-purple-400" /><span className="text-white">服务器</span><span className="text-white font-bold">{data.stats?.servers.enabled || 0}/{data.stats?.servers.total || 0}</span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 backdrop-blur-sm rounded-lg border border-border cursor-pointer hover:border-blue-500/30 transition-all" onClick={() => navigate('/agents')}>
-                <Bot className="w-4 h-4 text-blue-400" /><span className="text-text-primary">Agent</span><span className="text-text-primary font-bold">{data.stats?.agents.enabled || 0}/{data.stats?.agents.total || 0}</span>
+              <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700/50 cursor-pointer hover:border-blue-500/30 transition-all" onClick={() => navigate('/agents')}>
+                <Bot className="w-4 h-4 text-blue-400" /><span className="text-white">Agent</span><span className="text-white font-bold">{data.stats?.agents.enabled || 0}/{data.stats?.agents.total || 0}</span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 backdrop-blur-sm rounded-lg border border-border cursor-pointer hover:border-blue-500/30 transition-all" onClick={() => navigate('/tasks')}>
-                <Play className="w-4 h-4 text-green-400" /><span className="text-text-primary">运行中</span><span className="text-text-primary font-bold">{data.stats?.tasks.running || 0}</span>
+              <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700/50 cursor-pointer hover:border-blue-500/30 transition-all" onClick={() => navigate('/tasks')}>
+                <Play className="w-4 h-4 text-green-400" /><span className="text-white">运行中</span><span className="text-white font-bold">{data.stats?.tasks.running || 0}</span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 backdrop-blur-sm rounded-lg border border-border cursor-pointer hover:border-red-500/30 transition-all" onClick={() => navigate('/alerts')}>
-                <Bell className="w-4 h-4 text-red-400" /><span className="text-text-primary">活跃告警</span><span className="text-status-failed font-bold">{data.stats?.alerts.active || 0}</span>
+              <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700/50 cursor-pointer hover:border-red-500/30 transition-all" onClick={() => navigate('/alerts')}>
+                <Bell className="w-4 h-4 text-red-400" /><span className="text-white">活跃告警</span><span className="text-status-failed font-bold">{data.stats?.alerts.active || 0}</span>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-text-primary font-mono">{data.currentTime.toLocaleTimeString('zh-CN', { hour12: false })}</div>
-              <div className="text-sm text-text-secondary">{data.currentTime.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })}</div>
+              <div className="text-3xl font-bold text-white font-mono">{data.currentTime.toLocaleTimeString('zh-CN', { hour12: false })}</div>
+              <div className="text-sm text-slate-400">{data.currentTime.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })}</div>
             </div>
-            <button onClick={data.toggleFullscreen} className="p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 border border-border transition-all" title={data.isFullscreen ? '退出全屏 (Esc)' : '全屏模式 (F11)'}>
-              {data.isFullscreen ? <Minimize2 className="w-5 h-5 text-text-secondary" /> : <Maximize2 className="w-5 h-5 text-text-secondary" />}
+            <button onClick={data.toggleFullscreen} className="p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700/50 transition-all" title={data.isFullscreen ? '退出全屏 (Esc)' : '全屏模式 (F11)'}>
+              {data.isFullscreen ? <Minimize2 className="w-5 h-5 text-slate-400" /> : <Maximize2 className="w-5 h-5 text-slate-400" />}
             </button>
-            <button onClick={data.refreshData} className="p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 border border-border transition-all">
-              <RefreshCcw className="w-5 h-5 text-text-secondary" />
+            <button onClick={data.refreshData} className="p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700/50 transition-all">
+              <RefreshCcw className="w-5 h-5 text-slate-400" />
             </button>
           </div>
         </header>
@@ -212,10 +212,10 @@ export default function BigScreenDashboard() {
         <div className="grid grid-cols-12 gap-4">
           {/* Left Column */}
           <div className="col-span-3 flex flex-col gap-4">
-            <div className="bg-slate-800/40 backdrop-blur-md rounded-2xl p-5 border border-border">
-              <h2 className="text-lg font-semibold text-text-primary mb-4 flex items-center justify-between">
+            <div className="bg-slate-800/40 backdrop-blur-md rounded-2xl p-5 border border-slate-700/50">
+              <h2 className="text-lg font-semibold text-white mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />系统资源监控</div>
-                {data.serverMetricsData?.has_real_data ? <span className="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/30">实时数据</span> : <span className="text-xs px-2 py-0.5 rounded bg-slate-700/50 text-text-secondary border border-slate-600/30">演示模式</span>}
+                {data.serverMetricsData?.has_real_data ? <span className="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/30">实时数据</span> : <span className="text-xs px-2 py-0.5 rounded bg-slate-700/50 text-slate-400 border border-slate-600/30">演示模式</span>}
               </h2>
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <CircularProgress value={data.aggregatedMetrics.cpu !== null && data.aggregatedMetrics.cpu !== undefined && Number.isFinite(data.aggregatedMetrics.cpu) ? data.aggregatedMetrics.cpu : 0} color="#3b82f6" size={80} strokeWidth={8} label="CPU" />
@@ -230,20 +230,20 @@ export default function BigScreenDashboard() {
                   { label: '磁盘使用率', value: data.aggregatedMetrics.disk, color: 'from-amber-600 to-amber-400' },
                 ].map((m) => (
                   <div className="space-y-2" key={m.label}>
-                    <div className="flex items-center justify-between text-sm"><span className="text-text-secondary">{m.label}</span><span className="text-text-primary font-mono">{m.value?.toFixed(1) ?? '--'}%</span></div>
+                    <div className="flex items-center justify-between text-sm"><span className="text-slate-400">{m.label}</span><span className="text-white font-mono">{m.value?.toFixed(1) ?? '--'}%</span></div>
                     <div className="h-3 bg-slate-700/50 rounded-full overflow-hidden"><div className={`h-full bg-gradient-to-r ${m.color} rounded-full transition-all duration-300`} style={{ width: `${m.value ?? 0}%` }} /></div>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="bg-slate-800/40 backdrop-blur-md rounded-2xl p-5 border border-border">
-              <h2 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />服务器负载</h2>
+            <div className="bg-slate-800/40 backdrop-blur-md rounded-2xl p-5 border border-slate-700/50">
+              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />服务器负载</h2>
               {data.serverMetrics.length > 0 ? <AnimatedBarChart data={data.serverMetrics} height={180} /> : <div className="flex items-center justify-center h-[180px] text-slate-500 text-sm">暂无已启用的服务器</div>}
             </div>
 
             {/* Server Status List — 替代原"网络设备监控" */}
-            <div className="bg-slate-800/40 backdrop-blur-md rounded-2xl p-5 border border-border cursor-pointer transition-all hover:border-purple-500/30" onClick={() => navigate('/servers')}>
-              <h2 className="text-lg font-semibold text-text-primary mb-4 flex items-center justify-between">
+            <div className="bg-slate-800/40 backdrop-blur-md rounded-2xl p-5 border border-slate-700/50 cursor-pointer transition-all hover:border-purple-500/30" onClick={() => navigate('/servers')}>
+              <h2 className="text-lg font-semibold text-white mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" /><Server className="w-5 h-5 text-purple-400" />服务器状态</div>
                 <ChevronRight className="w-4 h-4 text-slate-500" />
               </h2>
@@ -260,7 +260,7 @@ export default function BigScreenDashboard() {
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2 min-w-0">
                             <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: barColor }} />
-                            <span className="text-sm text-text-primary truncate">{srv.server_name || srv.server_id}</span>
+                            <span className="text-sm text-white truncate">{srv.server_name || srv.server_id}</span>
                           </div>
                           <span className="text-[10px] text-slate-500 flex-shrink-0 ml-2">
                             {srv.collected_at ? formatDistanceToNow(new Date(srv.collected_at), { addSuffix: true }) : '--'}
@@ -270,7 +270,7 @@ export default function BigScreenDashboard() {
                           <div>
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-slate-500">CPU</span>
-                              <span className="text-text-primary font-mono">{cpuVal.toFixed(1)}%</span>
+                              <span className="text-white font-mono">{cpuVal.toFixed(1)}%</span>
                             </div>
                             <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
                               <div className="h-full rounded-full transition-all duration-300" style={{ width: `${Math.min(cpuVal, 100)}%`, backgroundColor: cpuVal > 80 ? '#ef4444' : cpuVal > 60 ? '#f59e0b' : '#3b82f6' }} />
@@ -279,7 +279,7 @@ export default function BigScreenDashboard() {
                           <div>
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-slate-500">内存</span>
-                              <span className="text-text-primary font-mono">{memVal.toFixed(1)}%</span>
+                              <span className="text-white font-mono">{memVal.toFixed(1)}%</span>
                             </div>
                             <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
                               <div className="h-full rounded-full transition-all duration-300" style={{ width: `${Math.min(memVal, 100)}%`, backgroundColor: memVal > 80 ? '#ef4444' : memVal > 60 ? '#f59e0b' : '#8b5cf6' }} />
@@ -288,7 +288,7 @@ export default function BigScreenDashboard() {
                           <div>
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-slate-500">磁盘</span>
-                              <span className="text-text-primary font-mono">{diskVal.toFixed(1)}%</span>
+                              <span className="text-white font-mono">{diskVal.toFixed(1)}%</span>
                             </div>
                             <div className="h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
                               <div className="h-full rounded-full transition-all duration-300" style={{ width: `${Math.min(diskVal, 100)}%`, backgroundColor: diskVal > 80 ? '#ef4444' : diskVal > 60 ? '#f59e0b' : '#f59e0b' }} />
@@ -317,10 +317,10 @@ export default function BigScreenDashboard() {
             </div>
 
             <div className="grid grid-cols-4 gap-4">
-              <div className="bg-slate-800/40 backdrop-blur-md rounded-2xl p-4 border border-border"><div className="flex items-center gap-2 mb-2"><Clock className="w-4 h-4 text-cyan-400" /><span className="text-xs text-text-secondary">MTTR (平均修复时间)</span></div><div className="text-xl font-bold text-text-primary">{data.slaStats?.mttr_minutes ? `${data.slaStats.mttr_minutes} min` : '--'}</div></div>
-              <div className="bg-slate-800/40 backdrop-blur-md rounded-2xl p-4 border border-border"><div className="flex items-center gap-2 mb-2"><TrendingUp className="w-4 h-4 text-green-400" /><span className="text-xs text-text-secondary">系统可用性</span></div><div className="text-xl font-bold text-text-primary">{data.slaStats?.uptime_percentage ? `${data.slaStats.uptime_percentage}%` : '--'}</div></div>
-              <div className="bg-slate-800/40 backdrop-blur-md rounded-2xl p-4 border border-border"><div className="flex items-center gap-2 mb-2"><Target className="w-4 h-4 text-amber-400" /><span className="text-xs text-text-secondary">告警响应时间</span></div><div className="text-xl font-bold text-text-primary">{data.slaStats?.avg_response_seconds ? `${data.slaStats.avg_response_seconds} s` : '--'}</div></div>
-              <div className="bg-slate-800/40 backdrop-blur-md rounded-2xl p-4 border border-border"><div className="flex items-center gap-2 mb-2"><CheckCircle className="w-4 h-4 text-emerald-400" /><span className="text-xs text-text-secondary">今日告警解决率</span></div><div className="text-xl font-bold text-text-primary">{data.slaStats?.alert_resolution_rate ? `${data.slaStats.alert_resolution_rate}%` : '--'}</div></div>
+              <div className="bg-slate-800/40 backdrop-blur-md rounded-2xl p-4 border border-slate-700/50"><div className="flex items-center gap-2 mb-2"><Clock className="w-4 h-4 text-cyan-400" /><span className="text-xs text-slate-400">MTTR (平均修复时间)</span></div><div className="text-xl font-bold text-white">{data.slaStats?.mttr_minutes ? `${data.slaStats.mttr_minutes} min` : '--'}</div></div>
+              <div className="bg-slate-800/40 backdrop-blur-md rounded-2xl p-4 border border-slate-700/50"><div className="flex items-center gap-2 mb-2"><TrendingUp className="w-4 h-4 text-green-400" /><span className="text-xs text-slate-400">系统可用性</span></div><div className="text-xl font-bold text-white">{data.slaStats?.uptime_percentage ? `${data.slaStats.uptime_percentage}%` : '--'}</div></div>
+              <div className="bg-slate-800/40 backdrop-blur-md rounded-2xl p-4 border border-slate-700/50"><div className="flex items-center gap-2 mb-2"><Target className="w-4 h-4 text-amber-400" /><span className="text-xs text-slate-400">告警响应时间</span></div><div className="text-xl font-bold text-white">{data.slaStats?.avg_response_seconds ? `${data.slaStats.avg_response_seconds} s` : '--'}</div></div>
+              <div className="bg-slate-800/40 backdrop-blur-md rounded-2xl p-4 border border-slate-700/50"><div className="flex items-center gap-2 mb-2"><CheckCircle className="w-4 h-4 text-emerald-400" /><span className="text-xs text-slate-400">今日告警解决率</span></div><div className="text-xl font-bold text-white">{data.slaStats?.alert_resolution_rate ? `${data.slaStats.alert_resolution_rate}%` : '--'}</div></div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

@@ -257,7 +257,7 @@ export default function AgentEditor({ agent, onClose }: AgentEditorProps) {
               id="enabled"
               checked={formData.enabled}
               onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
-              className="w-4 h-4 rounded border-slate-600 text-blue-500 focus:ring-blue-500/50"
+              className="w-4 h-4 rounded border-border text-blue-500 focus:ring-blue-500/50"
             />
             <label htmlFor="enabled" className="text-sm text-text-primary">
               启用此Agent
@@ -268,7 +268,7 @@ export default function AgentEditor({ agent, onClose }: AgentEditorProps) {
             <button
               type="button"
               onClick={() => setShowTestModal(true)}
-              className="px-5 py-2.5 bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-blue-400 border border-blue-500/30 rounded-xl hover:from-blue-600/30 hover:to-purple-600/30 transition-all font-semibold"
+              className="px-5 py-2.5 bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-blue-600 border border-blue-500/30 rounded-xl hover:from-blue-600/30 hover:to-purple-600/30 transition-all font-semibold"
             >
               🧪 测试 Agent
             </button>
@@ -276,7 +276,7 @@ export default function AgentEditor({ agent, onClose }: AgentEditorProps) {
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 bg-slate-700/50 text-text-primary rounded-xl hover:bg-slate-700/70 transition-all font-semibold border border-slate-600/30"
+              className="px-5 py-2.5 bg-surface-2 text-text-primary rounded-xl hover:bg-surface-hover transition-all font-semibold border border-border"
             >
               取消
             </button>

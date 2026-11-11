@@ -72,8 +72,8 @@ export interface PreviewMatchResponse {
 
 const SEVERITY_CONFIG = {
   critical: { label: 'P1 紧急', color: 'text-rose-400', bg: 'bg-rose-500/15 border-rose-500/30', icon: AlertCircle },
-  warning: { label: 'P2 警告', color: 'text-amber-400', bg: 'bg-amber-500/15 border-amber-500/30', icon: AlertTriangle },
-  info: { label: 'P3 提醒', color: 'text-blue-400', bg: 'bg-blue-500/15 border-blue-500/30', icon: Info },
+  warning: { label: 'P2 警告', color: 'text-amber-600', bg: 'bg-amber-500/15 border-amber-500/30', icon: AlertTriangle },
+  info: { label: 'P3 提醒', color: 'text-blue-600', bg: 'bg-blue-500/15 border-blue-500/30', icon: Info },
 };
 
 const DURATION_OPTIONS = [
@@ -238,8 +238,8 @@ export default function AlertRules() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-surface p-5 rounded-2xl border border-border shadow-sm">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-text">告警规则策略 (PromQL 驱动)</h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center gap-1">
+            <h1 className="text-2xl font-bold text-text-primary">告警规则策略 (PromQL 驱动)</h1>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-600 border border-blue-500/20 flex items-center gap-1">
               <Sparkles className="w-3 h-3" /> PromQL 自由输入 + Tag 采集实时匹配
             </span>
           </div>
@@ -254,7 +254,7 @@ export default function AlertRules() {
             disabled={seedTemplatesMutation.isPending}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/30 text-purple-300 text-xs font-medium rounded-lg transition-colors"
           >
-            {seedTemplatesMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-purple-400" />}
+            {seedTemplatesMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-purple-600" />}
             导入大屏内置告警模板
           </button>
 
@@ -271,11 +271,11 @@ export default function AlertRules() {
       {/* 统计概览 */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-surface rounded-xl p-4 border border-border shadow-sm">
-          <p className="text-2xl font-extrabold text-text">{rules.length}</p>
+          <p className="text-2xl font-extrabold text-text-primary">{rules.length}</p>
           <p className="text-xs text-text-secondary mt-1">规则总数</p>
         </div>
         <div className="bg-surface rounded-xl p-4 border border-border shadow-sm">
-          <p className="text-2xl font-extrabold text-emerald-400">{rules.filter(r => r.enabled).length}</p>
+          <p className="text-2xl font-extrabold text-emerald-600">{rules.filter(r => r.enabled).length}</p>
           <p className="text-xs text-text-secondary mt-1">已启用规则</p>
         </div>
         <div className="bg-surface rounded-xl p-4 border border-border shadow-sm">
@@ -283,7 +283,7 @@ export default function AlertRules() {
           <p className="text-xs text-text-secondary mt-1">P1 紧急级别</p>
         </div>
         <div className="bg-surface rounded-xl p-4 border border-border shadow-sm">
-          <p className="text-2xl font-extrabold text-amber-400">{rules.filter(r => r.severity === 'warning').length}</p>
+          <p className="text-2xl font-extrabold text-amber-600">{rules.filter(r => r.severity === 'warning').length}</p>
           <p className="text-xs text-text-secondary mt-1">P2 警告级别</p>
         </div>
       </div>
@@ -296,7 +296,7 @@ export default function AlertRules() {
       ) : rules.length === 0 ? (
         <div className="bg-surface rounded-2xl border border-border p-12 text-center">
           <Shield className="w-12 h-12 mx-auto mb-3 text-text-secondary opacity-30" />
-          <p className="text-base font-semibold text-text">暂无告警规则</p>
+          <p className="text-base font-semibold text-text-primary">暂无告警规则</p>
           <p className="text-xs text-text-secondary mt-1 mb-6">点击“导入大屏内置告警模板”快速一键导入，或点击“新建告警规则”自定义 PromQL 策略</p>
           <button
             onClick={() => seedTemplatesMutation.mutate()}
@@ -328,18 +328,18 @@ export default function AlertRules() {
                         {sev.label}
                       </span>
 
-                      <h3 className="text-base font-bold text-text">{rule.name}</h3>
+                      <h3 className="text-base font-bold text-text-primary">{rule.name}</h3>
 
-                      <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-mono text-xs border border-blue-500/20">
+                      <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 font-mono text-xs border border-blue-500/20">
                         {rule.metricName}
                       </span>
 
                       {rule.notifyRemote !== false ? (
                         <span className="px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 text-xs border border-purple-500/30 flex items-center gap-1 font-medium">
-                          <Send className="w-3 h-3 text-purple-400" /> 远程通知
+                          <Send className="w-3 h-3 text-purple-600" /> 远程通知
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded bg-slate-800/60 text-slate-400 text-xs border border-slate-700/60">
+                        <span className="px-2 py-0.5 rounded bg-surface-2 text-text-secondary text-xs border border-border">
                           仅站内
                         </span>
                       )}
@@ -353,16 +353,16 @@ export default function AlertRules() {
                     <button
                       onClick={() => toggleMutation.mutate({ id: rule.id, enabled: !rule.enabled })}
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                        rule.enabled ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-surface-secondary text-text-secondary border border-border'
+                        rule.enabled ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30' : 'bg-surface-2 text-text-secondary border border-border'
                       }`}
                     >
-                      {rule.enabled ? <ToggleRight className="w-4 h-4 text-emerald-400" /> : <ToggleLeft className="w-4 h-4" />}
+                      {rule.enabled ? <ToggleRight className="w-4 h-4 text-emerald-600" /> : <ToggleLeft className="w-4 h-4" />}
                       {rule.enabled ? '已启用' : '已禁用'}
                     </button>
 
                     <button
                       onClick={() => { setEditingRule(rule); setIsCreating(false); }}
-                      className="p-1.5 rounded-lg bg-surface-secondary hover:bg-border text-text-secondary hover:text-text transition-colors"
+                      className="p-1.5 rounded-lg bg-surface-2 hover:bg-border text-text-secondary hover:text-text-primary transition-colors"
                       title="编辑策略"
                     >
                       <Edit className="w-4 h-4" />
@@ -370,7 +370,7 @@ export default function AlertRules() {
 
                     <button
                       onClick={() => setDeleteConfirm(rule)}
-                      className="p-1.5 rounded-lg bg-surface-secondary hover:bg-rose-500/15 text-text-secondary hover:text-rose-400 transition-colors"
+                      className="p-1.5 rounded-lg bg-surface-2 hover:bg-rose-500/15 text-text-secondary hover:text-rose-400 transition-colors"
                       title="删除策略"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -400,23 +400,23 @@ export default function AlertRules() {
                 {/* 规则触发逻辑详情条 */}
                 <div className="mt-3 pt-3 border-t border-border/50 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                   <div className="flex items-center gap-1.5 text-text-secondary">
-                    <Sliders className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                    <Sliders className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                     <span>判定阈值: </span>
-                    <span className="font-mono font-semibold text-text">
+                    <span className="font-mono font-semibold text-text-primary">
                       {rule.operator} {rule.threshold} {metricItem?.unit || ''}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-1.5 text-text-secondary">
-                    <Clock className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                    <Clock className="w-3.5 h-3.5 text-purple-600 shrink-0" />
                     <span>持续时长: </span>
-                    <span className="text-text font-medium">{rule.forDurationSec > 0 ? `持续 ${rule.forDurationSec} 秒` : '0 秒 (即刻触发)'}</span>
+                    <span className="text-text-primary font-medium">{rule.forDurationSec > 0 ? `持续 ${rule.forDurationSec} 秒` : '0 秒 (即刻触发)'}</span>
                   </div>
 
                   <div className="flex items-center gap-1.5 text-text-secondary">
-                    <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <Zap className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                     <span>上次触发: </span>
-                    <span className="text-text font-medium">{formatLastTriggered(rule.lastTriggered)}</span>
+                    <span className="text-text-primary font-medium">{formatLastTriggered(rule.lastTriggered)}</span>
                   </div>
                 </div>
 
@@ -424,13 +424,13 @@ export default function AlertRules() {
                 {rule.tagsFilter && rule.tagsFilter.length > 0 && (
                   <div className="mt-3 flex flex-wrap items-center gap-1.5">
                     <span className="text-[11px] text-text-secondary flex items-center gap-1">
-                      <Tag className="w-3 h-3 text-emerald-400" /> Tag 标签过滤:
+                      <Tag className="w-3 h-3 text-emerald-600" /> Tag 标签过滤:
                     </span>
                     {rule.tagsFilter.map((t, idx) => (
-                      <span key={idx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-surface-secondary border border-border text-[11px] font-mono text-text">
-                        <span className="text-purple-400">{t.key}</span>
-                        <span className="text-amber-400 font-bold">{t.op}</span>
-                        <span className="text-emerald-400">"{t.value}"</span>
+                      <span key={idx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-surface-2 border border-border text-[11px] font-mono text-text-primary">
+                        <span className="text-purple-600">{t.key}</span>
+                        <span className="text-amber-600 font-bold">{t.op}</span>
+                        <span className="text-emerald-600">"{t.value}"</span>
                       </span>
                     ))}
                   </div>
@@ -457,12 +457,12 @@ export default function AlertRules() {
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-surface border border-border rounded-xl max-w-sm w-full p-6 space-y-4 shadow-xl">
-            <h3 className="text-base font-bold text-text">确认删除该告警策略？</h3>
+            <h3 className="text-base font-bold text-text-primary">确认删除该告警策略？</h3>
             <p className="text-xs text-text-secondary">规则“{deleteConfirm.name}”删除后将停止后台轮询评估，无法撤销。</p>
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-3.5 py-1.5 rounded-lg border border-border text-xs text-text-secondary hover:text-text"
+                className="px-3.5 py-1.5 rounded-lg border border-border text-xs text-text-secondary hover:text-text-primary"
               >
                 取消
               </button>
@@ -651,15 +651,15 @@ function RuleEditorModal({
         {/* 顶部标题 */}
         <div className="flex items-center justify-between border-b border-border pb-4">
           <div>
-            <h2 className="text-lg font-bold text-text flex items-center gap-2">
-              <Code2 className="w-5 h-5 text-blue-400" />
+            <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
+              <Code2 className="w-5 h-5 text-blue-600" />
               {initialRule ? '编辑告警策略' : '新建告警规则策略 (PromQL 自由输入 + Tag 匹配)'}
             </h2>
             <p className="text-xs text-text-secondary mt-0.5">
               支持用户直接键入 PromQL 表达式，实时匹配采集端 Tag 标签并进行指标阈值计算
             </p>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-surface-secondary text-text-secondary hover:text-text">
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-surface-2 text-text-secondary hover:text-text-primary">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -667,7 +667,7 @@ function RuleEditorModal({
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* 1. 基础属性 */}
           <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
               <Sliders className="w-3.5 h-3.5" /> 1. 规则基本属性
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -679,7 +679,7 @@ function RuleEditorModal({
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="例如: [网络大屏] 核心交换机 CPU 负载超限"
-                  className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-xs text-text focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:border-blue-500"
                 />
               </div>
 
@@ -688,7 +688,7 @@ function RuleEditorModal({
                 <select
                   value={severity}
                   onChange={e => setSeverity(e.target.value as any)}
-                  className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-xs text-text focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:border-blue-500"
                 >
                   <option value="critical">P1 紧急 (Critical)</option>
                   <option value="warning">P2 警告 (Warning)</option>
@@ -704,7 +704,7 @@ function RuleEditorModal({
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 placeholder="详细说明此告警规则的触发场景与影响"
-                className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-xs text-text focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:border-blue-500"
               />
             </div>
           </div>
@@ -712,19 +712,19 @@ function RuleEditorModal({
           {/* 2. PromQL 表达式自由输入核心区 */}
           <div className="space-y-3 pt-3 border-t border-border/70">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-purple-600 flex items-center gap-1.5">
                 <Code2 className="w-3.5 h-3.5" /> 2. 告警 PromQL 表达式输入 (用户自由编写)
               </h3>
 
               {/* 模式切换 */}
-              <div className="flex items-center bg-surface-secondary rounded-lg p-0.5 border border-border text-[11px]">
+              <div className="flex items-center bg-surface-2 rounded-lg p-0.5 border border-border text-[11px]">
                 <button
                   type="button"
                   onClick={() => setActiveTab('promql')}
                   className={`px-2.5 py-1 rounded-md font-medium transition-all ${
                     activeTab === 'promql'
                       ? 'bg-purple-600 text-white shadow-sm'
-                      : 'text-text-secondary hover:text-text'
+                      : 'text-text-secondary hover:text-text-primary'
                   }`}
                 >
                   ✍️ PromQL 表达式模式
@@ -735,7 +735,7 @@ function RuleEditorModal({
                   className={`px-2.5 py-1 rounded-md font-medium transition-all ${
                     activeTab === 'form'
                       ? 'bg-purple-600 text-white shadow-sm'
-                      : 'text-text-secondary hover:text-text'
+                      : 'text-text-secondary hover:text-text-primary'
                   }`}
                 >
                   🛠️ 表单向导模式
@@ -784,7 +784,7 @@ function RuleEditorModal({
               </div>
 
               {promqlParseError && (
-                <p className="text-[11px] text-amber-400 flex items-center gap-1">
+                <p className="text-[11px] text-amber-600 flex items-center gap-1">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                   {promqlParseError}
                 </p>
@@ -794,7 +794,7 @@ function RuleEditorModal({
 
           {/* 3. 可视化表单向导部分 (与 PromQL 双向同步) */}
           {activeTab === 'form' && (
-            <div className="space-y-4 p-4 rounded-xl bg-surface-secondary/40 border border-border">
+            <div className="space-y-4 p-4 rounded-xl bg-surface-2/40 border border-border">
               {/* 指标选择 */}
               <div>
                 <label className="block text-xs font-semibold text-text-secondary mb-1">
@@ -803,7 +803,7 @@ function RuleEditorModal({
                 <select
                   value={metricName}
                   onChange={e => handleMetricChange(e.target.value)}
-                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-text focus:outline-none focus:border-purple-500 font-mono"
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:border-purple-500 font-mono"
                 >
                   {availableMetrics.map(m => (
                     <option key={m.metricName} value={m.metricName}>
@@ -813,7 +813,7 @@ function RuleEditorModal({
                 </select>
                 {currentMetric && (
                   <p className="text-[11px] text-text-secondary mt-1">
-                    指标单位: <span className="text-purple-400 font-mono font-semibold">{currentMetric.unit || '无'}</span> | 说明: {currentMetric.description}
+                    指标单位: <span className="text-purple-600 font-mono font-semibold">{currentMetric.unit || '无'}</span> | 说明: {currentMetric.description}
                   </p>
                 )}
               </div>
@@ -822,12 +822,12 @@ function RuleEditorModal({
               <div className="space-y-2 pt-2 border-t border-border/50">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-text-secondary flex items-center gap-1">
-                    <Tag className="w-3.5 h-3.5 text-emerald-400" /> Tag 标签筛选匹配器
+                    <Tag className="w-3.5 h-3.5 text-emerald-600" /> Tag 标签筛选匹配器
                   </span>
                   <button
                     type="button"
                     onClick={handleAddTagFilter}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 rounded text-xs font-semibold transition-colors"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border border-emerald-500/30 rounded text-xs font-semibold transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" /> 添加 Tag 过滤条件
                   </button>
@@ -849,7 +849,7 @@ function RuleEditorModal({
                             onChange={e => handleUpdateTagFilter(idx, 'key', e.target.value)}
                             placeholder="标签键 (如 env, cluster)"
                             list={`tag-keys-list`}
-                            className="w-full px-2.5 py-1.5 bg-surface border border-border rounded text-xs text-purple-400 font-mono font-semibold focus:outline-none focus:border-emerald-500"
+                            className="w-full px-2.5 py-1.5 bg-surface border border-border rounded text-xs text-purple-600 font-mono font-semibold focus:outline-none focus:border-emerald-500"
                           />
                           <datalist id="tag-keys-list">
                             {Object.keys(availableTagsMap).map(k => (
@@ -862,7 +862,7 @@ function RuleEditorModal({
                         <select
                           value={item.op}
                           onChange={e => handleUpdateTagFilter(idx, 'op', e.target.value)}
-                          className="w-24 px-2.5 py-1.5 bg-surface border border-border rounded text-xs text-amber-400 font-mono font-bold focus:outline-none focus:border-amber-500"
+                          className="w-24 px-2.5 py-1.5 bg-surface border border-border rounded text-xs text-amber-600 font-mono font-bold focus:outline-none focus:border-amber-500"
                         >
                           <option value="=">= (等于)</option>
                           <option value="!=">!= (不等于)</option>
@@ -878,7 +878,7 @@ function RuleEditorModal({
                             onChange={e => handleUpdateTagFilter(idx, 'value', e.target.value)}
                             placeholder="目标值 (如 production)"
                             list={`suggest-val-${item.key}`}
-                            className="w-full px-2.5 py-1.5 bg-surface border border-border rounded text-xs text-emerald-400 font-mono focus:outline-none focus:border-emerald-500"
+                            className="w-full px-2.5 py-1.5 bg-surface border border-border rounded text-xs text-emerald-600 font-mono focus:outline-none focus:border-emerald-500"
                           />
                           <datalist id={`suggest-val-${item.key}`}>
                             {(availableTagsMap[item.key] || []).map((val, vIdx) => (
@@ -908,7 +908,7 @@ function RuleEditorModal({
                   <select
                     value={operator}
                     onChange={e => handleOperatorChange(e.target.value as any)}
-                    className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-amber-400 font-mono font-bold focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-amber-600 font-mono font-bold focus:outline-none focus:border-amber-500"
                   >
                     <option value=">">&gt; (大于)</option>
                     <option value="=">&gt;= (大于等于)</option>
@@ -927,7 +927,7 @@ function RuleEditorModal({
                     required
                     value={threshold}
                     onChange={e => handleThresholdChange(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-text font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-text-primary font-mono focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
@@ -937,12 +937,12 @@ function RuleEditorModal({
           {/* 4. 🎯 实时 Tag 匹配度预检与采样测试面板 */}
           <div className="space-y-2 pt-2 border-t border-border/60">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-600 flex items-center gap-1.5">
                 <Activity className="w-3.5 h-3.5" /> 3. 采集 Tag 实时匹配预检 (Live Tag Matching Preview)
               </h3>
               {isPreviewLoading && (
                 <span className="text-[11px] text-text-secondary flex items-center gap-1">
-                  <Loader2 className="w-3 h-3 animate-spin text-blue-400" /> 正在匹配系统中...
+                  <Loader2 className="w-3 h-3 animate-spin text-blue-600" /> 正在匹配系统中...
                 </span>
               )}
             </div>
@@ -1048,7 +1048,7 @@ function RuleEditorModal({
 
           {/* 5. 持续时长与再触发静默 */}
           <div className="space-y-3 pt-2 border-t border-border/60">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-amber-600 flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" /> 4. 持续判定与通知冷却
             </h3>
 
@@ -1058,7 +1058,7 @@ function RuleEditorModal({
                 <select
                   value={forDurationSec}
                   onChange={e => setForDurationSec(parseInt(e.target.value))}
-                  className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-xs text-text focus:outline-none focus:border-amber-500"
+                  className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:border-amber-500"
                 >
                   {DURATION_OPTIONS.map(d => (
                     <option key={d.value} value={d.value}>{d.label}</option>
@@ -1071,7 +1071,7 @@ function RuleEditorModal({
                 <select
                   value={cooldownMs}
                   onChange={e => setCooldownMs(parseInt(e.target.value))}
-                  className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-xs text-text focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:border-blue-500"
                 >
                   {COOLDOWN_OPTIONS.map(c => (
                     <option key={c.value} value={c.value}>{c.label}</option>
@@ -1087,7 +1087,7 @@ function RuleEditorModal({
                 value={template}
                 onChange={e => setTemplate(e.target.value)}
                 placeholder="模版变量: ${device_name}, ${device_ip}, ${if_name}, ${value}"
-                className="w-full px-3 py-2 bg-surface-secondary border border-border rounded-lg text-xs text-text font-mono focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 bg-surface-2 border border-border rounded-lg text-xs text-text-primary font-mono focus:outline-none focus:border-blue-500"
               />
             </div>
           </div>
@@ -1097,7 +1097,7 @@ function RuleEditorModal({
             <div className="flex items-center justify-between p-3.5 rounded-xl bg-purple-500/5 border border-purple-500/20">
               <div className="space-y-0.5 pr-4">
                 <h3 className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
-                  <Send className="w-3.5 h-3.5 text-purple-400" /> 触发远程通知 (Webhook / 企业微信 / 钉钉 / 邮件)
+                  <Send className="w-3.5 h-3.5 text-purple-600" /> 触发远程通知 (Webhook / 企业微信 / 钉钉 / 邮件)
                 </h3>
                 <p className="text-[11px] text-text-secondary leading-relaxed">
                   勾选后，当此规则判定触发告警时，会自动将告警信息分发至「系统设置 &gt; 监控告警」中已启用的远程 Webhook 或群机器人通道。
@@ -1110,7 +1110,7 @@ function RuleEditorModal({
                   checked={notifyRemote}
                   onChange={e => setNotifyRemote(e.target.checked)}
                 />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 shadow-inner" />
+                <div className="w-11 h-6 bg-surface-2 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 shadow-inner" />
               </label>
             </div>
           </div>
@@ -1120,7 +1120,7 @@ function RuleEditorModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-border text-xs text-text-secondary hover:text-text transition-colors"
+              className="px-4 py-2 rounded-lg border border-border text-xs text-text-secondary hover:text-text-primary transition-colors"
             >
               取消
             </button>

@@ -113,7 +113,7 @@ export default function CustomListPanel() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+        <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
       </div>
     );
   }
@@ -123,21 +123,21 @@ export default function CustomListPanel() {
       {/* 标题栏 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Table2 className="w-4 h-4 text-blue-400" />
-          <span className="text-sm font-medium text-slate-300">自定义列表面板</span>
-          {lists.length > 0 && <span className="text-xs text-slate-500">({lists.length})</span>}
+          <Table2 className="w-4 h-4 text-blue-600" />
+          <span className="text-sm font-medium text-text-secondary">自定义列表面板</span>
+          {lists.length > 0 && <span className="text-xs text-text-tertiary">({lists.length})</span>}
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleRefresh}
-            className="flex items-center gap-1 px-2.5 py-1 bg-[#0d1225] border border-blue-500/20 rounded-md text-xs text-slate-300 hover:border-blue-500/40 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 bg-[#0d1225] border border-blue-500/20 rounded-md text-xs text-text-secondary hover:border-blue-500/40 transition-colors"
           >
             <RefreshCw className="w-3 h-3" />
             刷新
           </button>
           <button
             onClick={() => { setEditingList(null); setShowEditModal(true); }}
-            className="flex items-center gap-1 px-2.5 py-1 bg-blue-500/20 border border-blue-500/30 rounded-md text-xs text-blue-300 hover:bg-blue-500/30 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 bg-blue-500/20 border border-blue-500/30 rounded-md text-xs text-blue-600 hover:bg-blue-500/30 transition-colors"
           >
             <Plus className="w-3 h-3" />
             新建列表
@@ -149,7 +149,7 @@ export default function CustomListPanel() {
       {lists.length === 0 ? (
         <div className="bg-[#0d1225] rounded-xl border border-blue-500/10 p-8 text-center">
           <Table2 className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-          <p className="text-sm text-slate-500 mb-1">暂无自定义列表</p>
+          <p className="text-sm text-text-tertiary mb-1">暂无自定义列表</p>
           <p className="text-xs text-slate-600">点击"新建列表"创建一个 Grafana 风格的设备信息表格</p>
         </div>
       ) : (
@@ -248,21 +248,21 @@ function ListTable({ list, onEdit, onDelete, onViewRow, onViewMetrics }: {
       {/* 表格标题栏 */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-blue-500/10">
         <div className="flex items-center gap-2">
-          <Table2 className="w-3.5 h-3.5 text-blue-400" />
-          <span className="text-sm font-medium text-slate-200">{list.name}</span>
-          {list.description && <span className="text-xs text-slate-500">— {list.description}</span>}
+          <Table2 className="w-3.5 h-3.5 text-blue-600" />
+          <span className="text-sm font-medium text-text-primary">{list.name}</span>
+          {list.description && <span className="text-xs text-text-tertiary">— {list.description}</span>}
           {!isLoading && rows.length > 0 && (
             <span className="text-[10px] text-slate-600 ml-1">{rows.length} 行</span>
           )}
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={() => refetch()} className="p-1 text-slate-500 hover:text-blue-400 transition-colors" title="刷新数据">
+          <button onClick={() => refetch()} className="p-1 text-text-tertiary hover:text-blue-600 transition-colors" title="刷新数据">
             {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
           </button>
-          <button onClick={onEdit} className="p-1 text-slate-500 hover:text-blue-400 transition-colors" title="编辑">
+          <button onClick={onEdit} className="p-1 text-text-tertiary hover:text-blue-600 transition-colors" title="编辑">
             <Settings className="w-3 h-3" />
           </button>
-          <button onClick={onDelete} className="p-1 text-slate-500 hover:text-red-400 transition-colors" title="删除">
+          <button onClick={onDelete} className="p-1 text-text-tertiary hover:text-red-600 transition-colors" title="删除">
             <Trash2 className="w-3 h-3" />
           </button>
         </div>
@@ -272,8 +272,8 @@ function ListTable({ list, onEdit, onDelete, onViewRow, onViewMetrics }: {
       <div className="overflow-x-auto max-h-80">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
-            <span className="text-xs text-slate-500 ml-2">采集中...</span>
+            <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+            <span className="text-xs text-text-tertiary ml-2">采集中...</span>
           </div>
         ) : rows.length === 0 ? (
           <div className="text-center py-8 text-xs text-slate-600">暂无数据</div>
@@ -285,7 +285,7 @@ function ListTable({ list, onEdit, onDelete, onViewRow, onViewMetrics }: {
                   <th
                     key={col.id}
                     onClick={() => handleSort(col.id)}
-                    className={`px-3 py-2 text-slate-400 font-medium cursor-pointer hover:text-slate-200 select-none whitespace-nowrap ${
+                    className={`px-3 py-2 text-text-secondary font-medium cursor-pointer hover:text-text-primary select-none whitespace-nowrap ${
                       col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'
                     }`}
                   >
@@ -338,7 +338,7 @@ function ListTable({ list, onEdit, onDelete, onViewRow, onViewMetrics }: {
                           /* 百分比 + 迷你进度条 */
                           <div className="flex items-center gap-2 justify-center">
                             <span className="font-mono text-[11px]" style={{ color: getPercentColor(numVal) }}>{display}</span>
-                            <div className="w-16 h-1.5 bg-slate-700/50 rounded-full overflow-hidden">
+                            <div className="w-16 h-1.5 bg-background rounded-full overflow-hidden">
                               <div
                                 className="h-full rounded-full transition-all duration-500"
                                 style={{
@@ -365,14 +365,14 @@ function ListTable({ list, onEdit, onDelete, onViewRow, onViewMetrics }: {
                     <div className="flex items-center justify-center gap-0.5">
                       <button
                         onClick={() => onViewRow(row)}
-                        className="p-0.5 text-slate-600 hover:text-blue-400 transition-colors"
+                        className="p-0.5 text-slate-600 hover:text-blue-600 transition-colors"
                         title="查看行详情"
                       >
                         <Eye className="w-3 h-3" />
                       </button>
                       <button
                         onClick={() => onViewMetrics(row.deviceId)}
-                        className="p-0.5 text-slate-600 hover:text-cyan-400 transition-colors"
+                        className="p-0.5 text-slate-600 hover:text-cyan-600 transition-colors"
                         title="查看设备采集仪表盘"
                       >
                         <BarChart3 className="w-3 h-3" />
@@ -413,22 +413,22 @@ function RowDetailModal({ row, columns, listName, onClose }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-[#0d1225] border border-blue-500/20 rounded-xl w-full max-w-md max-h-[70vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-blue-500/10">
-          <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-            <ExternalLink className="w-4 h-4 text-blue-400" />
+          <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
+            <ExternalLink className="w-4 h-4 text-blue-600" />
             {listName} - 详情
           </h3>
-          <button onClick={onClose} className="p-1 hover:bg-blue-500/10 rounded"><X className="w-4 h-4 text-slate-400" /></button>
+          <button onClick={onClose} className="p-1 hover:bg-blue-500/10 rounded"><X className="w-4 h-4 text-text-secondary" /></button>
         </div>
         <div className="p-4 space-y-2">
-          <div className="text-xs text-slate-500 mb-2 flex items-center justify-between">
+          <div className="text-xs text-text-tertiary mb-2 flex items-center justify-between">
             <div>
-              设备: <span className="text-slate-300">{row.deviceName}</span>
+              设备: <span className="text-text-secondary">{row.deviceName}</span>
               <span className="text-slate-600 ml-2 font-mono">{row.deviceIp}</span>
-              {row.rowIndex !== '_device' && <span className="ml-2 text-blue-400">索引: {row.rowIndex}</span>}
+              {row.rowIndex !== '_device' && <span className="ml-2 text-blue-600">索引: {row.rowIndex}</span>}
             </div>
             <button
               onClick={() => { onClose(); navigate(`/device-metrics/${row.deviceId}`); }}
-              className="flex items-center gap-1 px-2 py-1 text-[10px] text-cyan-300 border border-cyan-500/30 rounded hover:bg-cyan-500/10 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 text-[10px] text-cyan-600 border border-cyan-500/30 rounded hover:bg-cyan-500/10 transition-colors"
             >
               <BarChart3 className="w-3 h-3" />
               采集仪表盘
@@ -444,7 +444,7 @@ function RowDetailModal({ row, columns, listName, onClose }: {
               const isPercent = col.type === 'metric' && col.unit === '%' && !isNaN(numVal);
               return (
                 <div key={col.id} className="flex items-center justify-between px-3 py-2 border-b border-blue-500/5 last:border-0">
-                  <span className="text-xs text-slate-500">{col.label}</span>
+                  <span className="text-xs text-text-tertiary">{col.label}</span>
                   {badge ? (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
                       style={{ backgroundColor: badge.bg + '22', color: badge.bg, border: `1px solid ${badge.bg}44` }}>
@@ -598,33 +598,33 @@ function ListEditModal({ list, onClose, onSave }: {
       <div className="bg-[#0d1225] border border-blue-500/20 rounded-xl w-full max-w-3xl max-h-[85vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
         {/* 头部 */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-blue-500/10 sticky top-0 bg-[#0d1225] z-10">
-          <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-            <Table2 className="w-4 h-4 text-blue-400" />
+          <h2 className="text-sm font-semibold text-text-primary flex items-center gap-2">
+            <Table2 className="w-4 h-4 text-blue-600" />
             {list ? '编辑列表面板' : '新建列表面板'}
           </h2>
-          <button onClick={onClose} className="p-1 hover:bg-blue-500/10 rounded"><X className="w-4 h-4 text-slate-400" /></button>
+          <button onClick={onClose} className="p-1 hover:bg-blue-500/10 rounded"><X className="w-4 h-4 text-text-secondary" /></button>
         </div>
 
         <div className="p-4 space-y-4">
           {/* 基本信息 */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">列表名称</label>
+              <label className="block text-xs font-medium text-text-secondary mb-1">列表名称</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="如：光模块状态"
-                className="w-full px-3 py-1.5 bg-[#111836] border border-blue-500/20 rounded-md text-xs text-slate-200 focus:outline-none focus:border-blue-500" />
+                className="w-full px-3 py-1.5 bg-[#111836] border border-blue-500/20 rounded-md text-xs text-text-primary focus:outline-none focus:border-blue-500" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">描述（可选）</label>
+              <label className="block text-xs font-medium text-text-secondary mb-1">描述（可选）</label>
               <input value={description} onChange={e => setDescription(e.target.value)} placeholder="如：各设备光模块收发光功率监控"
-                className="w-full px-3 py-1.5 bg-[#111836] border border-blue-500/20 rounded-md text-xs text-slate-200 focus:outline-none focus:border-blue-500" />
+                className="w-full px-3 py-1.5 bg-[#111836] border border-blue-500/20 rounded-md text-xs text-text-primary focus:outline-none focus:border-blue-500" />
             </div>
           </div>
 
           {/* 设备选择 */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-medium text-slate-400">关联设备 <span className="text-slate-600">({selectedDeviceIds.size}/{devices.length})</span></label>
-              <button onClick={selectAllDevices} className="text-[10px] text-blue-400 hover:text-blue-300">
+              <label className="text-xs font-medium text-text-secondary">关联设备 <span className="text-slate-600">({selectedDeviceIds.size}/{devices.length})</span></label>
+              <button onClick={selectAllDevices} className="text-[10px] text-blue-600 hover:text-blue-700">
                 {selectedDeviceIds.size === devices.length ? '取消全选' : '全选'}
               </button>
             </div>
@@ -640,12 +640,12 @@ function ListEditModal({ list, onClose, onSave }: {
                   }`}
                 >
                   <div className={`w-3 h-3 rounded border flex items-center justify-center flex-shrink-0 ${
-                    selectedDeviceIds.has(d.id) ? 'bg-blue-500 border-blue-500' : 'border-slate-600'
+                    selectedDeviceIds.has(d.id) ? 'bg-blue-500 border-blue-500' : 'border-border'
                   }`}>
                     {selectedDeviceIds.has(d.id) && <span className="text-white text-[8px]">✓</span>}
                   </div>
-                  <span className="text-xs text-slate-300">{d.name}</span>
-                  <span className="text-[10px] text-slate-500 font-mono ml-auto">{d.ip_address}</span>
+                  <span className="text-xs text-text-secondary">{d.name}</span>
+                  <span className="text-[10px] text-text-tertiary font-mono ml-auto">{d.ip_address}</span>
                 </div>
               ))}
             </div>
@@ -654,12 +654,12 @@ function ListEditModal({ list, onClose, onSave }: {
           {/* 列配置 */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-medium text-slate-400">表格列配置 <span className="text-slate-600">({columns.length} 列)</span></label>
+              <label className="text-xs font-medium text-text-secondary">表格列配置 <span className="text-slate-600">({columns.length} 列)</span></label>
               <div className="flex items-center gap-2">
-                <button onClick={addLabelColumn} className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-slate-400 border border-slate-600/30 rounded hover:text-slate-200 hover:border-slate-500 transition-colors">
+                <button onClick={addLabelColumn} className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-text-secondary border border-border rounded hover:text-text-primary hover:border-slate-500 transition-colors">
                   <Plus className="w-2.5 h-2.5" />标签列
                 </button>
-                <button onClick={addMetricColumn} className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-blue-300 border border-blue-500/30 rounded hover:bg-blue-500/10 transition-colors">
+                <button onClick={addMetricColumn} className="flex items-center gap-1 px-2 py-0.5 text-[10px] text-blue-600 border border-blue-500/30 rounded hover:bg-blue-500/10 transition-colors">
                   <Plus className="w-2.5 h-2.5" />指标列
                 </button>
               </div>
@@ -673,21 +673,21 @@ function ListEditModal({ list, onClose, onSave }: {
                     {/* 序号 + 排序按钮 */}
                     <span className="text-[10px] text-slate-600 w-4 text-center">{idx + 1}</span>
                     <button onClick={() => moveColumn(col.id, 'up')} disabled={idx === 0}
-                      className="p-0.5 text-slate-600 hover:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed">
+                      className="p-0.5 text-slate-600 hover:text-text-secondary disabled:opacity-30 disabled:cursor-not-allowed">
                       <ChevronUp className="w-3 h-3" />
                     </button>
                     <button onClick={() => moveColumn(col.id, 'down')} disabled={idx === columns.length - 1}
-                      className="p-0.5 text-slate-600 hover:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed">
+                      className="p-0.5 text-slate-600 hover:text-text-secondary disabled:opacity-30 disabled:cursor-not-allowed">
                       <ChevronDown className="w-3 h-3" />
                     </button>
 
                     {/* 类型标记 */}
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${col.type === 'label' ? 'bg-violet-500/15 text-violet-300' : 'bg-blue-500/15 text-blue-300'}`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${col.type === 'label' ? 'bg-violet-500/15 text-violet-600' : 'bg-blue-500/15 text-blue-600'}`}>
                       {col.type === 'label' ? '标签' : '指标'}
                     </span>
 
                     {/* 删除按钮 */}
-                    <button onClick={() => removeColumn(col.id)} className="ml-auto p-0.5 text-slate-600 hover:text-red-400 transition-colors">
+                    <button onClick={() => removeColumn(col.id)} className="ml-auto p-0.5 text-slate-600 hover:text-red-600 transition-colors">
                       <Trash2 className="w-3 h-3" />
                     </button>
                   </div>
@@ -695,49 +695,49 @@ function ListEditModal({ list, onClose, onSave }: {
                   <div className="grid grid-cols-12 gap-1.5 items-end ml-7">
                     {/* 列标题 */}
                     <div className="col-span-3">
-                      <label className="block text-[9px] text-slate-500 mb-0.5">列标题</label>
+                      <label className="block text-[9px] text-text-tertiary mb-0.5">列标题</label>
                       <input value={col.label} onChange={e => updateColumn(col.id, 'label', e.target.value)}
-                        className="w-full px-2 py-1 bg-[#0d1225] border border-blue-500/10 rounded text-[11px] text-slate-200 focus:outline-none focus:border-blue-500" />
+                        className="w-full px-2 py-1 bg-[#0d1225] border border-blue-500/10 rounded text-[11px] text-text-primary focus:outline-none focus:border-blue-500" />
                     </div>
 
                     {/* 标签字段 or OID */}
                     {col.type === 'label' ? (
                       <div className="col-span-4">
-                        <label className="block text-[9px] text-slate-500 mb-0.5">标签字段</label>
+                        <label className="block text-[9px] text-text-tertiary mb-0.5">标签字段</label>
                         <select value={col.field} onChange={e => updateColumn(col.id, 'field', e.target.value)}
-                          className="w-full px-2 py-1 bg-[#0d1225] border border-blue-500/10 rounded text-[11px] text-slate-200 focus:outline-none focus:border-blue-500">
+                          className="w-full px-2 py-1 bg-[#0d1225] border border-blue-500/10 rounded text-[11px] text-text-primary focus:outline-none focus:border-blue-500">
                           {LABEL_FIELD_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                         </select>
                       </div>
                     ) : (
                       <>
                         <div className="col-span-4">
-                          <label className="block text-[9px] text-slate-500 mb-0.5">OID</label>
+                          <label className="block text-[9px] text-text-tertiary mb-0.5">OID</label>
                           <input value={col.oid || ''} onChange={e => updateColumn(col.id, 'oid', e.target.value)}
                             placeholder="1.3.6.1.2.1..."
-                            className="w-full px-2 py-1 bg-[#0d1225] border border-blue-500/10 rounded text-[11px] text-blue-300 font-mono focus:outline-none focus:border-blue-500" />
+                            className="w-full px-2 py-1 bg-[#0d1225] border border-blue-500/10 rounded text-[11px] text-blue-600 font-mono focus:outline-none focus:border-blue-500" />
                         </div>
                         <div className="col-span-2">
-                          <label className="block text-[9px] text-slate-500 mb-0.5">采集方式</label>
+                          <label className="block text-[9px] text-text-tertiary mb-0.5">采集方式</label>
                           <select value={col.is_table || 0} onChange={e => updateColumn(col.id, 'is_table', parseInt(e.target.value))}
-                            className="w-full px-2 py-1 bg-[#0d1225] border border-blue-500/10 rounded text-[11px] text-slate-200 focus:outline-none focus:border-blue-500">
+                            className="w-full px-2 py-1 bg-[#0d1225] border border-blue-500/10 rounded text-[11px] text-text-primary focus:outline-none focus:border-blue-500">
                             <option value={0}>GET (标量)</option>
                             <option value={1}>WALK (表列)</option>
                           </select>
                         </div>
                         <div className="col-span-2">
-                          <label className="block text-[9px] text-slate-500 mb-0.5">单位</label>
+                          <label className="block text-[9px] text-text-tertiary mb-0.5">单位</label>
                           <input value={col.unit || ''} onChange={e => updateColumn(col.id, 'unit', e.target.value)} placeholder="dBm, ℃"
-                            className="w-full px-2 py-1 bg-[#0d1225] border border-blue-500/10 rounded text-[11px] text-slate-200 focus:outline-none focus:border-blue-500" />
+                            className="w-full px-2 py-1 bg-[#0d1225] border border-blue-500/10 rounded text-[11px] text-text-primary focus:outline-none focus:border-blue-500" />
                         </div>
                       </>
                     )}
 
                     {/* 文字颜色 */}
                     <div className="col-span-2">
-                      <label className="block text-[9px] text-slate-500 mb-0.5">文字颜色</label>
+                      <label className="block text-[9px] text-text-tertiary mb-0.5">文字颜色</label>
                       <select value={col.color || ''} onChange={e => updateColumn(col.id, 'color', e.target.value)}
-                        className="w-full px-1 py-1 bg-[#0d1225] border border-blue-500/10 rounded text-[11px] text-slate-200 focus:outline-none focus:border-blue-500"
+                        className="w-full px-1 py-1 bg-[#0d1225] border border-blue-500/10 rounded text-[11px] text-text-primary focus:outline-none focus:border-blue-500"
                         style={{ color: col.color || undefined }}>
                         {TEXT_COLOR_PRESETS.map(c => <option key={c.value} value={c.value} style={{ color: c.value || '#9ca3af' }}>{c.label}</option>)}
                       </select>
@@ -746,9 +746,9 @@ function ListEditModal({ list, onClose, onSave }: {
                     {/* 背景颜色（仅指标列） */}
                     {col.type === 'metric' && (
                       <div className="col-span-2">
-                        <label className="block text-[9px] text-slate-500 mb-0.5">背景颜色</label>
+                        <label className="block text-[9px] text-text-tertiary mb-0.5">背景颜色</label>
                         <select value={col.bgColor || ''} onChange={e => updateColumn(col.id, 'bgColor', e.target.value)}
-                          className="w-full px-1 py-1 bg-[#0d1225] border border-blue-500/10 rounded text-[11px] text-slate-200 focus:outline-none focus:border-blue-500">
+                          className="w-full px-1 py-1 bg-[#0d1225] border border-blue-500/10 rounded text-[11px] text-text-primary focus:outline-none focus:border-blue-500">
                           {BG_COLOR_PRESETS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                         </select>
                       </div>
@@ -756,9 +756,9 @@ function ListEditModal({ list, onClose, onSave }: {
 
                     {/* 对齐方式 */}
                     <div className="col-span-2">
-                      <label className="block text-[9px] text-slate-500 mb-0.5">对齐</label>
+                      <label className="block text-[9px] text-text-tertiary mb-0.5">对齐</label>
                       <select value={col.align || 'left'} onChange={e => updateColumn(col.id, 'align', e.target.value)}
-                        className="w-full px-1 py-1 bg-[#0d1225] border border-blue-500/10 rounded text-[11px] text-slate-200 focus:outline-none focus:border-blue-500">
+                        className="w-full px-1 py-1 bg-[#0d1225] border border-blue-500/10 rounded text-[11px] text-text-primary focus:outline-none focus:border-blue-500">
                         {ALIGN_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                     </div>
@@ -769,7 +769,7 @@ function ListEditModal({ list, onClose, onSave }: {
                         <label className="flex items-center gap-1 cursor-pointer">
                           <input type="checkbox" checked={col.link || false} onChange={e => updateColumn(col.id, 'link', e.target.checked)}
                             className="w-3 h-3 accent-blue-500" />
-                          <span className="text-[10px] text-slate-400">可点击</span>
+                          <span className="text-[10px] text-text-secondary">可点击</span>
                         </label>
                       </div>
                     )}
@@ -782,11 +782,11 @@ function ListEditModal({ list, onClose, onSave }: {
 
         {/* 底部按钮 */}
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-blue-500/10 sticky bottom-0 bg-[#0d1225]">
-          <button onClick={onClose} className="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200">取消</button>
+          <button onClick={onClose} className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary">取消</button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-500/20 border border-blue-500/30 text-xs text-blue-200 rounded-md hover:bg-blue-500/30 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-500/20 border border-blue-500/30 text-xs text-blue-600 rounded-md hover:bg-blue-500/30 transition-colors disabled:opacity-50"
           >
             {saving && <Loader2 className="w-3 h-3 animate-spin" />}
             保存

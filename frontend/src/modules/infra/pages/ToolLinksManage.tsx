@@ -207,7 +207,7 @@ export default function ToolLinksManage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/tool-links')}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-text-tertiary hover:text-text-primary hover:bg-slate-700/30 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-text-tertiary hover:text-text-primary hover:bg-surface-hover transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               返回
@@ -264,7 +264,7 @@ export default function ToolLinksManage() {
                 </tr>
               ) : (
                 filteredTools.map((tool, index) => (
-                  <tr key={tool.id} className="border-b border-border/50 hover:bg-slate-800/30 transition-colors">
+                  <tr key={tool.id} className="border-b border-border/50 hover:bg-surface-hover transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         <span className="text-xs text-text-tertiary w-5">{tool.sort_order}</span>
@@ -295,7 +295,7 @@ export default function ToolLinksManage() {
                       <span className="text-xs text-text-tertiary truncate max-w-[200px] block">{tool.url}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700/50 text-text-primary">{tool.category}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-surface-2 text-text-primary">{tool.category}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -324,14 +324,14 @@ export default function ToolLinksManage() {
                         </a>
                         <button
                           onClick={() => handleEdit(tool)}
-                          className="p-1.5 rounded-lg text-text-tertiary hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
+                          className="p-1.5 rounded-lg text-text-tertiary hover:text-blue-600 hover:bg-blue-500/10 transition-colors"
                           title="编辑"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setDeleteConfirm(tool)}
-                          className="p-1.5 rounded-lg text-text-tertiary hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                          className="p-1.5 rounded-lg text-text-tertiary hover:text-red-600 hover:bg-red-500/10 transition-colors"
                           title="删除"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -401,7 +401,7 @@ export default function ToolLinksManage() {
                       'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
                       iconMode === 'lucide'
                         ? 'bg-primary/20 text-primary border border-primary/30'
-                        : 'text-text-tertiary hover:text-text-primary hover:bg-slate-700/30'
+                        : 'text-text-tertiary hover:text-text-primary hover:bg-surface-hover'
                     )}
                   >
                     <Cog className="w-3.5 h-3.5" />
@@ -414,7 +414,7 @@ export default function ToolLinksManage() {
                       'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
                       iconMode === 'upload'
                         ? 'bg-primary/20 text-primary border border-primary/30'
-                        : 'text-text-tertiary hover:text-text-primary hover:bg-slate-700/30'
+                        : 'text-text-tertiary hover:text-text-primary hover:bg-surface-hover'
                     )}
                   >
                     <Image className="w-3.5 h-3.5" />
@@ -443,7 +443,7 @@ export default function ToolLinksManage() {
                               'p-2 rounded-lg text-xs transition-colors flex flex-col items-center gap-1',
                               formData.icon === icon
                                 ? 'bg-primary/20 text-primary border border-primary/30'
-                                : 'text-text-tertiary hover:bg-slate-700/30 hover:text-text-primary'
+                                : 'text-text-tertiary hover:bg-surface-hover hover:text-text-primary'
                             )}
                           >
                             <Cog className="w-4 h-4" />
@@ -496,7 +496,7 @@ export default function ToolLinksManage() {
                         <button
                           type="button"
                           onClick={() => deleteIconMutation.mutate(selectedTool.id)}
-                          className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+                          className="text-xs text-red-600 hover:text-red-700 flex items-center gap-1"
                         >
                           <XCircle className="w-3 h-3" />
                           删除自定义图标
@@ -604,7 +604,7 @@ export default function ToolLinksManage() {
           <div className="bg-surface rounded-xl p-6 w-full max-w-md mx-4">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-red-400" />
+                <AlertTriangle className="w-5 h-5 text-red-600" />
               </div>
               <h3 className="text-lg font-bold text-text-primary">确认删除</h3>
             </div>

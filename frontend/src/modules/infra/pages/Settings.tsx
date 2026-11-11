@@ -546,9 +546,9 @@ export default function Settings() {
                       {uploadStatus !== 'idle' && (
                         <div className={clsx(
                           'p-3 rounded-lg flex items-center gap-2',
-                          uploadStatus === 'uploading' && 'bg-blue-500/10 text-blue-400',
-                          uploadStatus === 'success' && 'bg-green-500/10 text-green-400',
-                          uploadStatus === 'error' && 'bg-red-500/10 text-red-400'
+                          uploadStatus === 'uploading' && 'bg-blue-500/10 text-blue-600',
+                          uploadStatus === 'success' && 'bg-green-500/10 text-green-600',
+                          uploadStatus === 'error' && 'bg-red-500/10 text-red-600'
                         )}>
                           {uploadStatus === 'uploading' && <Loader2 className="w-4 h-4 animate-spin" />}
                           {uploadStatus === 'success' && <CheckCircle2 className="w-4 h-4" />}
@@ -691,7 +691,7 @@ function InfluxdbSettings() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-40">
-        <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
+        <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
       </div>
     );
   }
@@ -700,7 +700,7 @@ function InfluxdbSettings() {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-          <Activity className="w-5 h-5 text-purple-400" />
+          <Activity className="w-5 h-5 text-purple-600" />
           时序库写入配置
         </h3>
         <p className="text-sm text-text-secondary mb-6">
@@ -713,13 +713,13 @@ function InfluxdbSettings() {
       <div className={`rounded-xl p-5 border transition-all ${
         settings?.enabled && settings?.db_connection_id
           ? 'bg-emerald-500/10 border-emerald-500/30 shadow-sm'
-          : 'bg-slate-800/40 border-slate-700/60'
+          : 'bg-surface border-border'
       }`}>
         <div className="flex items-center gap-2.5">
           {settings?.enabled && settings?.db_connection_id ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
           ) : (
-            <AlertCircle className="w-5 h-5 text-slate-400 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 text-text-secondary flex-shrink-0" />
           )}
           <span className="text-sm font-semibold text-text-primary">
             {settings?.enabled && settings?.db_connection_id
@@ -728,7 +728,7 @@ function InfluxdbSettings() {
           </span>
         </div>
         {connections.length === 0 && (
-          <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs">
+          <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-600 text-xs">
             <span className="flex items-center gap-1.5">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               未检测到 InfluxDB 连接，请先在「数据库管理」中添加 InfluxDB 类型的数据库连接。
@@ -758,7 +758,7 @@ function InfluxdbSettings() {
               checked={settings?.enabled === 1}
               onChange={(e) => handleToggleEnabled(e.target.checked)}
             />
-            <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" />
+            <div className="w-11 h-6 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" />
           </label>
         </div>
 
@@ -767,7 +767,7 @@ function InfluxdbSettings() {
           <div className="flex items-center justify-between mb-1.5">
             <label className="block text-sm font-medium text-text-primary">InfluxDB 连接</label>
             {connections.length > 0 && (
-              <span className="text-xs text-emerald-400">已检测到 {connections.length} 个可用 InfluxDB 连接</span>
+              <span className="text-xs text-emerald-600">已检测到 {connections.length} 个可用 InfluxDB 连接</span>
             )}
           </div>
           <select
@@ -853,7 +853,7 @@ function InfluxdbSettings() {
             <p className="text-xs text-text-secondary mt-1">向当前选中的 InfluxDB 发送一条测试指标验证写入通信是否正常</p>
           </div>
           {testWriteMutation.isSuccess && (
-            <span className="text-xs text-emerald-400 flex items-center gap-1">
+            <span className="text-xs text-emerald-600 flex items-center gap-1">
               <CheckCircle2 className="w-3.5 h-3.5" />
               通信正常
             </span>

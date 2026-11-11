@@ -493,13 +493,13 @@ export default function MetricTags() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-text-primary flex items-center gap-3">
-              <Tag className="w-7 h-7 text-blue-400" />
+              <Tag className="w-7 h-7 text-blue-600" />
               网络设备指标 Tag 览
             </h1>
             <p className="text-sm text-text-secondary mt-1">
               {hasRealData ? (
-                <span className="text-emerald-400 flex items-center gap-1 font-medium">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" /> 已连通全网设备 (如 {availableIps.join(', ')})，实时展示包含真实接口 (GE0/0/7, MultiGE0/0/1 等) 的采集指标 Tag
+                <span className="text-emerald-600 flex items-center gap-1 font-medium">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" /> 已连通全网设备 (如 {availableIps.join(', ')})，实时展示包含真实接口 (GE0/0/7, MultiGE0/0/1 等) 的采集指标 Tag
                 </span>
               ) : (
                 <span>查看与检索全网设备 SNMP 采集指标的标准 Prometheus Tag 命名（支持 IP 与指标名双向模糊搜索）</span>
@@ -517,7 +517,7 @@ export default function MetricTags() {
             </button>
             <button
               onClick={handleRefresh}
-              className="p-2.5 bg-surface border border-border hover:bg-slate-800/80 text-text-secondary hover:text-text-primary rounded-xl transition-all"
+              className="p-2.5 bg-surface border border-border hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl transition-all"
               title="刷新数据"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -528,7 +528,7 @@ export default function MetricTags() {
         {/* 顶部统计面板 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-surface border border-border rounded-xl p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-600 flex items-center justify-center">
               <Tag className="w-6 h-6" />
             </div>
             <div>
@@ -538,7 +538,7 @@ export default function MetricTags() {
           </div>
 
           <div className="bg-surface border border-border rounded-xl p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-600 flex items-center justify-center">
               <Network className="w-6 h-6" />
             </div>
             <div>
@@ -550,7 +550,7 @@ export default function MetricTags() {
           </div>
 
           <div className="bg-surface border border-border rounded-xl p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-600 flex items-center justify-center">
               <Radio className="w-6 h-6" />
             </div>
             <div>
@@ -562,7 +562,7 @@ export default function MetricTags() {
           </div>
 
           <div className="bg-surface border border-border rounded-xl p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-600 flex items-center justify-center">
               <Database className="w-6 h-6" />
             </div>
             <div>
@@ -609,7 +609,7 @@ export default function MetricTags() {
                   className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all whitespace-nowrap ${
                     activeCategory === cat.id
                       ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                      : 'bg-background border border-border text-text-secondary hover:text-text-primary hover:bg-slate-800/50'
+                      : 'bg-background border border-border text-text-secondary hover:text-text-primary hover:bg-surface-hover'
                   }`}
                 >
                   {cat.label}
@@ -623,7 +623,7 @@ export default function MetricTags() {
                 onClick={() => setViewFormat('prom')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   viewFormat === 'prom'
-                    ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                    ? 'bg-blue-500/20 text-blue-600 border border-blue-500/30'
                     : 'text-text-secondary hover:text-text-primary'
                 }`}
               >
@@ -634,7 +634,7 @@ export default function MetricTags() {
                 onClick={() => setViewFormat('table')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   viewFormat === 'table'
-                    ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                    ? 'bg-blue-500/20 text-blue-600 border border-blue-500/30'
                     : 'text-text-secondary hover:text-text-primary'
                 }`}
               >
@@ -647,7 +647,7 @@ export default function MetricTags() {
           {/* 快捷搜索 Chips (IP / 真实接口 / 指标名) */}
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/30 text-xs">
             <span className="text-text-tertiary flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5 text-blue-400" />
+              <Filter className="w-3.5 h-3.5 text-blue-600" />
               真实设备与接口快捷筛选:
             </span>
 
@@ -659,8 +659,8 @@ export default function MetricTags() {
                 onClick={() => setSearchQuery(ip)}
                 className={`px-2.5 py-1 rounded-lg font-mono text-[11px] border transition-all ${
                   searchQuery === ip
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                    : 'bg-background border-border text-slate-400 hover:text-amber-300 hover:border-amber-500/30'
+                    ? 'bg-amber-500/20 text-amber-600 border-amber-500/40'
+                    : 'bg-background border-border text-text-secondary hover:text-amber-700 hover:border-amber-500/30'
                 }`}
               >
                 device_ip="{ip}"
@@ -675,8 +675,8 @@ export default function MetricTags() {
                 onClick={() => setSearchQuery(name)}
                 className={`px-2.5 py-1 rounded-lg font-mono text-[11px] border transition-all ${
                   searchQuery === name
-                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
-                    : 'bg-background border-border text-slate-400 hover:text-cyan-300 hover:border-cyan-500/30'
+                    ? 'bg-cyan-500/20 text-cyan-600 border-cyan-500/40'
+                    : 'bg-background border-border text-text-secondary hover:text-cyan-700 hover:border-cyan-500/30'
                 }`}
               >
                 {name}
@@ -687,23 +687,23 @@ export default function MetricTags() {
 
         {/* 主展示区 */}
         {viewFormat === 'prom' ? (
-          <div className="bg-[#0b0f19] border border-blue-500/20 rounded-2xl p-6 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800/80">
+          <div className="bg-background border border-blue-500/20 rounded-2xl p-6 shadow-2xl relative">
+            <div className="flex items-center justify-between pb-4 mb-4 border-b border-border">
               <div className="flex items-center gap-2">
-                <Terminal className="w-5 h-5 text-blue-400" />
-                <span className="text-sm font-mono font-medium text-slate-300">
+                <Terminal className="w-5 h-5 text-blue-600" />
+                <span className="text-sm font-mono font-medium text-text-secondary">
                   Prometheus Exposition Format (数据库 7600+ 条真实采集接口数据)
                 </span>
               </div>
-              <span className="text-xs text-slate-500 font-mono">
-                标准格式：metric_name&#123;<span className="text-amber-400">device_ip="IP"</span>, ...&#125; value
+              <span className="text-xs text-text-tertiary font-mono">
+                标准格式：metric_name&#123;<span className="text-amber-600">device_ip="IP"</span>, ...&#125; value
               </span>
             </div>
 
             {/* 代码语法高亮容器 */}
             <div className="font-mono text-xs leading-relaxed space-y-2 max-h-[550px] overflow-y-auto pr-2 scrollbar-thin">
               {filteredItems.length === 0 ? (
-                <div className="text-center py-12 text-slate-500">
+                <div className="text-center py-12 text-text-tertiary">
                   未匹配到相关 IP 或接口名的 Tag 数据，请调整搜索关键字
                 </div>
               ) : (
@@ -711,8 +711,8 @@ export default function MetricTags() {
                   const tagPairs = Object.entries(item.tags).map(([k, v]) => ({ key: k, val: v }));
 
                   return (
-                    <div key={idx} className="group py-2 px-3 rounded-lg hover:bg-slate-900/80 transition-colors border border-transparent hover:border-blue-500/10">
-                      <div className="text-slate-500 text-[11px]">
+                    <div key={idx} className="group py-2 px-3 rounded-lg hover:bg-surface-hover transition-colors border border-transparent hover:border-blue-500/10">
+                      <div className="text-text-tertiary text-[11px]">
                         # HELP {item.metricName} {item.description} (OID: {item.oid})
                       </div>
                       <div className="text-slate-600 text-[11px] mb-1">
@@ -721,8 +721,8 @@ export default function MetricTags() {
 
                       <div className="flex flex-wrap items-baseline gap-0.5 text-sm">
                         {/* 指标名称 */}
-                        <span className="font-bold text-cyan-400">{item.metricName}</span>
-                        <span className="text-slate-400">&#123;</span>
+                        <span className="font-bold text-cyan-600">{item.metricName}</span>
+                        <span className="text-text-secondary">&#123;</span>
 
                         {/* Tags 遍历渲染 */}
                         {tagPairs.map((pair, pIdx) => {
@@ -730,20 +730,20 @@ export default function MetricTags() {
                           const isIfName = pair.key === 'ifName' || pair.key === 'ifDescr';
                           return (
                             <span key={pIdx} className="inline-flex items-baseline">
-                              <span className={isIp ? 'text-amber-400 font-bold' : isIfName ? 'text-cyan-300 font-medium' : 'text-amber-300'}>
+                              <span className={isIp ? 'text-amber-600 font-bold' : isIfName ? 'text-cyan-600 font-medium' : 'text-amber-600'}>
                                 {pair.key}
                               </span>
-                              <span className="text-slate-400">=</span>
-                              <span className={isIp ? 'text-emerald-300 font-semibold' : isIfName ? 'text-emerald-300' : 'text-emerald-400'}>
+                              <span className="text-text-secondary">=</span>
+                              <span className={isIp ? 'text-emerald-600 font-semibold' : isIfName ? 'text-emerald-600' : 'text-emerald-600'}>
                                 "{pair.val}"
                               </span>
-                              {pIdx < tagPairs.length - 1 && <span className="text-slate-400 mr-1.5">,</span>}
+                              {pIdx < tagPairs.length - 1 && <span className="text-text-secondary mr-1.5">,</span>}
                             </span>
                           );
                         })}
 
-                        <span className="text-slate-400">&#125;</span>
-                        <span className="ml-3 font-bold text-blue-300">{item.value}</span>
+                        <span className="text-text-secondary">&#125;</span>
+                        <span className="ml-3 font-bold text-blue-600">{item.value}</span>
                       </div>
                     </div>
                   );
@@ -755,7 +755,7 @@ export default function MetricTags() {
           /* 表格 / 详细卡片视图 */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredItems.length === 0 ? (
-              <div className="col-span-2 text-center py-12 text-slate-500 bg-surface border border-border rounded-2xl">
+              <div className="col-span-2 text-center py-12 text-text-tertiary bg-surface border border-border rounded-2xl">
                 未匹配到相关 IP 或接口名的 Tag 数据
               </div>
             ) : (
@@ -764,14 +764,14 @@ export default function MetricTags() {
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-base text-cyan-400 font-mono">{item.metricName}</span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        <span className="font-bold text-base text-cyan-600 font-mono">{item.metricName}</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/10 text-blue-600 border border-blue-500/20">
                           {item.type}
                         </span>
                       </div>
                       <p className="text-xs text-text-secondary mt-1">{item.description}</p>
                     </div>
-                    <span className="text-lg font-bold text-blue-300 font-mono">{item.value}</span>
+                    <span className="text-lg font-bold text-blue-600 font-mono">{item.value}</span>
                   </div>
 
                   <div className="text-xs text-text-tertiary font-mono">
@@ -781,14 +781,14 @@ export default function MetricTags() {
                   {/* Tag 名明细列表 */}
                   <div className="pt-3 border-t border-border/30">
                     <div className="text-xs font-medium text-text-secondary mb-2 flex items-center gap-1">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
                       Tag 关联属性表 (Tags):
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       {Object.entries(item.tags).map(([k, v]) => (
                         <div key={k} className={`rounded-xl p-2 border flex flex-col ${k === 'device_ip' ? 'bg-amber-500/10 border-amber-500/30' : 'bg-background border-border/50'}`}>
-                          <span className={`text-[10px] font-mono font-medium ${k === 'device_ip' ? 'text-amber-300 font-bold' : 'text-amber-400'}`}>{k}</span>
-                          <span className="text-xs text-emerald-400 font-mono truncate" title={v || '(empty)'}>
+                          <span className={`text-[10px] font-mono font-medium ${k === 'device_ip' ? 'text-amber-600 font-bold' : 'text-amber-600'}`}>{k}</span>
+                          <span className="text-xs text-emerald-600 font-mono truncate" title={v || '(empty)'}>
                             {v !== '' ? `"${v}"` : <span className="text-slate-600 italic">""</span>}
                           </span>
                         </div>
@@ -797,17 +797,17 @@ export default function MetricTags() {
                   </div>
 
                   {/* Prometheus 行示例 */}
-                  <div className="p-2.5 bg-[#0b0f19] rounded-xl border border-blue-500/15 text-[11px] font-mono overflow-x-auto">
-                    <span className="text-slate-400">Prometheus: </span>
-                    <span className="text-cyan-400">{item.metricName}</span>
-                    <span className="text-slate-400">&#123;</span>
+                  <div className="p-2.5 bg-background rounded-xl border border-blue-500/15 text-[11px] font-mono overflow-x-auto">
+                    <span className="text-text-secondary">Prometheus: </span>
+                    <span className="text-cyan-600">{item.metricName}</span>
+                    <span className="text-text-secondary">&#123;</span>
                     {Object.entries(item.tags).map(([k, v], tIdx, arr) => (
                       <span key={k}>
-                        <span className={k === 'device_ip' ? 'text-amber-400 font-bold' : 'text-amber-300'}>{k}</span>=<span className="text-emerald-400">"{v}"</span>
+                        <span className={k === 'device_ip' ? 'text-amber-600 font-bold' : 'text-amber-600'}>{k}</span>=<span className="text-emerald-600">"{v}"</span>
                         {tIdx < arr.length - 1 ? ', ' : ''}
                       </span>
                     ))}
-                    <span className="text-slate-400">&#125;</span> <span className="text-blue-300 font-bold">{item.value}</span>
+                    <span className="text-text-secondary">&#125;</span> <span className="text-blue-600 font-bold">{item.value}</span>
                   </div>
                 </div>
               ))

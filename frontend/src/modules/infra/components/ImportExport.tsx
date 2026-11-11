@@ -189,12 +189,12 @@ export function ImportExport({ resourceType, onImportSuccess }: ImportExportProp
       </div>
 
       {showImport && (
-        <div className="absolute right-0 top-full mt-2 z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-4 w-80">
+        <div className="absolute right-0 top-full mt-2 z-50 bg-surface border border-border rounded-lg shadow-xl p-4 w-80">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-medium text-white">批量导入{resourceLabels[resourceType]}</h4>
+            <h4 className="text-sm font-medium text-text-primary">批量导入{resourceLabels[resourceType]}</h4>
             <button
               onClick={() => setShowImport(false)}
-              className="text-slate-400 hover:text-white"
+              className="text-text-secondary hover:text-text-primary"
             >
               <X size={16} />
             </button>
@@ -205,12 +205,12 @@ export function ImportExport({ resourceType, onImportSuccess }: ImportExportProp
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
             className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-              dragOver ? 'border-blue-500 bg-blue-500/10' : 'border-slate-600 hover:border-blue-400'
+              dragOver ? 'border-blue-500 bg-blue-500/10' : 'border-border hover:border-blue-400'
             }`}
           >
-            <Upload className="mx-auto h-8 w-8 text-slate-400 mb-2" />
-            <p className="text-sm text-slate-300 mb-1">拖拽CSV文件到此处，或</p>
-            <label className="inline-block cursor-pointer text-sm text-blue-400 hover:text-blue-300">
+            <Upload className="mx-auto h-8 w-8 text-text-secondary mb-2" />
+            <p className="text-sm text-text-secondary mb-1">拖拽CSV文件到此处，或</p>
+            <label className="inline-block cursor-pointer text-sm text-blue-600 hover:text-blue-700">
               选择文件
               <input
                 type="file"
@@ -224,14 +224,14 @@ export function ImportExport({ resourceType, onImportSuccess }: ImportExportProp
           <div className="mt-3 flex items-center justify-between">
             <button
               onClick={handleDownloadTemplate}
-              className="text-sm text-slate-400 hover:text-white underline"
+              className="text-sm text-text-secondary hover:text-text-primary underline"
             >
               下载导入模板
             </button>
           </div>
 
           {importing && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-slate-300">
+            <div className="mt-3 flex items-center gap-2 text-sm text-text-secondary">
               <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
               正在导入...
             </div>
@@ -240,7 +240,7 @@ export function ImportExport({ resourceType, onImportSuccess }: ImportExportProp
           {importResult && (
             <div className="mt-3 space-y-2">
               <div className={`flex items-center gap-2 p-2 rounded text-sm ${
-                importResult.imported > 0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+                importResult.imported > 0 ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'
               }`}>
                 {importResult.imported > 0 ? (
                   <CheckCircle size={14} />
@@ -251,9 +251,9 @@ export function ImportExport({ resourceType, onImportSuccess }: ImportExportProp
               </div>
 
               {importResult.errors.length > 0 && (
-                <div className="max-h-40 overflow-y-auto bg-slate-700/50 rounded p-2">
+                <div className="max-h-40 overflow-y-auto bg-background rounded p-2">
                   {importResult.errors.map((error, idx) => (
-                    <p key={idx} className="text-xs text-red-400 mb-1">{error}</p>
+                    <p key={idx} className="text-xs text-red-600 mb-1">{error}</p>
                   ))}
                 </div>
               )}

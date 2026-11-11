@@ -802,52 +802,52 @@ export default function NetworkDevices() {
   };
 
   return (
-    <div className="w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6 text-slate-100 min-h-screen">
+    <div className="w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6 text-text-primary min-h-screen">
       {/* 页面顶部汇总统计 */}
       {deviceStats && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-slate-800 shadow-xl">
+          <div className="flex items-center gap-4 p-4 rounded-2xl bg-surface backdrop-blur-xl border border-border shadow-xl">
             <div className="p-3 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 text-white shadow-lg shadow-sky-500/20">
               <Network className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">设备总数</p>
-              <p className="text-2xl font-bold text-white font-mono mt-0.5">{deviceStats.devices?.total ?? 0}</p>
+              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">设备总数</p>
+              <p className="text-2xl font-bold text-text-primary font-mono mt-0.5">{deviceStats.devices?.total ?? 0}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-slate-800 shadow-xl">
-            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-lg shadow-emerald-500/10">
+          <div className="flex items-center gap-4 p-4 rounded-2xl bg-surface backdrop-blur-xl border border-border shadow-xl">
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 shadow-lg shadow-emerald-500/10">
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">在线运行</p>
+              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">在线运行</p>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-2xl font-bold text-emerald-400 font-mono">{deviceStats.devices?.online ?? 0}</span>
+                <span className="text-2xl font-bold text-emerald-600 font-mono">{deviceStats.devices?.online ?? 0}</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-slate-800 shadow-xl">
+          <div className="flex items-center gap-4 p-4 rounded-2xl bg-surface backdrop-blur-xl border border-border shadow-xl">
             <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 shadow-lg shadow-rose-500/10">
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">离线设备</p>
-              <p className="text-2xl font-bold text-slate-300 font-mono mt-0.5">{deviceStats.devices?.offline ?? 0}</p>
+              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">离线设备</p>
+              <p className="text-2xl font-bold text-text-secondary font-mono mt-0.5">{deviceStats.devices?.offline ?? 0}</p>
             </div>
           </div>
         </div>
       )}
 
       {/* 设备列表主工作区 */}
-      <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+      <div className="bg-surface backdrop-blur-xl rounded-2xl border border-border shadow-xl overflow-hidden">
         {/* 工具栏与过滤栏 */}
-        <div className="p-5 border-b border-slate-800 space-y-4">
+        <div className="p-5 border-b border-border space-y-4">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-slate-400 mr-1">厂商筛选:</span>
+              <span className="text-xs font-bold text-text-secondary mr-1">厂商筛选:</span>
               {vendors.map(vendor => (
                 <button
                   key={vendor}
@@ -855,7 +855,7 @@ export default function NetworkDevices() {
                   className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
                     selectedVendor === vendor
                       ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
-                      : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                      : 'bg-background border border-border text-text-secondary hover:text-text-primary hover:border-border'
                   }`}
                 >
                   {vendorLabels[vendor]}
@@ -867,15 +867,15 @@ export default function NetworkDevices() {
               <button
                 onClick={handlePingAllDevices}
                 disabled={isPingChecking}
-                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg border border-slate-800 transition-colors disabled:opacity-50"
+                className="p-2 text-text-secondary hover:text-text-primary hover:bg-surface-hover rounded-lg border border-border transition-colors disabled:opacity-50"
                 title="Ping 探测全部网络设备在线状态"
               >
-                <RefreshCw className={`w-4 h-4 ${isPingChecking ? 'animate-spin text-sky-400' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${isPingChecking ? 'animate-spin text-sky-600' : ''}`} />
               </button>
 
               {selectedDevices.size > 0 && (
                 <>
-                  <span className="text-xs text-sky-400 font-semibold px-2">{selectedDevices.size} 台已选</span>
+                  <span className="text-xs text-sky-600 font-semibold px-2">{selectedDevices.size} 台已选</span>
                   <button
                     onClick={handleBatchInspect}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow-md transition-colors"
@@ -893,7 +893,7 @@ export default function NetworkDevices() {
                   </button>
                   <button
                     onClick={() => setSelectedDevices(new Set())}
-                    className="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 bg-slate-800 rounded-lg transition-colors"
+                    className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary bg-surface-2 rounded-lg transition-colors"
                   >
                     取消选择
                   </button>
@@ -926,31 +926,31 @@ export default function NetworkDevices() {
           </div>
 
           <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-secondary" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="搜索设备名称、IP 地址、安装位置、设备型号..."
-              className="w-full pl-10 pr-4 py-2.5 text-xs bg-slate-950/80 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 text-xs bg-background border border-border rounded-xl text-text-primary placeholder-text-tertiary focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all"
             />
           </div>
         </div>
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <Loader2 className="w-8 h-8 text-sky-400 animate-spin" />
-            <p className="text-xs text-slate-400">正在加载网络设备列表...</p>
+            <Loader2 className="w-8 h-8 text-sky-600 animate-spin" />
+            <p className="text-xs text-text-secondary">正在加载网络设备列表...</p>
           </div>
         ) : filteredDevices.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-slate-800/50 flex items-center justify-center text-slate-400 mb-3 border border-slate-700/50">
+            <div className="w-16 h-16 rounded-2xl bg-surface flex items-center justify-center text-text-secondary mb-3 border border-border">
               <Network className="w-8 h-8" />
             </div>
-            <p className="text-sm font-semibold text-slate-200 mb-1">
+            <p className="text-sm font-semibold text-text-primary mb-1">
               {searchQuery ? '未找到匹配的网络设备' : '暂无网络设备资产'}
             </p>
-            <p className="text-xs text-slate-400 mb-4 max-w-sm">
+            <p className="text-xs text-text-secondary mb-4 max-w-sm">
               {searchQuery ? '尝试更换搜索关键字或重置厂商过滤条件' : '您可以点击上方「新建设备」或「批量导入」添加第一台网络设备'}
             </p>
             {!searchQuery && (
@@ -968,12 +968,12 @@ export default function NetworkDevices() {
             <div className="flex items-center gap-2">
               <button
                 onClick={selectAllDevices}
-                className="flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+                className="flex items-center gap-2 text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors"
               >
                 {selectedDevices.size === filteredDevices.length && filteredDevices.length > 0 ? (
-                  <CheckSquare className="w-4 h-4 text-sky-400" />
+                  <CheckSquare className="w-4 h-4 text-sky-600" />
                 ) : (
-                  <Square className="w-4 h-4 text-slate-500" />
+                  <Square className="w-4 h-4 text-text-tertiary" />
                 )}
                 全选本页 ({selectedDevices.size}/{filteredDevices.length})
               </button>
@@ -1002,10 +1002,10 @@ export default function NetworkDevices() {
                     />
                   {/* 设备时间轴分析提示 */}
                   {deviceTimeline[device.id]?.lastAnalysis && (
-                    <div className="flex items-center justify-between px-4 py-2 mt-2 bg-slate-950/60 border border-slate-800/80 rounded-xl text-xs">
+                    <div className="flex items-center justify-between px-4 py-2 mt-2 bg-background border border-border rounded-xl text-xs">
                       <button
                         onClick={() => navigate(`/alert-auto-analysis?deviceId=${device.id}`)}
-                        className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
+                        className="flex items-center gap-1.5 text-emerald-600 hover:text-emerald-300 font-medium transition-colors"
                       >
                         <Zap className="w-3.5 h-3.5" />
                         AI 智能分析:{' '}
@@ -1044,28 +1044,28 @@ export default function NetworkDevices() {
 
       {showInspectionModal && inspectingDevice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className={`bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl w-full ${inspectionType === 'custom' ? 'max-w-2xl' : 'max-w-md'} flex flex-col max-h-[85vh] overflow-hidden`}>
+          <div className={`bg-surface border border-border rounded-2xl shadow-2xl w-full ${inspectionType === 'custom' ? 'max-w-2xl' : 'max-w-md'} flex flex-col max-h-[85vh] overflow-hidden`}>
             {/* 弹窗头部 */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/40">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 border border-blue-500/20">
                   <Wifi className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                  <h3 className="text-base font-semibold text-text-primary flex items-center gap-2">
                     {inspectionType === 'custom' ? '设备自定义模版巡检' : inspectionType === 'full' ? '设备全量深度巡检' : '设备标准巡检'}
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-normal">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-surface-2 text-text-secondary border border-border font-normal">
                       {inspectingDevice.name}
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    目标 IP: <span className="font-mono text-slate-300">{inspectingDevice.ip_address}</span> · 厂商: <span className="uppercase font-semibold text-indigo-400">{inspectingDevice.vendor}</span>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    目标 IP: <span className="font-mono text-text-secondary">{inspectingDevice.ip_address}</span> · 厂商: <span className="uppercase font-semibold text-indigo-600">{inspectingDevice.vendor}</span>
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowInspectionModal(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+                className="text-text-secondary hover:text-text-primary p-1 rounded-lg hover:bg-surface-hover transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1075,11 +1075,11 @@ export default function NetworkDevices() {
             <div className="p-6 overflow-y-auto flex-1 space-y-4">
               {inspectionType === 'standard' ? (
                 <div className="space-y-3">
-                  <p className="text-sm text-slate-300">标准巡检将按内置适配器执行以下核心指标检查：</p>
+                  <p className="text-sm text-text-secondary">标准巡检将按内置适配器执行以下核心指标检查：</p>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     {['CPU 使用率', '内存使用率', '接口状态', '版本信息', '路由表', '系统日志', '环境状态', '电源/风扇'].map(item => (
-                      <div key={item} className="flex items-center gap-2 p-2 rounded-lg bg-slate-950/60 border border-slate-800 text-slate-300">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <div key={item} className="flex items-center gap-2 p-2 rounded-lg bg-background border border-border text-text-secondary">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                         {item}
                       </div>
                     ))}
@@ -1089,7 +1089,7 @@ export default function NetworkDevices() {
                 <div className="space-y-4">
                   {/* 品牌锁定提示 */}
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs">
-                    <Lock className="w-4 h-4 text-indigo-400 shrink-0" />
+                    <Lock className="w-4 h-4 text-indigo-600 shrink-0" />
                     <span>
                       <strong>同品牌模版锁定：</strong>当前设备品牌为【<span className="uppercase font-bold">{inspectingDevice.vendor}</span>】，系统已自动过滤并仅允许选择该品牌的巡检模版。
                     </span>
@@ -1097,17 +1097,17 @@ export default function NetworkDevices() {
 
                   {/* 模版选择器 */}
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-slate-300">选择适用的巡检模版</label>
+                    <label className="block text-xs font-semibold text-text-secondary">选择适用的巡检模版</label>
                     {isLoadingTemplates ? (
-                      <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
-                        <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
+                      <div className="flex items-center gap-2 text-xs text-text-secondary py-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
                         正在加载【{inspectingDevice.vendor}】巡检模版...
                       </div>
                     ) : deviceTemplates.length > 0 ? (
                       <select
                         value={selectedTemplateId}
                         onChange={(e) => handleSelectTemplate(e.target.value)}
-                        className="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-indigo-500 transition-colors"
+                        className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:border-indigo-500 transition-colors"
                       >
                         {deviceTemplates.map(tpl => (
                           <option key={tpl.id} value={tpl.id}>
@@ -1127,8 +1127,8 @@ export default function NetworkDevices() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Layers className="w-4 h-4 text-slate-400" />
-                          <span className="text-xs font-semibold text-slate-200">
+                          <Layers className="w-4 h-4 text-text-secondary" />
+                          <span className="text-xs font-semibold text-text-primary">
                             模版指令清单（已选 {selectedCommandNames.size} / {
                               (deviceTemplates.find(t => t.id === selectedTemplateId)?.commands || []).length
                             } 条）
@@ -1143,7 +1143,7 @@ export default function NetworkDevices() {
                                 setSelectedCommandNames(new Set((tpl.commands || []).map((c: any) => c.name || c.command)));
                               }
                             }}
-                            className="text-[11px] text-indigo-400 hover:text-indigo-300 transition-colors"
+                            className="text-[11px] text-indigo-600 hover:text-indigo-300 transition-colors"
                           >
                             全选
                           </button>
@@ -1151,14 +1151,14 @@ export default function NetworkDevices() {
                           <button
                             type="button"
                             onClick={() => setSelectedCommandNames(new Set())}
-                            className="text-[11px] text-slate-400 hover:text-slate-200 transition-colors"
+                            className="text-[11px] text-text-secondary hover:text-text-primary transition-colors"
                           >
                             清空
                           </button>
                         </div>
                       </div>
 
-                      <div className="max-h-56 overflow-y-auto space-y-2 p-2 bg-slate-950/70 rounded-xl border border-slate-800">
+                      <div className="max-h-56 overflow-y-auto space-y-2 p-2 bg-background rounded-xl border border-border">
                         {['硬件层', '系统层', '资源层', '安全层', '应用层'].map(layerName => {
                           const activeTpl = deviceTemplates.find(t => t.id === selectedTemplateId);
                           const layerCmds = (activeTpl?.commands || []).filter((c: any) => (c.group || '系统层') === layerName);
@@ -1180,25 +1180,25 @@ export default function NetworkDevices() {
                                       onClick={() => toggleCommandSelection(key)}
                                       className={`flex items-start gap-2.5 p-2 rounded-lg border text-xs cursor-pointer transition-all ${
                                         isChecked
-                                          ? 'bg-slate-900 border-indigo-500/40 text-slate-200 shadow-sm'
-                                          : 'bg-slate-950/50 border-slate-800/80 text-slate-400 opacity-60 hover:opacity-90'
+                                          ? 'bg-surface border-indigo-500/40 text-text-primary shadow-sm'
+                                          : 'bg-background border-border text-text-secondary opacity-60 hover:opacity-90'
                                       }`}
                                     >
                                       <input
                                         type="checkbox"
                                         checked={isChecked}
                                         onChange={() => {}}
-                                        className="mt-0.5 rounded text-indigo-600 focus:ring-0 border-slate-700 bg-slate-900"
+                                        className="mt-0.5 rounded text-indigo-600 focus:ring-0 border-border bg-surface"
                                       />
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between gap-2">
-                                          <span className="font-semibold text-slate-200">{cmd.name}</span>
-                                          <span className="text-[10px] font-mono text-emerald-400 truncate max-w-[200px]">
+                                          <span className="font-semibold text-text-primary">{cmd.name}</span>
+                                          <span className="text-[10px] font-mono text-emerald-600 truncate max-w-[200px]">
                                             {cmd.command}
                                           </span>
                                         </div>
                                         {cmd.description && (
-                                          <p className="text-[11px] text-slate-400 truncate mt-0.5">{cmd.description}</p>
+                                          <p className="text-[11px] text-text-secondary truncate mt-0.5">{cmd.description}</p>
                                         )}
                                       </div>
                                     </div>
@@ -1214,11 +1214,11 @@ export default function NetworkDevices() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-sm text-slate-300">全面巡检将按内置适配器执行完整诊断项：</p>
+                  <p className="text-sm text-text-secondary">全面巡检将按内置适配器执行完整诊断项：</p>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     {['CPU', '内存', '接口', '版本', '路由', '日志', '环境', '电源', '风扇', 'STP', 'VLAN', 'ARP', 'MAC'].map(item => (
-                      <div key={item} className="flex items-center gap-2 p-2 rounded-lg bg-slate-950/60 border border-slate-800 text-slate-300">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                      <div key={item} className="flex items-center gap-2 p-2 rounded-lg bg-background border border-border text-text-secondary">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                         {item}
                       </div>
                     ))}
@@ -1228,10 +1228,10 @@ export default function NetworkDevices() {
             </div>
 
             {/* 弹窗底部操作栏 */}
-            <div className="flex items-center justify-end gap-3 px-6 py-4 bg-slate-950/60 border-t border-slate-800">
+            <div className="flex items-center justify-end gap-3 px-6 py-4 bg-background border-t border-border">
               <button
                 onClick={() => setShowInspectionModal(false)}
-                className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors rounded-lg"
+                className="px-4 py-2 text-xs font-medium text-text-secondary hover:text-text-primary transition-colors rounded-lg"
               >
                 取消
               </button>
@@ -1259,28 +1259,28 @@ export default function NetworkDevices() {
 
       {showBatchModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* 弹窗头部 */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/40">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-background">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
                   <ClipboardCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                  <h3 className="text-base font-semibold text-text-primary flex items-center gap-2">
                     网络设备批量巡检
                     <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-mono font-medium">
                       已选 {selectedDevices.size} 台设备
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-text-secondary mt-0.5">
                     支持按标准模式、自定义维度或厂商模版批量下发巡检
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowBatchModal(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+                className="text-text-secondary hover:text-text-primary p-1 rounded-lg hover:bg-surface-hover transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1289,25 +1289,25 @@ export default function NetworkDevices() {
             {/* 弹窗主体 */}
             <div className="p-6 overflow-y-auto flex-1 space-y-5">
               {/* 受检设备概况与清单 */}
-              <div className="bg-slate-950/60 rounded-xl border border-slate-800/80 p-3 space-y-2">
+              <div className="bg-background rounded-xl border border-border p-3 space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-slate-400 font-medium">受检设备分布:</span>
+                    <span className="text-text-secondary font-medium">受检设备分布:</span>
                     {batchVendorKeys.map(v => (
                       <span
                         key={v}
-                        className="px-2 py-0.5 rounded-md bg-slate-900 border border-slate-700 text-slate-200 font-medium text-[11px]"
+                        className="px-2 py-0.5 rounded-md bg-surface border border-border text-text-primary font-medium text-[11px]"
                       >
-                        {vendorLabels[v] || v.toUpperCase()} · <strong className="text-sky-400">{batchVendorStats[v]}</strong> 台
+                        {vendorLabels[v] || v.toUpperCase()} · <strong className="text-sky-600">{batchVendorStats[v]}</strong> 台
                       </span>
                     ))}
                     {isBatchSingleVendor ? (
-                      <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
+                      <span className="text-[11px] text-emerald-600 flex items-center gap-1 font-medium">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         同品牌设备 ({vendorLabels[batchSingleVendorName] || batchSingleVendorName.toUpperCase()})
                       </span>
                     ) : (
-                      <span className="text-[11px] text-amber-400 flex items-center gap-1 font-medium">
+                      <span className="text-[11px] text-amber-600 flex items-center gap-1 font-medium">
                         <AlertCircle className="w-3.5 h-3.5" />
                         跨品牌混合设备
                       </span>
@@ -1316,7 +1316,7 @@ export default function NetworkDevices() {
                   <button
                     type="button"
                     onClick={() => setShowBatchDeviceList(prev => !prev)}
-                    className="flex items-center gap-1 text-[11px] text-sky-400 hover:text-sky-300 transition-colors ml-auto"
+                    className="flex items-center gap-1 text-[11px] text-sky-600 hover:text-sky-300 transition-colors ml-auto"
                   >
                     <span>{showBatchDeviceList ? '收起设备列表' : '展开设备列表'}</span>
                     {showBatchDeviceList ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -1324,14 +1324,14 @@ export default function NetworkDevices() {
                 </div>
 
                 {showBatchDeviceList && (
-                  <div className="max-h-36 overflow-y-auto divide-y divide-slate-800/60 pt-2 border-t border-slate-800/60">
+                  <div className="max-h-36 overflow-y-auto divide-y divide-border pt-2 border-t border-border">
                     {batchSelectedDeviceList.map((dev: NetworkDevice) => (
                       <div key={dev.id} className="py-1.5 flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-slate-200">{dev.name}</span>
-                          <span className="text-slate-500 font-mono text-[11px]">({dev.ip_address})</span>
+                          <span className="font-semibold text-text-primary">{dev.name}</span>
+                          <span className="text-text-tertiary font-mono text-[11px]">({dev.ip_address})</span>
                         </div>
-                        <span className="px-1.5 py-0.2 text-[10px] uppercase rounded bg-slate-800 text-slate-300 border border-slate-700">
+                        <span className="px-1.5 py-0.2 text-[10px] uppercase rounded bg-surface-2 text-text-secondary border border-border">
                           {dev.vendor}
                         </span>
                       </div>
@@ -1342,7 +1342,7 @@ export default function NetworkDevices() {
 
               {/* 巡检模式选择卡片 */}
               <div className="space-y-2">
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider">
                   选择巡检模式
                 </label>
                 <div className="grid grid-cols-3 gap-3">
@@ -1352,19 +1352,19 @@ export default function NetworkDevices() {
                     className={`relative p-3.5 rounded-xl border cursor-pointer transition-all ${
                       batchInspectionType === 'standard'
                         ? 'bg-emerald-500/10 border-emerald-500/60 ring-1 ring-emerald-500/40 shadow-lg shadow-emerald-500/10'
-                        : 'bg-slate-950/50 border-slate-800 hover:border-slate-700 hover:bg-slate-950/80 text-slate-400'
+                        : 'bg-background border-border hover:border-border hover:bg-background text-text-secondary'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5 font-semibold text-sm text-slate-100">
-                        <Sparkles className="w-4 h-4 text-emerald-400" />
+                      <div className="flex items-center gap-1.5 font-semibold text-sm text-text-primary">
+                        <Sparkles className="w-4 h-4 text-emerald-600" />
                         标准巡检
                       </div>
                       <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                         推荐
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                    <p className="text-[11px] text-text-secondary leading-relaxed">
                       执行厂商核心基础健康诊断，自动适配所选的所有品牌设备。
                     </p>
                   </div>
@@ -1375,19 +1375,19 @@ export default function NetworkDevices() {
                     className={`relative p-3.5 rounded-xl border cursor-pointer transition-all ${
                       batchInspectionType === 'custom'
                         ? 'bg-purple-500/10 border-purple-500/60 ring-1 ring-purple-500/40 shadow-lg shadow-purple-500/10'
-                        : 'bg-slate-950/50 border-slate-800 hover:border-slate-700 hover:bg-slate-950/80 text-slate-400'
+                        : 'bg-background border-border hover:border-border hover:bg-background text-text-secondary'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5 font-semibold text-sm text-slate-100">
-                        <Sliders className="w-4 h-4 text-purple-400" />
+                      <div className="flex items-center gap-1.5 font-semibold text-sm text-text-primary">
+                        <Sliders className="w-4 h-4 text-purple-600" />
                         自定义巡检
                       </div>
                       <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
                         高度灵活
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                    <p className="text-[11px] text-text-secondary leading-relaxed">
                       自由按维度勾选指标，或选择厂商专属模版与指令。
                     </p>
                   </div>
@@ -1398,19 +1398,19 @@ export default function NetworkDevices() {
                     className={`relative p-3.5 rounded-xl border cursor-pointer transition-all ${
                       batchInspectionType === 'full'
                         ? 'bg-indigo-500/10 border-indigo-500/60 ring-1 ring-indigo-500/40 shadow-lg shadow-indigo-500/10'
-                        : 'bg-slate-950/50 border-slate-800 hover:border-slate-700 hover:bg-slate-950/80 text-slate-400'
+                        : 'bg-background border-border hover:border-border hover:bg-background text-text-secondary'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5 font-semibold text-sm text-slate-100">
-                        <Activity className="w-4 h-4 text-indigo-400" />
+                      <div className="flex items-center gap-1.5 font-semibold text-sm text-text-primary">
+                        <Activity className="w-4 h-4 text-indigo-600" />
                         全量深度巡检
                       </div>
                       <span className="text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                         全项覆盖
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                    <p className="text-[11px] text-text-secondary leading-relaxed">
                       执行全部内置适配器诊断项，覆盖设备软硬件全量维度。
                     </p>
                   </div>
@@ -1419,13 +1419,13 @@ export default function NetworkDevices() {
 
               {/* 标准巡检面板 */}
               {batchInspectionType === 'standard' && (
-                <div className="space-y-3 p-4 rounded-xl bg-slate-950/50 border border-slate-800/80">
+                <div className="space-y-3 p-4 rounded-xl bg-background border border-border">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-semibold text-text-primary flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                       标准巡检核心检查项（8大核心维度）：
                     </span>
-                    <span className="text-[10px] text-slate-400">已内置各厂商官方适配器</span>
+                    <span className="text-[10px] text-text-secondary">已内置各厂商官方适配器</span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                     {[
@@ -1438,9 +1438,9 @@ export default function NetworkDevices() {
                       { name: '环境与温度', desc: '传感器与告警' },
                       { name: '电源与风扇', desc: '在位与运行状态' },
                     ].map(item => (
-                      <div key={item.name} className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 flex flex-col gap-0.5">
-                        <span className="font-semibold text-slate-200">{item.name}</span>
-                        <span className="text-[10px] text-slate-500">{item.desc}</span>
+                      <div key={item.name} className="p-2 rounded-lg bg-surface border border-border text-text-secondary flex flex-col gap-0.5">
+                        <span className="font-semibold text-text-primary">{item.name}</span>
+                        <span className="text-[10px] text-text-tertiary">{item.desc}</span>
                       </div>
                     ))}
                   </div>
@@ -1449,9 +1449,9 @@ export default function NetworkDevices() {
 
               {/* 自定义巡检面板 */}
               {batchInspectionType === 'custom' && (
-                <div className="space-y-4 p-4 rounded-xl bg-slate-950/50 border border-slate-800/80">
+                <div className="space-y-4 p-4 rounded-xl bg-background border border-border">
                   {/* 自定义子模式切换 */}
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+                  <div className="flex items-center justify-between border-b border-border pb-3 flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -1459,7 +1459,7 @@ export default function NetworkDevices() {
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           batchCustomMode === 'dimension'
                             ? 'bg-purple-600 text-white shadow-sm'
-                            : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+                            : 'bg-surface text-text-secondary hover:text-text-primary'
                         }`}
                       >
                         按指标维度自由勾选 (多品牌通用)
@@ -1470,7 +1470,7 @@ export default function NetworkDevices() {
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           batchCustomMode === 'template'
                             ? 'bg-purple-600 text-white shadow-sm'
-                            : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+                            : 'bg-surface text-text-secondary hover:text-text-primary'
                         }`}
                       >
                         按厂商专属模版 (同品牌推荐)
@@ -1482,7 +1482,7 @@ export default function NetworkDevices() {
                         <button
                           type="button"
                           onClick={selectAllDimensions}
-                          className="text-[11px] text-purple-400 hover:text-purple-300 font-medium"
+                          className="text-[11px] text-purple-600 hover:text-purple-300 font-medium"
                         >
                           全选
                         </button>
@@ -1490,7 +1490,7 @@ export default function NetworkDevices() {
                         <button
                           type="button"
                           onClick={selectCoreDimensions}
-                          className="text-[11px] text-sky-400 hover:text-sky-300 font-medium"
+                          className="text-[11px] text-sky-600 hover:text-sky-300 font-medium"
                         >
                           核心项 (8)
                         </button>
@@ -1498,7 +1498,7 @@ export default function NetworkDevices() {
                         <button
                           type="button"
                           onClick={clearDimensions}
-                          className="text-[11px] text-slate-400 hover:text-slate-200 font-medium"
+                          className="text-[11px] text-text-secondary hover:text-text-primary font-medium"
                         >
                           清空
                         </button>
@@ -1509,16 +1509,16 @@ export default function NetworkDevices() {
                   {/* 方式 A：按维度自由勾选 */}
                   {batchCustomMode === 'dimension' && (
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between text-xs text-slate-400">
+                      <div className="flex items-center justify-between text-xs text-text-secondary">
                         <span>勾选需要巡检的指标（已选 <strong className="text-purple-300">{batchSelectedDimensions.size}</strong> 项）：</span>
-                        <span className="text-[11px] text-slate-500">自动适配选中国产与主流各厂商命令</span>
+                        <span className="text-[11px] text-text-tertiary">自动适配选中国产与主流各厂商命令</span>
                       </div>
 
                       <div className="max-h-56 overflow-y-auto pr-1 space-y-3">
                         {[
-                          { category: 'hardware' as const, label: '硬件与性能', color: 'text-amber-400' },
-                          { category: 'network' as const, label: '网络与链路', color: 'text-cyan-400' },
-                          { category: 'system' as const, label: '系统与安全', color: 'text-indigo-400' },
+                          { category: 'hardware' as const, label: '硬件与性能', color: 'text-amber-600' },
+                          { category: 'network' as const, label: '网络与链路', color: 'text-cyan-600' },
+                          { category: 'system' as const, label: '系统与安全', color: 'text-indigo-600' },
                         ].map(group => {
                           const dims = ALL_INSPECTION_DIMENSIONS.filter(d => d.category === group.category);
                           return (
@@ -1536,19 +1536,19 @@ export default function NetworkDevices() {
                                       onClick={() => toggleBatchDimension(dim.key)}
                                       className={`flex items-start gap-2 p-2 rounded-lg border text-xs cursor-pointer transition-all ${
                                         isChecked
-                                          ? 'bg-purple-950/40 border-purple-500/50 text-slate-100 shadow-sm'
-                                          : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+                                          ? 'bg-purple-950/40 border-purple-500/50 text-text-primary shadow-sm'
+                                          : 'bg-surface border-border text-text-secondary hover:border-border hover:text-text-secondary'
                                       }`}
                                     >
                                       <input
                                         type="checkbox"
                                         checked={isChecked}
                                         onChange={() => {}}
-                                        className="mt-0.5 rounded text-purple-600 focus:ring-0 border-slate-700 bg-slate-900"
+                                        className="mt-0.5 rounded text-purple-600 focus:ring-0 border-border bg-surface"
                                       />
                                       <div className="flex-1 min-w-0">
-                                        <p className="font-semibold text-slate-200">{dim.name}</p>
-                                        <p className="text-[10px] text-slate-400 truncate mt-0.5">{dim.description}</p>
+                                        <p className="font-semibold text-text-primary">{dim.name}</p>
+                                        <p className="text-[10px] text-text-secondary truncate mt-0.5">{dim.description}</p>
                                       </div>
                                     </div>
                                   );
@@ -1577,19 +1577,19 @@ export default function NetworkDevices() {
                       )}
 
                       <div className="space-y-1.5">
-                        <label className="block text-xs font-semibold text-slate-300">
+                        <label className="block text-xs font-semibold text-text-secondary">
                           选择适用的巡检模版
                         </label>
                         {isLoadingBatchTemplates ? (
-                          <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
-                            <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
+                          <div className="flex items-center gap-2 text-xs text-text-secondary py-2">
+                            <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
                             正在加载巡检模版...
                           </div>
                         ) : batchTemplates.length > 0 ? (
                           <select
                             value={batchTemplateId}
                             onChange={(e) => handleSelectBatchTemplate(e.target.value)}
-                            className="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-purple-500 transition-colors"
+                            className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:border-purple-500 transition-colors"
                           >
                             {batchTemplates.map(tpl => (
                               <option key={tpl.id} value={tpl.id}>
@@ -1598,7 +1598,7 @@ export default function NetworkDevices() {
                             ))}
                           </select>
                         ) : (
-                          <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 text-xs">
+                          <div className="p-3 rounded-lg bg-surface border border-border text-text-secondary text-xs">
                             未找到对应的巡检模版，建议切换至「按指标维度自由勾选」模式。
                           </div>
                         )}
@@ -1608,7 +1608,7 @@ export default function NetworkDevices() {
                       {batchTemplateId && (
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-300">
+                            <span className="text-xs font-semibold text-text-secondary">
                               模版包含指令 (已选 {batchSelectedCommands.size} / {(batchTemplates.find(t => t.id === batchTemplateId)?.commands || []).length} 条)：
                             </span>
                             <div className="flex items-center gap-1.5 text-xs">
@@ -1620,7 +1620,7 @@ export default function NetworkDevices() {
                                     setBatchSelectedCommands(new Set((tpl.commands || []).map((c: any) => c.name || c.command)));
                                   }
                                 }}
-                                className="text-[11px] text-purple-400 hover:text-purple-300"
+                                className="text-[11px] text-purple-600 hover:text-purple-300"
                               >
                                 全选
                               </button>
@@ -1628,13 +1628,13 @@ export default function NetworkDevices() {
                               <button
                                 type="button"
                                 onClick={() => setBatchSelectedCommands(new Set())}
-                                className="text-[11px] text-slate-400 hover:text-slate-200"
+                                className="text-[11px] text-text-secondary hover:text-text-primary"
                               >
                                 清空
                               </button>
                             </div>
                           </div>
-                          <div className="max-h-44 overflow-y-auto space-y-1 p-2 bg-slate-950/80 rounded-lg border border-slate-800">
+                          <div className="max-h-44 overflow-y-auto space-y-1 p-2 bg-background rounded-lg border border-border">
                             {(batchTemplates.find(t => t.id === batchTemplateId)?.commands || []).map((cmd: any, idx: number) => {
                               const key = cmd.name || cmd.command;
                               const isChecked = batchSelectedCommands.has(key);
@@ -1644,8 +1644,8 @@ export default function NetworkDevices() {
                                   onClick={() => toggleBatchCommandSelection(key)}
                                   className={`flex items-center justify-between p-2 rounded border text-xs cursor-pointer transition-colors ${
                                     isChecked
-                                      ? 'bg-purple-950/30 border-purple-500/40 text-slate-200'
-                                      : 'bg-slate-900/40 border-slate-800/60 text-slate-400 opacity-60'
+                                      ? 'bg-purple-950/30 border-purple-500/40 text-text-primary'
+                                      : 'bg-surface border-border text-text-secondary opacity-60'
                                   }`}
                                 >
                                   <div className="flex items-center gap-2 min-w-0">
@@ -1653,11 +1653,11 @@ export default function NetworkDevices() {
                                       type="checkbox"
                                       checked={isChecked}
                                       onChange={() => {}}
-                                      className="rounded text-purple-600 focus:ring-0 border-slate-700 bg-slate-900"
+                                      className="rounded text-purple-600 focus:ring-0 border-border bg-surface"
                                     />
-                                    <span className="font-semibold text-slate-200 truncate">{cmd.name}</span>
+                                    <span className="font-semibold text-text-primary truncate">{cmd.name}</span>
                                   </div>
-                                  <span className="text-[10px] font-mono text-emerald-400 truncate max-w-[200px]">
+                                  <span className="text-[10px] font-mono text-emerald-600 truncate max-w-[200px]">
                                     {cmd.command}
                                   </span>
                                 </div>
@@ -1673,18 +1673,18 @@ export default function NetworkDevices() {
 
               {/* 全量深度巡检面板 */}
               {batchInspectionType === 'full' && (
-                <div className="space-y-3 p-4 rounded-xl bg-slate-950/50 border border-slate-800/80">
+                <div className="space-y-3 p-4 rounded-xl bg-background border border-border">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-indigo-300 flex items-center gap-1.5">
-                      <Activity className="w-4 h-4 text-indigo-400" />
+                      <Activity className="w-4 h-4 text-indigo-600" />
                       全量深度诊断涵盖全部 13 项核心及扩展维度：
                     </span>
-                    <span className="text-[10px] text-indigo-400/80">全面综合诊断</span>
+                    <span className="text-[10px] text-indigo-600/80">全面综合诊断</span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                     {['CPU', '内存', '接口', '版本', '路由', '日志', '环境', '电源', '风扇', 'STP', 'VLAN', 'ARP', 'MAC'].map(item => (
-                      <div key={item} className="flex items-center gap-1.5 p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                      <div key={item} className="flex items-center gap-1.5 p-2 rounded-lg bg-surface border border-border text-text-secondary">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                         <span>{item}</span>
                       </div>
                     ))}
@@ -1693,11 +1693,11 @@ export default function NetworkDevices() {
               )}
 
               {/* 并发与执行设置 */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/40 border border-slate-800/60 text-xs">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border text-xs">
                 <div className="flex items-center gap-2">
-                  <Settings2 className="w-4 h-4 text-slate-400" />
-                  <span className="text-slate-300 font-medium">并发工作线程数:</span>
-                  <span className="text-slate-500 text-[11px]">(推荐 1 ~ 10 并发)</span>
+                  <Settings2 className="w-4 h-4 text-text-secondary" />
+                  <span className="text-text-secondary font-medium">并发工作线程数:</span>
+                  <span className="text-text-tertiary text-[11px]">(推荐 1 ~ 10 并发)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <input
@@ -1706,23 +1706,23 @@ export default function NetworkDevices() {
                     max={20}
                     value={batchConcurrency}
                     onChange={(e) => setBatchConcurrency(Math.max(1, Math.min(20, parseInt(e.target.value) || 5)))}
-                    className="w-16 px-2.5 py-1 bg-slate-950 border border-slate-700 rounded-lg text-center font-mono text-xs text-sky-400 focus:outline-none focus:border-sky-500"
+                    className="w-16 px-2.5 py-1 bg-background border border-border rounded-lg text-center font-mono text-xs text-sky-600 focus:outline-none focus:border-sky-500"
                   />
-                  <span className="text-slate-400 text-xs">线程</span>
+                  <span className="text-text-secondary text-xs">线程</span>
                 </div>
               </div>
             </div>
 
             {/* 弹窗底部操作栏 */}
-            <div className="flex items-center justify-between px-6 py-4 bg-slate-950/80 border-t border-slate-800">
-              <span className="text-xs text-slate-400">
-                已选中 <strong className="text-emerald-400 font-mono">{selectedDevices.size}</strong> 台网络设备
+            <div className="flex items-center justify-between px-6 py-4 bg-background border-t border-border">
+              <span className="text-xs text-text-secondary">
+                已选中 <strong className="text-emerald-600 font-mono">{selectedDevices.size}</strong> 台网络设备
               </span>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setShowBatchModal(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800"
+                  className="px-4 py-2 text-xs font-medium text-text-secondary hover:text-text-primary transition-colors rounded-lg bg-surface border border-border hover:bg-surface-hover"
                 >
                   取消
                 </button>
@@ -1840,13 +1840,13 @@ export default function NetworkDevices() {
           <div className="bg-surface backdrop-blur-xl rounded-2xl w-full max-w-5xl border border-border shadow-2xl flex flex-col max-h-[92vh]">
             <div className="p-6 border-b border-border/30 flex items-center justify-between flex-shrink-0">
               <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
-                <Database className="w-5 h-5 text-purple-400" />
+                <Database className="w-5 h-5 text-purple-600" />
                 MIB 采集 — {mibCollectDevice.name}
                 <span className="text-xs text-text-secondary font-normal">({mibCollectDevice.ip_address})</span>
               </h2>
               <button
                 onClick={() => { setMibCollectDevice(null); setMibCollectResults(null); }}
-                className="p-2 hover:bg-slate-700/50 rounded-xl text-text-secondary hover:text-text-primary transition-all"
+                className="p-2 hover:bg-surface-hover rounded-xl text-text-secondary hover:text-text-primary transition-all"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1872,7 +1872,7 @@ export default function NetworkDevices() {
                       ))}
                     </select>
                     {mibModules.length === 0 && (
-                      <p className="text-xs text-amber-400 mt-2">
+                      <p className="text-xs text-amber-600 mt-2">
                         未找到 MIB 模块，请先在「SNMP 采集」页面上传 MIB 文件或 Excel
                       </p>
                     )}
@@ -1885,9 +1885,9 @@ export default function NetworkDevices() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     {mibCollectResults[0].status === 'success' ? (
-                      <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                     ) : (
-                      <AlertCircle className="w-5 h-5 text-amber-400" />
+                      <AlertCircle className="w-5 h-5 text-amber-600" />
                     )}
                     <span className="text-sm font-medium text-text-primary">
                       采集{mibCollectResults[0].status === 'success' ? '成功' : '完成（部分失败）'}
@@ -1911,21 +1911,21 @@ export default function NetworkDevices() {
                         {(mibCollectResults[0].metrics || []).map((m: any, i: number) => (
                           <tr key={i} className="border-b border-border/20 hover:bg-background/50">
                             <td className="px-3 py-2">
-                              <span className="text-xs text-emerald-400 font-medium break-all">{m.metric_name || '-'}</span>
+                              <span className="text-xs text-emerald-600 font-medium break-all">{m.metric_name || '-'}</span>
                             </td>
                             <td className="px-3 py-2">
                               <span className="text-xs text-text-secondary font-mono break-all">{m.oid}</span>
                             </td>
                             <td className="px-3 py-2">
-                              <span className={`text-xs font-mono break-all ${m.metric_value && m.metric_value !== 'N/A' ? 'text-blue-400' : 'text-text-secondary'}`}>
+                              <span className={`text-xs font-mono break-all ${m.metric_value && m.metric_value !== 'N/A' ? 'text-blue-600' : 'text-text-secondary'}`}>
                                 {m.metric_value && m.metric_value !== 'N/A' ? String(m.metric_value) : '-'}
                               </span>
                             </td>
                             <td className="px-3 py-2">
                               {m.error ? (
-                                <span className="text-xs text-red-400">{m.error}</span>
+                                <span className="text-xs text-red-600">{m.error}</span>
                               ) : (
-                                <span className="text-xs text-emerald-400">OK</span>
+                                <span className="text-xs text-emerald-600">OK</span>
                               )}
                             </td>
                           </tr>
@@ -1942,7 +1942,7 @@ export default function NetworkDevices() {
                 <>
                   <button
                     onClick={() => { setMibCollectDevice(null); setMibCollectResults(null); }}
-                    className="flex-1 px-4 py-2.5 bg-slate-700/50 text-text-primary rounded-xl hover:bg-slate-700/70 transition-all font-medium border border-slate-600/30"
+                    className="flex-1 px-4 py-2.5 bg-surface-2 text-text-primary rounded-xl hover:bg-surface-hover transition-all font-medium border border-border"
                   >
                     取消
                   </button>
@@ -1980,13 +1980,13 @@ export default function NetworkDevices() {
       {/* 批量导入弹窗 */}
       {showImportModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-700/50">
+          <div className="bg-surface-2 rounded-2xl shadow-2xl w-full max-w-lg border border-border">
             <div className="p-6 border-b border-border/30">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-text-primary">批量导入网络设备</h3>
                 <button
                   onClick={() => { setShowImportModal(false); setImportResult(null); setImportFile(null); }}
-                  className="p-1 hover:bg-slate-700 rounded-md transition-colors"
+                  className="p-1 hover:bg-surface-hover rounded-md transition-colors"
                 >
                   <X className="w-5 h-5 text-text-secondary" />
                 </button>
@@ -2000,7 +2000,7 @@ export default function NetworkDevices() {
               {/* 下载模板 */}
               <button
                 onClick={handleDownloadTemplate}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-dashed border-slate-600 rounded-xl text-sm text-text-secondary hover:text-emerald-400 hover:border-emerald-500/50 transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-dashed border-border rounded-xl text-sm text-text-secondary hover:text-emerald-600 hover:border-emerald-500/50 transition-colors"
               >
                 <Download className="w-4 h-4" />
                 下载导入模板
@@ -2017,7 +2017,7 @@ export default function NetworkDevices() {
                     if (file) { setImportFile(file); setImportResult(null); }
                   }}
                   className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${
-                    importFile ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-slate-600 hover:border-blue-500/50'
+                    importFile ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-border hover:border-blue-500/50'
                   }`}
                   onClick={() => document.getElementById('import-file-input')?.click()}
                 >
@@ -2033,7 +2033,7 @@ export default function NetworkDevices() {
                   />
                   {importFile ? (
                     <div className="space-y-1">
-                      <Upload className="w-8 h-8 text-emerald-400 mx-auto" />
+                      <Upload className="w-8 h-8 text-emerald-600 mx-auto" />
                       <p className="text-sm text-text-primary font-medium">{importFile.name}</p>
                       <p className="text-xs text-text-secondary">{(importFile.size / 1024).toFixed(1)} KB</p>
                     </div>
@@ -2052,7 +2052,7 @@ export default function NetworkDevices() {
                 <div className="bg-background rounded-xl p-4 space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-text-primary">导入完成</p>
@@ -2064,9 +2064,9 @@ export default function NetworkDevices() {
 
                   {importResult.parseErrors && importResult.parseErrors.length > 0 && (
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-red-400">解析错误：</p>
+                      <p className="text-xs font-medium text-red-600">解析错误：</p>
                       {importResult.parseErrors.map((err: any, i: number) => (
-                        <p key={i} className="text-xs text-red-400/80">
+                        <p key={i} className="text-xs text-red-600/80">
                           第 {err.row ?? '?'} 行: {err.error ?? err.message ?? String(err)}
                         </p>
                       ))}
@@ -2075,9 +2075,9 @@ export default function NetworkDevices() {
 
                   {importResult.failed && Array.isArray(importResult.failed) && importResult.failed.length > 0 && (
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-red-400">导入失败：</p>
+                      <p className="text-xs font-medium text-red-600">导入失败：</p>
                       {importResult.failed.map((err: any, i: number) => (
-                        <p key={i} className="text-xs text-red-400/80">
+                        <p key={i} className="text-xs text-red-600/80">
                           {err.name ?? err.ip_address ?? '?'}: {err.reason ?? err.error ?? String(err)}
                         </p>
                       ))}
@@ -2086,9 +2086,9 @@ export default function NetworkDevices() {
 
                   {importResult.skipped && Array.isArray(importResult.skipped) && importResult.skipped.length > 0 && (
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-amber-400">跳过的重复设备：</p>
+                      <p className="text-xs font-medium text-amber-600">跳过的重复设备：</p>
                       {importResult.skipped.map((item: any, i: number) => (
-                        <span key={i} className="inline-block text-xs bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded mr-1 mb-1">
+                        <span key={i} className="inline-block text-xs bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded mr-1 mb-1">
                           {item.name} ({item.ip_address}) — {item.reason ?? 'IP已存在'}
                         </span>
                       ))}
@@ -2101,7 +2101,7 @@ export default function NetworkDevices() {
             <div className="p-6 border-t border-border/30 flex gap-3">
               <button
                 onClick={() => { setShowImportModal(false); setImportResult(null); setImportFile(null); }}
-                className="flex-1 px-4 py-2.5 bg-slate-700/50 text-text-primary rounded-xl hover:bg-slate-700/70 transition-all font-medium border border-slate-600/30"
+                className="flex-1 px-4 py-2.5 bg-surface-2 text-text-primary rounded-xl hover:bg-surface-hover transition-all font-medium border border-border"
               >
                 {importResult ? '关闭' : '取消'}
               </button>
@@ -2153,28 +2153,28 @@ export default function NetworkDevices() {
       {/* 批量删除确认模态框 */}
       {showBatchDeleteModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
+          <div className="bg-surface border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200">
             <div className="flex items-center gap-3 text-rose-400">
               <div className="p-3 bg-rose-500/10 rounded-xl border border-rose-500/20">
                 <AlertTriangle className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-bold text-lg text-white">确认批量删除设备</h3>
-                <p className="text-xs text-slate-400">此操作不可恢复</p>
+                <h3 className="font-bold text-lg text-text-primary">确认批量删除设备</h3>
+                <p className="text-xs text-text-secondary">此操作不可恢复</p>
               </div>
             </div>
 
-            <p className="text-sm text-slate-300">
+            <p className="text-sm text-text-secondary">
               您已选中 <span className="font-bold text-rose-400">{selectedDevices.size}</span> 台网络设备。确定要将它们全部删除吗？关联的监控快照、巡检历史和告警分析也将一并清理。
             </p>
 
-            <div className="max-h-40 overflow-y-auto p-3 bg-slate-950/80 border border-slate-800 rounded-xl space-y-1.5 text-xs">
+            <div className="max-h-40 overflow-y-auto p-3 bg-background border border-border rounded-xl space-y-1.5 text-xs">
               {devices
                 .filter((d: NetworkDevice) => selectedDevices.has(d.id))
                 .map((d: NetworkDevice) => (
-                  <div key={d.id} className="flex justify-between items-center text-slate-300">
-                    <span className="font-medium text-white truncate max-w-[200px]">{d.name}</span>
-                    <span className="font-mono text-slate-400">{d.ip_address}</span>
+                  <div key={d.id} className="flex justify-between items-center text-text-secondary">
+                    <span className="font-medium text-text-primary truncate max-w-[200px]">{d.name}</span>
+                    <span className="font-mono text-text-secondary">{d.ip_address}</span>
                   </div>
                 ))}
             </div>
@@ -2184,7 +2184,7 @@ export default function NetworkDevices() {
                 type="button"
                 onClick={() => setShowBatchDeleteModal(false)}
                 disabled={isBatchDeleting}
-                className="flex-1 px-4 py-2.5 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white rounded-xl transition-colors text-sm font-medium"
+                className="flex-1 px-4 py-2.5 bg-surface-2 text-text-secondary hover:bg-surface-hover hover:text-text-primary rounded-xl transition-colors text-sm font-medium"
               >
                 取消
               </button>

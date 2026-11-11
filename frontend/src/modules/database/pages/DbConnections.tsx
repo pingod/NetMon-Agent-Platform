@@ -252,13 +252,13 @@ export default function DbConnections() {
   }, [connections, searchQuery]);
 
   const dbTypeColors: Record<string, string> = {
-    mysql: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    postgresql: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-    oracle: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+    mysql: 'bg-blue-500/20 text-blue-600 border-blue-500/30',
+    postgresql: 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30',
+    oracle: 'bg-amber-500/20 text-amber-600 border-amber-500/30',
     sqlite: 'bg-slate-500/20 text-text-secondary border-slate-500/30',
-    'influxdb-v1': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-    'influxdb-v2': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-    'influxdb-v3': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+    'influxdb-v1': 'bg-purple-500/20 text-purple-600 border-purple-500/30',
+    'influxdb-v2': 'bg-purple-500/20 text-purple-600 border-purple-500/30',
+    'influxdb-v3': 'bg-purple-500/20 text-purple-600 border-purple-500/30',
   };
 
   const dbTypeLabels: Record<string, string> = {
@@ -278,7 +278,7 @@ export default function DbConnections() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-text-primary flex items-center gap-3">
-              <Database className="w-7 h-7 text-blue-400" />
+              <Database className="w-7 h-7 text-blue-600" />
               数据库管理
             </h1>
             <p className="text-sm text-text-secondary mt-1">
@@ -303,7 +303,7 @@ export default function DbConnections() {
             { label: 'MySQL', value: connections?.filter(c => c.db_type === 'mysql').length || 0, icon: Server, color: 'amber' }
           ].map((stat, i) => (
             <div key={i} className="bg-surface border border-border rounded-xl p-4 flex items-center gap-4">
-              <div className={clsx('w-12 h-12 rounded-xl flex items-center justify-center', `bg-${stat.color}-500/20 text-${stat.color}-400`)}>
+              <div className={clsx('w-12 h-12 rounded-xl flex items-center justify-center', `bg-${stat.color}-500/20 text-${stat.color}-600`)}>
                 <stat.icon className="w-5 h-5" />
               </div>
               <div>
@@ -343,7 +343,7 @@ export default function DbConnections() {
               <div
                 key={conn.id}
                 className={clsx(
-                  'bg-surface border rounded-xl p-5 transition-all hover:bg-slate-800/80 hover:scale-[1.01]',
+                  'bg-surface border rounded-xl p-5 transition-all hover:bg-surface-hover hover:scale-[1.01]',
                   conn.enabled ? 'border-border' : 'border-red-500/20 opacity-60'
                 )}
               >
@@ -356,7 +356,7 @@ export default function DbConnections() {
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold text-text-primary">{conn.name}</h3>
                         {!conn.enabled && (
-                          <span className="px-2 py-0.5 text-xs bg-red-500/20 text-red-400 rounded-full border border-red-500/20">已禁用</span>
+                          <span className="px-2 py-0.5 text-xs bg-red-500/20 text-red-600 rounded-full border border-red-500/20">已禁用</span>
                         )}
                       </div>
                       <p className="text-xs text-text-secondary mt-0.5">
@@ -367,14 +367,14 @@ export default function DbConnections() {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => handleEdit(conn)}
-                      className="p-2 hover:bg-blue-500/20 text-blue-400 rounded-xl transition-all"
+                      className="p-2 hover:bg-blue-500/20 text-blue-600 rounded-xl transition-all"
                       title="编辑"
                     >
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(conn.id, conn.name)}
-                      className="p-2 hover:bg-red-500/20 text-red-400 rounded-xl transition-all"
+                      className="p-2 hover:bg-red-500/20 text-red-600 rounded-xl transition-all"
                       title="删除"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -416,7 +416,7 @@ export default function DbConnections() {
               </h2>
               <button
                 onClick={() => { setIsModalOpen(false); setEditingConn(null); resetForm(); }}
-                className="p-2 hover:bg-slate-700/50 rounded-xl text-text-secondary hover:text-text-primary transition-all"
+                className="p-2 hover:bg-surface-hover rounded-xl text-text-secondary hover:text-text-primary transition-all"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -541,10 +541,10 @@ export default function DbConnections() {
               {['influxdb-v1', 'influxdb-v2', 'influxdb-v3'].includes(formData.db_type) && (
                 <>
                   <div className="p-3 bg-purple-500/5 border border-purple-500/20 rounded-xl">
-                    <p className="text-xs text-purple-400 mb-1 font-medium">
+                    <p className="text-xs text-purple-600 mb-1 font-medium">
                       InfluxDB {formData.db_type === 'influxdb-v1' ? '1.x' : formData.db_type === 'influxdb-v2' ? '2.x' : '3.x'} 配置
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-text-tertiary">
                       {formData.db_type === 'influxdb-v1'
                         ? '使用用户名/密码认证，数据库名即 retention policy 所在的 database'
                         : '使用 API Token 认证，需配置组织和 Bucket'}
@@ -628,7 +628,7 @@ export default function DbConnections() {
                   id="enabled"
                   checked={formData.enabled}
                   onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-600 text-blue-500 focus:ring-blue-500/50"
+                  className="w-4 h-4 rounded border-border text-blue-500 focus:ring-blue-500/50"
                 />
                 <label htmlFor="enabled" className="text-sm text-text-primary">启用连接</label>
               </div>
@@ -638,7 +638,7 @@ export default function DbConnections() {
               <button
                 type="button"
                 onClick={() => { setIsModalOpen(false); setEditingConn(null); resetForm(); }}
-                className="flex-1 px-4 py-2.5 bg-slate-700/50 text-text-primary rounded-xl hover:bg-slate-700/70 transition-all font-medium border border-slate-600/30"
+                className="flex-1 px-4 py-2.5 bg-surface-2 text-text-primary rounded-xl hover:bg-surface-hover transition-all font-medium border border-border"
               >
                 取消
               </button>
@@ -679,7 +679,7 @@ export default function DbConnections() {
           <div className="bg-surface backdrop-blur-xl rounded-2xl w-full max-w-md border border-red-500/20 shadow-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-red-400" />
+                <AlertTriangle className="w-5 h-5 text-red-600" />
               </div>
               <h3 className="text-lg font-bold text-text-primary">确认删除</h3>
             </div>
@@ -689,7 +689,7 @@ export default function DbConnections() {
             <div className="flex gap-3">
               <button
                 onClick={() => { setShowDeleteConfirm(false); setPendingDelete(null); }}
-                className="flex-1 px-4 py-2.5 bg-slate-700/50 text-text-primary rounded-xl hover:bg-slate-700/70 transition-all font-medium"
+                className="flex-1 px-4 py-2.5 bg-surface-2 text-text-primary rounded-xl hover:bg-surface-hover transition-all font-medium"
               >
                 取消
               </button>

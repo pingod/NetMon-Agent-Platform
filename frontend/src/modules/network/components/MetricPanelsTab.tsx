@@ -96,7 +96,7 @@ export default function MetricPanelsTab() {
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
               activeSub === tab.key
                 ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-sm'
-                : 'text-text-secondary hover:text-text hover:bg-surface-secondary'
+                : 'text-text-secondary hover:text-text-primary hover:bg-surface-2'
             }`}
           >
             <tab.icon className="w-3.5 h-3.5" />
@@ -148,7 +148,7 @@ function DefinitionsSubTab() {
   return (
     <div className="bg-surface rounded-xl border border-border p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-text flex items-center gap-2">
+        <h3 className="text-sm font-medium text-text-primary flex items-center gap-2">
           <Database className="w-4 h-4 text-blue-400" />
           指标定义（snmp_exporter 风格命名）
         </h3>
@@ -159,7 +159,7 @@ function DefinitionsSubTab() {
         <select
           value={moduleFilter}
           onChange={e => { setModuleFilter(e.target.value); setPage(1); }}
-          className="flex-shrink-0 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500 cursor-pointer"
+          className="flex-shrink-0 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500 cursor-pointer"
         >
           <option value="">全部模块</option>
           {modules.map(m => <option key={m} value={m}>{m}</option>)}
@@ -170,7 +170,7 @@ function DefinitionsSubTab() {
             value={q}
             onChange={e => { setQ(e.target.value); setPage(1); }}
             placeholder="搜索指标名 / 描述 / OID..."
-            className="w-full pl-9 pr-4 py-2 bg-surface border border-border rounded-lg text-sm text-text placeholder:text-text-secondary focus:outline-none focus:border-blue-500"
+            className="w-full pl-9 pr-4 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-blue-500"
           />
         </div>
       </div>
@@ -195,7 +195,7 @@ function DefinitionsSubTab() {
               </thead>
               <tbody>
                 {displayDefs.map((d, i) => (
-                  <tr key={d.id || i} className="border-b border-border/30 hover:bg-surface-secondary/20 transition-colors">
+                  <tr key={d.id || i} className="border-b border-border/30 hover:bg-surface-2/20 transition-colors">
                     <td className="px-3 py-2 text-xs font-mono text-blue-400">{d.metric_name}</td>
                     <td className="px-3 py-2 text-xs text-text-secondary">{d.module_name || '-'}</td>
                     <td className="px-3 py-2 text-xs font-mono text-text-secondary">{d.oid || '-'}</td>
@@ -222,7 +222,7 @@ function DefinitionsSubTab() {
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage(p => p - 1)}
-                  className="px-2 py-1 rounded bg-surface-secondary hover:bg-border border border-border disabled:opacity-40"
+                  className="px-2 py-1 rounded bg-surface-2 hover:bg-border border border-border disabled:opacity-40"
                 >
                   上一页
                 </button>
@@ -230,7 +230,7 @@ function DefinitionsSubTab() {
                 <button
                   disabled={page >= totalPages}
                   onClick={() => setPage(p => p + 1)}
-                  className="px-2 py-1 rounded bg-surface-secondary hover:bg-border border border-border disabled:opacity-40"
+                  className="px-2 py-1 rounded bg-surface-2 hover:bg-border border border-border disabled:opacity-40"
                 >
                   下一页
                 </button>
@@ -283,7 +283,7 @@ function PanelsSubTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-text flex items-center gap-2">
+        <h3 className="text-sm font-medium text-text-primary flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-blue-400" />
           监控面板（Grafana 风格）
         </h3>
@@ -312,7 +312,7 @@ function PanelsSubTab() {
             <div key={p.id} className="bg-surface rounded-xl border border-border p-3 flex flex-col">
               <div className="flex items-center justify-between mb-2">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-text truncate">{p.title}</p>
+                  <p className="text-sm font-medium text-text-primary truncate">{p.title}</p>
                   <p className="text-[10px] text-text-secondary font-mono truncate">{p.metric_name}</p>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0 ml-2">
@@ -332,9 +332,9 @@ function PanelsSubTab() {
                 </div>
               </div>
               <div className="flex items-center gap-2 text-[10px] text-text-secondary mb-2">
-                <span className="px-1.5 py-0.5 rounded bg-surface-secondary">{p.chart_type || 'line'}</span>
-                <span className="px-1.5 py-0.5 rounded bg-surface-secondary">{p.aggregation || 'avg'}</span>
-                <span className="px-1.5 py-0.5 rounded bg-surface-secondary">{p.time_range || '24h'}</span>
+                <span className="px-1.5 py-0.5 rounded bg-surface-2">{p.chart_type || 'line'}</span>
+                <span className="px-1.5 py-0.5 rounded bg-surface-2">{p.aggregation || 'avg'}</span>
+                <span className="px-1.5 py-0.5 rounded bg-surface-2">{p.time_range || '24h'}</span>
               </div>
               {previewId === p.id && <PanelPreview key={p.id} panel={p} />}
             </div>
@@ -463,30 +463,30 @@ function PanelEditorModal({ panel, onClose, onSaved }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-surface border border-border rounded-xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-6 shadow-xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-text flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-text-primary flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-blue-400" />
             {panel ? '编辑面板' : '新建面板'}
           </h2>
-          <button onClick={onClose} className="p-1.5 hover:bg-surface-secondary rounded-md"><X className="w-4 h-4 text-text-secondary" /></button>
+          <button onClick={onClose} className="p-1.5 hover:bg-surface-2 rounded-md"><X className="w-4 h-4 text-text-secondary" /></button>
         </div>
 
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-text mb-1">面板标题</label>
+            <label className="block text-xs font-medium text-text-primary mb-1">面板标题</label>
             <input
               value={form.title}
               onChange={e => setForm({ ...form, title: e.target.value })}
               placeholder="如：接口入向流量"
-              className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-text mb-1">指标</label>
+            <label className="block text-xs font-medium text-text-primary mb-1">指标</label>
             <select
               value={form.metric_name}
               onChange={e => setForm({ ...form, metric_name: e.target.value })}
-              className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
             >
               <option value="">请选择指标</option>
               {defs.map((d: MetricDefinition) => (
@@ -497,52 +497,52 @@ function PanelEditorModal({ panel, onClose, onSaved }: {
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-text mb-1">图表</label>
+              <label className="block text-xs font-medium text-text-primary mb-1">图表</label>
               <select value={form.chart_type} onChange={e => setForm({ ...form, chart_type: e.target.value })}
-                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500">
+                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500">
                 {CHART_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-text mb-1">聚合</label>
+              <label className="block text-xs font-medium text-text-primary mb-1">聚合</label>
               <select value={form.aggregation} onChange={e => setForm({ ...form, aggregation: e.target.value })}
-                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500">
+                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500">
                 {AGG_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-text mb-1">时间范围</label>
+              <label className="block text-xs font-medium text-text-primary mb-1">时间范围</label>
               <select value={form.time_range} onChange={e => setForm({ ...form, time_range: e.target.value })}
-                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500">
+                className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500">
                 {TIME_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-text mb-1">标签过滤（JSON）</label>
+            <label className="block text-xs font-medium text-text-primary mb-1">标签过滤（JSON）</label>
             <textarea
               value={form.tag_filters}
               onChange={e => setForm({ ...form, tag_filters: e.target.value })}
               rows={2}
               placeholder='{"ifDescr":"Gi0/1"}'
-              className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm font-mono text-text focus:outline-none focus:border-blue-500 resize-none"
+              className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm font-mono text-text-primary focus:outline-none focus:border-blue-500 resize-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-text mb-1">分组字段（逗号分隔）</label>
+            <label className="block text-xs font-medium text-text-primary mb-1">分组字段（逗号分隔）</label>
             <input
               value={form.group_by}
               onChange={e => setForm({ ...form, group_by: e.target.value })}
               placeholder="ifDescr, ifName"
-              className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
             />
           </div>
         </div>
 
         <div className="flex justify-end gap-3 mt-5">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-text-secondary hover:text-text transition-colors">取消</button>
+          <button onClick={onClose} className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors">取消</button>
           <button
             onClick={handleSave}
             disabled={saving}
@@ -605,41 +605,41 @@ function GeneratorSubTab() {
 
   return (
     <div className="bg-surface rounded-xl border border-border p-4 space-y-4">
-      <h3 className="text-sm font-medium text-text flex items-center gap-2">
+      <h3 className="text-sm font-medium text-text-primary flex items-center gap-2">
         <Upload className="w-4 h-4 text-blue-400" />
         generator.yml 风格导入（module + walk + lookups → 命名指标）
       </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="block text-xs font-medium text-text mb-1">Module</label>
+          <label className="block text-xs font-medium text-text-primary mb-1">Module</label>
           <input
             value={module}
             onChange={e => setModule(e.target.value)}
             placeholder="如 if_mib"
-            className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text focus:outline-none focus:border-blue-500"
+            className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
           />
         </div>
         <div className="md:col-span-2">
-          <label className="block text-xs font-medium text-text mb-1">Walk（每行一个 OID，表根或末级列）</label>
+          <label className="block text-xs font-medium text-text-primary mb-1">Walk（每行一个 OID，表根或末级列）</label>
           <textarea
             value={walk}
             onChange={e => setWalk(e.target.value)}
             rows={3}
             placeholder={'1.3.6.1.2.1.2.2\n1.3.6.1.2.1.2.2.1.10'}
-            className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm font-mono text-text focus:outline-none focus:border-blue-500 resize-none"
+            className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm font-mono text-text-primary focus:outline-none focus:border-blue-500 resize-none"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-text mb-1">Lookups（每行：OID|标签名，作为派生标签源）</label>
+        <label className="block text-xs font-medium text-text-primary mb-1">Lookups（每行：OID|标签名，作为派生标签源）</label>
         <textarea
           value={lookups}
           onChange={e => setLookups(e.target.value)}
           rows={2}
           placeholder={'1.3.6.1.2.1.2.2.1.2|ifDescr'}
-          className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm font-mono text-text focus:outline-none focus:border-blue-500 resize-none"
+          className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm font-mono text-text-primary focus:outline-none focus:border-blue-500 resize-none"
         />
       </div>
 

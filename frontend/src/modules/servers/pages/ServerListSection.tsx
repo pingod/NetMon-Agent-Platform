@@ -106,7 +106,7 @@ export function ServerListSection({
       SERVER_VENDORS.find((item) => item.value === v) || {
         value: 'other',
         label: '其他 (Other)',
-        color: 'text-slate-400',
+        color: 'text-text-secondary',
         bg: 'bg-slate-500/10',
         border: 'border-slate-500/30',
       }
@@ -404,7 +404,7 @@ export function ServerListSection({
                     <span
                       className={clsx(
                         'text-[10px] px-1 py-0.2 rounded-full',
-                        selectedVendor === v.value ? 'bg-primary/20 text-white' : 'bg-surface text-text-tertiary',
+                        selectedVendor === v.value ? 'bg-primary/20 text-text-primary' : 'bg-surface text-text-tertiary',
                       )}
                     >
                       {count}
@@ -704,7 +704,7 @@ export function ServerListSection({
                   <div className="grid grid-cols-3 gap-2 mt-3">
                     <button
                       onClick={() => onOpenAiCommand(server)}
-                      className="flex flex-col items-center justify-center gap-1 px-2 py-2.5 bg-gradient-to-r from-purple-600/20 to-blue-600/20 border border-purple-500/30 rounded-lg text-xs font-medium text-purple-300 whitespace-nowrap hover:from-purple-600/30 hover:to-blue-600/30 transition-colors"
+                      className="flex flex-col items-center justify-center gap-1 px-2 py-2.5 bg-gradient-to-r from-purple-600/20 to-blue-600/20 border border-purple-500/30 rounded-lg text-xs font-medium text-purple-600 whitespace-nowrap hover:from-purple-600/30 hover:to-blue-600/30 transition-colors"
                     >
                       <Sparkles className="w-4 h-4" />
                       <span>AI 执行</span>
@@ -827,17 +827,17 @@ export function ServerListSection({
                     className={clsx(
                       'p-3.5 rounded-xl border text-left transition-all relative overflow-hidden flex flex-col justify-between',
                       batchMode === 'brand_auto'
-                        ? 'border-purple-500 bg-purple-500/10 text-purple-300 shadow-md shadow-purple-500/10 ring-1 ring-purple-500/40'
+                        ? 'border-purple-500 bg-purple-500/10 text-purple-600 shadow-md shadow-purple-500/10 ring-1 ring-purple-500/40'
                         : 'border-border bg-background hover:border-border/80 text-text-secondary hover:text-text-primary'
                     )}
                   >
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-1.5">
-                          <Sparkles className="w-4 h-4 text-purple-400" />
+                          <Sparkles className="w-4 h-4 text-purple-600" />
                           <span className="text-sm font-bold text-text-primary">品牌专属联动</span>
                         </div>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-500/20 text-purple-300 font-medium border border-purple-500/30">
+                        <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-500/20 text-purple-600 font-medium border border-purple-500/30">
                           推荐
                         </span>
                       </div>
@@ -854,13 +854,13 @@ export function ServerListSection({
                     className={clsx(
                       'p-3.5 rounded-xl border text-left transition-all relative overflow-hidden flex flex-col justify-between',
                       batchMode === 'custom_template'
-                        ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300 shadow-md shadow-indigo-500/10 ring-1 ring-indigo-500/40'
+                        ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600 shadow-md shadow-indigo-500/10 ring-1 ring-indigo-500/40'
                         : 'border-border bg-background hover:border-border/80 text-text-secondary hover:text-text-primary'
                     )}
                   >
                     <div>
                       <div className="flex items-center gap-1.5 mb-1.5">
-                        <Layers className="w-4 h-4 text-indigo-400" />
+                        <Layers className="w-4 h-4 text-indigo-600" />
                         <span className="text-sm font-bold text-text-primary">统一指定模版</span>
                       </div>
                       <p className="text-xs text-text-tertiary leading-relaxed mt-1">
@@ -896,8 +896,8 @@ export function ServerListSection({
               {/* 模式联动详细信息 */}
               {batchMode === 'brand_auto' && (
                 <div className="p-4 bg-background rounded-xl border border-purple-500/20 space-y-2.5 animate-in fade-in duration-150">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-purple-300">
-                    <Sparkles className="w-4 h-4 text-purple-400" />
+                  <div className="flex items-center gap-2 text-xs font-semibold text-purple-600">
+                    <Sparkles className="w-4 h-4 text-purple-600" />
                     <span>各品牌设备模版智能匹配清单：</span>
                   </div>
                   <div className="space-y-1.5 text-xs">
@@ -915,7 +915,7 @@ export function ServerListSection({
                               {matchedTpl ? matchedTpl.name : 'Linux 通用 SmartKit 五层巡检模版'}
                             </span>
                           </div>
-                          <span className="text-[11px] text-emerald-400 font-mono">
+                          <span className="text-[11px] text-emerald-600 font-mono">
                             {matchedTpl ? `${matchedTpl.commands?.length || 0}条指令` : '标准项'}
                           </span>
                         </div>
@@ -932,7 +932,7 @@ export function ServerListSection({
                 <div className="p-4 bg-background rounded-xl border border-indigo-500/20 space-y-3 animate-in fade-in duration-150">
                   <div className="flex items-center justify-between">
                     <label className="text-sm font-medium text-text-primary flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-indigo-400" />
+                      <Layers className="w-4 h-4 text-indigo-600" />
                       从模版中心选择统一执行的模版
                     </label>
                     {isLoadingTemplates && (
@@ -960,7 +960,7 @@ export function ServerListSection({
                         <p>{tpl.description || '暂无说明'}</p>
                         <div className="flex gap-3 text-text-tertiary mt-1.5 pt-1.5 border-t border-border/50 text-[11px]">
                           <span>适用厂商: <strong className="text-text-primary">{tpl.vendor}</strong></span>
-                          <span>指令数量: <strong className="text-emerald-400">{tpl.commands?.length || 0} 项</strong></span>
+                          <span>指令数量: <strong className="text-emerald-600">{tpl.commands?.length || 0} 项</strong></span>
                           <span>类别: <strong className="text-text-primary">{tpl.category}</strong></span>
                         </div>
                       </div>
@@ -1025,7 +1025,7 @@ export function ServerListSection({
                 </div>
               </div>
 
-              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs text-blue-400 space-y-1">
+              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs text-blue-600 space-y-1">
                 <p>💡 巡检完成后，系统将自动汇总生成巡检报告记录，并支持在报告中心下载包含每台服务器独立文件的 ZIP 压缩包。</p>
               </div>
             </div>
@@ -1072,7 +1072,7 @@ export function ServerListSection({
 
             <div className="p-6 space-y-4">
               <p className="text-sm text-text-secondary">
-                您已选中 <span className="font-bold text-rose-400">{selectedServerIds.size}</span> 台服务器。确定要将它们全部删除吗？关联的分组映射、巡检历史及合规检查记录也将一并清除。
+                您已选中 <span className="font-bold text-rose-600">{selectedServerIds.size}</span> 台服务器。确定要将它们全部删除吗？关联的分组映射、巡检历史及合规检查记录也将一并清除。
               </p>
 
               <div className="max-h-36 overflow-y-auto p-2.5 bg-background border border-border rounded-lg text-xs space-y-1">

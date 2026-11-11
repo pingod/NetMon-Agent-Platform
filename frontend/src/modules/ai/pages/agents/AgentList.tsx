@@ -18,19 +18,19 @@ export default function AgentList({ filteredAgents, isLoading, onShowDetail, onT
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="bg-gradient-to-br from-surface to-background backdrop-blur-xl rounded-2xl p-6 border border-border/50 animate-pulse">
             <div className="flex items-start gap-4 mb-5">
-              <div className="w-14 h-14 rounded-2xl bg-slate-700/50" />
+              <div className="w-14 h-14 rounded-2xl bg-border" />
               <div className="flex-1 space-y-2">
-                <div className="h-5 w-32 bg-slate-700/50 rounded" />
-                <div className="h-4 w-24 bg-slate-700/50 rounded" />
+                <div className="h-5 w-32 bg-border rounded" />
+                <div className="h-4 w-24 bg-border rounded" />
               </div>
             </div>
             <div className="space-y-2 mb-5">
-              <div className="h-4 bg-slate-700/50 rounded" />
-              <div className="h-4 w-3/4 bg-slate-700/50 rounded" />
+              <div className="h-4 bg-border rounded" />
+              <div className="h-4 w-3/4 bg-border rounded" />
             </div>
-            <div className="border-t border-slate-700/30 pt-3 space-y-2">
-              <div className="h-4 bg-slate-700/50 rounded" />
-              <div className="h-4 bg-slate-700/50 rounded" />
+            <div className="border-t border-border pt-3 space-y-2">
+              <div className="h-4 bg-border rounded" />
+              <div className="h-4 bg-border rounded" />
             </div>
           </div>
         ))}
@@ -41,7 +41,7 @@ export default function AgentList({ filteredAgents, isLoading, onShowDetail, onT
   if (!filteredAgents || filteredAgents.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-12 bg-surface/50 border border-dashed border-border rounded-2xl text-center space-y-4">
-        <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+        <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-600">
           <BookOpen className="w-8 h-8" />
         </div>
         <div>
@@ -75,18 +75,18 @@ export default function AgentList({ filteredAgents, isLoading, onShowDetail, onT
                 </div>
               </div>
               <div>
-                <h3 className="font-bold text-text-primary tracking-tight group-hover:text-blue-300 transition-colors">{agent.name}</h3>
+                <h3 className="font-bold text-text-primary tracking-tight group-hover:text-blue-700 transition-colors">{agent.name}</h3>
                 <p className="text-sm text-text-secondary mt-1">{agent.role}</p>
               </div>
             </div>
             <div className="flex flex-col gap-2 items-end">
               {agent.is_preset === 1 && (
-                <span className="px-3 py-1 bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-blue-400 text-xs rounded-full border border-blue-500/30 font-medium">
+                <span className="px-3 py-1 bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-blue-600 text-xs rounded-full border border-blue-500/30 font-medium">
                   预设
                 </span>
               )}
               {agent.category && (
-                <span className="px-3 py-1 bg-slate-700/50 text-text-primary text-xs rounded-full border border-slate-600/50">
+                <span className="px-3 py-1 bg-surface-2 text-text-primary text-xs rounded-full border border-border">
                   {agent.category}
                 </span>
               )}
@@ -104,7 +104,7 @@ export default function AgentList({ filteredAgents, isLoading, onShowDetail, onT
               {agent.tags.slice(0, 3).map((tag) => (
                 <span
                   key={tag}
-                  className="px-3 py-1 bg-gradient-to-r from-slate-700/50 to-slate-600/50 border border-slate-600/50 text-xs text-text-primary rounded-full"
+                  className="px-3 py-1 bg-surface-2 border border-border text-xs text-text-primary rounded-full"
                 >
                   {tag}
                 </span>
@@ -147,8 +147,8 @@ export default function AgentList({ filteredAgents, isLoading, onShowDetail, onT
               className={clsx(
                 'px-3 py-1.5 rounded-full text-xs font-semibold',
                 agent.enabled
-                  ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 border border-green-500/30'
-                  : 'bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-400 border border-red-500/30'
+                  ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-600 border border-green-500/30'
+                  : 'bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-600 border border-red-500/30'
               )}
             >
               {agent.enabled ? '在线' : '离线'}
@@ -156,21 +156,21 @@ export default function AgentList({ filteredAgents, isLoading, onShowDetail, onT
             <div className="flex gap-1">
               <button
                 onClick={() => onTest(agent)}
-                className="p-2.5 hover:bg-blue-500/20 text-blue-400 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="p-2.5 hover:bg-blue-500/20 text-blue-600 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
                 title="测试"
               >
                 <Play className="w-4.5 h-4.5" />
               </button>
               <button
                 onClick={() => onShowDetail(agent.id)}
-                className="p-2.5 hover:bg-slate-700/50 text-text-secondary hover:text-text-primary rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="p-2.5 hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
                 title="详情"
               >
                 <BookOpen className="w-4.5 h-4.5" />
               </button>
               <button
                 onClick={() => onEdit(agent)}
-                className="p-2.5 hover:bg-slate-700/50 text-text-secondary hover:text-text-primary rounded-xl transition-all hover:scale-105 active:scale-95"
+                className="p-2.5 hover:bg-surface-hover text-text-secondary hover:text-text-primary rounded-xl transition-all hover:scale-105 active:scale-95"
                 title="编辑"
               >
                 <Edit className="w-4.5 h-4.5" />
@@ -178,7 +178,7 @@ export default function AgentList({ filteredAgents, isLoading, onShowDetail, onT
               {agent.is_preset !== 1 && (
                 <button
                   onClick={() => onDelete(agent.id, agent.name)}
-                  className="p-2.5 hover:bg-red-500/20 text-red-400 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  className="p-2.5 hover:bg-red-500/20 text-red-600 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
                   title="删除"
                 >
                   <Trash2 className="w-4.5 h-4.5" />

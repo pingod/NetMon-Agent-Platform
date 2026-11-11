@@ -288,24 +288,24 @@ export default function AlertProviders() {
 
   if (isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-slate-900">
+      <div className="h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-slate-900 overflow-hidden">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* Header */}
-      <div className="p-6 border-b border-slate-700 flex items-center justify-between">
+      <div className="p-6 border-b border-border flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100 mb-2">告警源配置</h1>
-          <p className="text-slate-400">配置 Prometheus、Zabbix、Grafana 等外部告警源，自动接入告警处理流程</p>
+          <h1 className="text-2xl font-bold text-text-primary mb-2">告警源配置</h1>
+          <p className="text-text-secondary">配置 Prometheus、Zabbix、Grafana 等外部告警源，自动接入告警处理流程</p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={() => queryClient.invalidateQueries({ queryKey: ['alert-providers', 'alert-provider-configs'] })}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-100 rounded-lg hover:bg-slate-700 transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-surface-2 text-text-primary rounded-lg hover:bg-surface-hover transition-all"
           >
             <RefreshCw className="w-4 h-4" />
             刷新
@@ -314,19 +314,19 @@ export default function AlertProviders() {
       </div>
 
       {/* Filters */}
-      <div className="p-4 border-b border-slate-700 flex flex-wrap gap-3 items-center">
+      <div className="p-4 border-b border-border flex flex-wrap gap-3 items-center">
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="搜索告警源..."
-          className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-blue-500 w-64"
+          className="px-3 py-2 bg-background border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500 w-64"
         />
         <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-sm text-slate-400">类型:</span>
-          <button onClick={() => setSelectedType(null)} className={clsx("px-3 py-1.5 rounded-full text-sm font-medium transition-all", !selectedType ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700")}>全部</button>
+          <span className="text-sm text-text-secondary">类型:</span>
+          <button onClick={() => setSelectedType(null)} className={clsx("px-3 py-1.5 rounded-full text-sm font-medium transition-all", !selectedType ? "bg-blue-600 text-white" : "bg-surface-2 text-text-secondary hover:bg-surface-hover")}>全部</button>
           {types.map(type => (
-            <button key={type} onClick={() => setSelectedType(selectedType === type ? null : type)} className={clsx("px-3 py-1.5 rounded-full text-sm font-medium transition-all", selectedType === type ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700")}>
+            <button key={type} onClick={() => setSelectedType(selectedType === type ? null : type)} className={clsx("px-3 py-1.5 rounded-full text-sm font-medium transition-all", selectedType === type ? "bg-blue-600 text-white" : "bg-surface-2 text-text-secondary hover:bg-surface-hover")}>
               <Globe className="w-3 h-3 inline mr-1" />{type}
             </button>
           ))}
@@ -335,25 +335,25 @@ export default function AlertProviders() {
 
       {/* Existing Configs */}
       {configs && configs.length > 0 && (
-        <div className="px-6 py-4 border-b border-slate-700">
-          <h3 className="text-lg font-semibold text-slate-200 mb-4">已配置的告警源 ({configs.length})</h3>
+        <div className="px-6 py-4 border-b border-border">
+          <h3 className="text-lg font-semibold text-text-primary mb-4">已配置的告警源 ({configs.length})</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {configs.map((config) => {
               const relatedProvider = providers?.find(p => p.id === config.provider_id);
               const webhookUrl = getWebhookUrl(config.provider_id);
               return (
-                <div key={config.id} className="bg-slate-800 border border-slate-700 rounded-xl p-4 hover:border-slate-600 transition-all">
+                <div key={config.id} className="bg-surface border border-border rounded-xl p-4 hover:border-border transition-all">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/20">
-                        <Globe className="w-5 h-5 text-blue-400" />
+                        <Globe className="w-5 h-5 text-blue-600" />
                       </div>
                       <div>
-                        <h3 className="text-base font-semibold text-slate-100">{config.name}</h3>
-                        <span className="text-xs text-slate-400">{relatedProvider?.name || config.provider_id} · {relatedProvider?.type}</span>
+                        <h3 className="text-base font-semibold text-text-primary">{config.name}</h3>
+                        <span className="text-xs text-text-secondary">{relatedProvider?.name || config.provider_id} · {relatedProvider?.type}</span>
                       </div>
                     </div>
-                    <span className={clsx("px-2 py-0.5 rounded-full text-xs font-medium", config.enabled ? "bg-green-900/50 text-green-300" : "bg-slate-700 text-slate-400")}>
+                    <span className={clsx("px-2 py-0.5 rounded-full text-xs font-medium", config.enabled ? "bg-green-900/50 text-green-300" : "bg-surface-2 text-text-secondary")}>
                       {config.enabled ? '已启用' : '已禁用'}
                     </span>
                   </div>
@@ -361,15 +361,15 @@ export default function AlertProviders() {
                   {/* Webhook URL */}
                   <div className="mb-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <Link className="w-3 h-3 text-blue-400" />
-                      <span className="text-xs text-slate-400">Webhook 接收地址:</span>
+                      <Link className="w-3 h-3 text-blue-600" />
+                      <span className="text-xs text-text-secondary">Webhook 接收地址:</span>
                     </div>
                     <div className="flex gap-2 items-center">
                       <code className="flex-1 bg-slate-900 px-2 py-1.5 rounded text-xs text-blue-300 overflow-x-auto whitespace-nowrap select-all">
                         {webhookUrl}
                       </code>
-                      <button onClick={() => handleCopy(webhookUrl, config.id)} className="p-1.5 bg-slate-700 rounded hover:bg-slate-600 transition-all flex-shrink-0" title="复制">
-                        {copied === config.id ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-slate-300" />}
+                      <button onClick={() => handleCopy(webhookUrl, config.id)} className="p-1.5 bg-surface-2 rounded hover:bg-surface-hover transition-all flex-shrink-0" title="复制">
+                        {copied === config.id ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-text-secondary" />}
                       </button>
                     </div>
                   </div>
@@ -378,7 +378,7 @@ export default function AlertProviders() {
                   {config.config && Object.keys(config.config).length > 0 && (
                     <div className="mb-3 flex flex-wrap gap-1">
                       {Object.entries(config.config).slice(0, 4).map(([k, v]) => (
-                        <span key={k} className="text-xs bg-slate-700/50 text-slate-300 px-2 py-0.5 rounded">
+                        <span key={k} className="text-xs bg-surface-2 text-text-secondary px-2 py-0.5 rounded">
                           {k}: {typeof v === 'string' ? (v.length > 20 ? v.substring(0, 20) + '...' : v) : String(v)}
                         </span>
                       ))}
@@ -386,7 +386,7 @@ export default function AlertProviders() {
                   )}
 
                   <div className="flex gap-2">
-                    <button onClick={() => handleEditConfig(config)} className="flex items-center gap-1 px-3 py-1.5 bg-slate-700 text-slate-200 rounded-lg hover:bg-slate-600 text-sm transition-all">
+                    <button onClick={() => handleEditConfig(config)} className="flex items-center gap-1 px-3 py-1.5 bg-surface-2 text-text-primary rounded-lg hover:bg-surface-hover text-sm transition-all">
                       <Edit className="w-3.5 h-3.5" />编辑
                     </button>
                     <button onClick={() => deleteConfigMutation.mutate(config.id)} disabled={deleteConfigMutation.isPending} className="flex items-center gap-1 px-3 py-1.5 bg-red-900/50 text-red-300 rounded-lg hover:bg-red-800 text-sm transition-all">
@@ -402,7 +402,7 @@ export default function AlertProviders() {
 
       {/* Available Providers */}
       <div className="flex-1 overflow-auto p-6">
-        <h3 className="text-lg font-semibold text-slate-200 mb-4">可用告警源类型</h3>
+        <h3 className="text-lg font-semibold text-text-primary mb-4">可用告警源类型</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProviders.map((provider) => {
             const relatedConfigs = configs?.filter(c => c.provider_id === provider.id) || [];
@@ -411,15 +411,15 @@ export default function AlertProviders() {
             const webhookUrl = getWebhookUrl(provider.id);
 
             return (
-              <div key={provider.id} className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-slate-600 transition-all">
+              <div key={provider.id} className="bg-surface border border-border rounded-xl p-5 hover:border-border transition-all">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/20">
-                      <Globe className="w-5 h-5 text-blue-400" />
+                      <Globe className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-100">{provider.name}</h3>
-                      <span className="text-xs text-slate-400 uppercase">{provider.type}</span>
+                      <h3 className="text-lg font-semibold text-text-primary">{provider.name}</h3>
+                      <span className="text-xs text-text-secondary uppercase">{provider.type}</span>
                     </div>
                   </div>
                   {relatedConfigs.length > 0 && (
@@ -429,15 +429,15 @@ export default function AlertProviders() {
 
                 {/* Configuration Fields Preview */}
                 {formFields.length > 0 && (
-                  <div className="mb-4 p-3 bg-slate-900/50 rounded-lg border border-slate-700">
-                    <p className="text-xs text-slate-400 mb-2">需要配置的字段:</p>
+                  <div className="mb-4 p-3 bg-background rounded-lg border border-border">
+                    <p className="text-xs text-text-secondary mb-2">需要配置的字段:</p>
                     <div className="space-y-1.5">
                       {formFields.map(f => (
                         <div key={f.key} className="flex items-center gap-2 text-xs">
                           <span className={clsx("w-1.5 h-1.5 rounded-full", f.required ? "bg-red-400" : "bg-slate-500")}></span>
                           <code className="text-blue-300">{f.key}</code>
-                          <span className="text-slate-500">— {f.description}</span>
-                          {f.required && <span className="text-red-400 text-xs">必填</span>}
+                          <span className="text-text-tertiary">— {f.description}</span>
+                          {f.required && <span className="text-red-600 text-xs">必填</span>}
                         </div>
                       ))}
                     </div>
@@ -456,15 +456,15 @@ export default function AlertProviders() {
                 )}
 
                 {/* Webhook URL */}
-                <div className="mb-4 p-3 bg-slate-900/50 rounded-lg border border-slate-700">
+                <div className="mb-4 p-3 bg-background rounded-lg border border-border">
                   <div className="flex items-center gap-2 mb-1">
-                    <Link className="w-3 h-3 text-green-400" />
-                    <span className="text-xs text-slate-400">Webhook 接收地址:</span>
+                    <Link className="w-3 h-3 text-green-600" />
+                    <span className="text-xs text-text-secondary">Webhook 接收地址:</span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <code className="flex-1 bg-slate-950 px-2 py-1.5 rounded text-xs text-green-300 overflow-x-auto whitespace-nowrap select-all">{webhookUrl}</code>
-                    <button onClick={() => handleCopy(webhookUrl, `url-${provider.id}`)} className="p-1.5 bg-slate-700 rounded hover:bg-slate-600 transition-all flex-shrink-0" title="复制">
-                      {copied === `url-${provider.id}` ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-slate-300" />}
+                    <button onClick={() => handleCopy(webhookUrl, `url-${provider.id}`)} className="p-1.5 bg-surface-2 rounded hover:bg-surface-hover transition-all flex-shrink-0" title="复制">
+                      {copied === `url-${provider.id}` ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-text-secondary" />}
                     </button>
                   </div>
                 </div>
@@ -478,7 +478,7 @@ export default function AlertProviders() {
         </div>
 
         {filteredProviders.length === 0 && (
-          <div className="text-center py-12 text-slate-500">
+          <div className="text-center py-12 text-text-tertiary">
             <Globe className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p>没有找到匹配的告警源</p>
           </div>
@@ -488,76 +488,76 @@ export default function AlertProviders() {
       {/* Config Modal - 字段化表单 */}
       {showConfigModal && selectedProvider && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 border border-slate-700 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="p-4 border-b border-slate-700 flex items-center justify-between sticky top-0 bg-slate-800 rounded-t-xl z-10">
-              <h3 className="text-lg font-semibold text-slate-100">
+          <div className="bg-surface border border-border rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-4 border-b border-border flex items-center justify-between sticky top-0 bg-surface rounded-t-xl z-10">
+              <h3 className="text-lg font-semibold text-text-primary">
                 {editingConfig ? `编辑配置: ${configName}` : `新建 ${selectedProvider.name} 配置`}
               </h3>
-              <button onClick={() => { setShowConfigModal(false); resetForm(); }} className="p-1.5 rounded-lg hover:bg-slate-700 transition-all text-slate-400 hover:text-slate-200">✕</button>
+              <button onClick={() => { setShowConfigModal(false); resetForm(); }} className="p-1.5 rounded-lg hover:bg-surface-hover transition-all text-text-secondary hover:text-text-primary">✕</button>
             </div>
 
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               {/* Config Name */}
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-slate-200">配置名称 <span className="text-red-400">*</span></label>
+                <label className="block text-sm font-medium text-text-primary">配置名称 <span className="text-red-600">*</span></label>
                 <input type="text" required value={configName} onChange={(e) => setConfigName(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:border-blue-500 transition-all"
                   placeholder="例如: 生产环境 Prometheus" />
               </div>
 
               {/* Provider ID (readonly when editing) */}
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-slate-200">告警源类型</label>
+                <label className="block text-sm font-medium text-text-primary">告警源类型</label>
                 <input type="text" disabled value={`${selectedProvider.name} (${selectedProvider.type})`}
-                  className="w-full px-3 py-2.5 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-400 cursor-not-allowed" />
+                  className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-text-secondary cursor-not-allowed" />
               </div>
 
               {/* Dynamic Form Fields from configSchema */}
               {formFields.length > 0 && (
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-slate-200 mb-2">配置参数</label>
-                  <div className="space-y-3 p-3 bg-slate-900/50 rounded-lg border border-slate-700">
+                  <label className="block text-sm font-medium text-text-primary mb-2">配置参数</label>
+                  <div className="space-y-3 p-3 bg-background rounded-lg border border-border">
                     {formFields.map(field => (
                       <div key={field.key} className="space-y-1">
-                        <label className="block text-xs font-medium text-slate-300">
-                          {field.label} {field.required && <span className="text-red-400">*</span>}
+                        <label className="block text-xs font-medium text-text-secondary">
+                          {field.label} {field.required && <span className="text-red-600">*</span>}
                         </label>
                         {field.description && (
-                          <p className="text-xs text-slate-500 mb-1">{field.description}</p>
+                          <p className="text-xs text-text-tertiary mb-1">{field.description}</p>
                         )}
                         {field.type === 'boolean' ? (
                           <select value={configFormData[field.key] ? 'true' : 'false'}
                             onChange={(e) => setConfigFormData({ ...configFormData, [field.key]: e.target.value === 'true' })}
-                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-blue-500 text-sm">
+                            className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:border-blue-500 text-sm">
                             <option value="true">是</option>
                             <option value="false">否</option>
                           </select>
                         ) : field.enum ? (
                           <select value={configFormData[field.key] || ''}
                             onChange={(e) => setConfigFormData({ ...configFormData, [field.key]: e.target.value })}
-                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-blue-500 text-sm">
+                            className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:border-blue-500 text-sm">
                             <option value="">请选择</option>
                             {field.enum.map(v => <option key={v} value={v}>{v}</option>)}
                           </select>
                         ) : field.type === 'number' ? (
                           <input type="number" value={configFormData[field.key] ?? ''}
                             onChange={(e) => setConfigFormData({ ...configFormData, [field.key]: Number(e.target.value) })}
-                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-blue-500 text-sm"
+                            className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:border-blue-500 text-sm"
                             placeholder={`请输入${field.label}`} />
                         ) : field.key.includes('url') || field.key.includes('endpoint') ? (
                           <input type="url" value={configFormData[field.key] || ''}
                             onChange={(e) => setConfigFormData({ ...configFormData, [field.key]: e.target.value })}
-                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-blue-500 text-sm font-mono"
+                            className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:border-blue-500 text-sm font-mono"
                             placeholder={`https://...`} />
                         ) : field.key.includes('token') || field.key.includes('password') || field.key.includes('secret') ? (
                           <input type="password" value={configFormData[field.key] || ''}
                             onChange={(e) => setConfigFormData({ ...configFormData, [field.key]: e.target.value })}
-                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-blue-500 text-sm"
+                            className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:border-blue-500 text-sm"
                             placeholder="请输入（自动加密存储）" />
                         ) : (
                           <input type="text" value={configFormData[field.key] || ''}
                             onChange={(e) => setConfigFormData({ ...configFormData, [field.key]: e.target.value })}
-                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-blue-500 text-sm"
+                            className="w-full px-3 py-2 bg-background border border-border rounded-lg text-text-primary focus:outline-none focus:border-blue-500 text-sm"
                             placeholder={`请输入${field.label}`} />
                         )}
                       </div>
@@ -568,63 +568,63 @@ export default function AlertProviders() {
 
               {/* Webhook URL (always show for reference) */}
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-slate-200">Webhook 接收地址</label>
+                <label className="block text-sm font-medium text-text-primary">Webhook 接收地址</label>
                 <div className="flex gap-2 items-center">
                   <code className="flex-1 bg-slate-950 px-3 py-2.5 rounded-lg text-xs text-green-300 overflow-x-auto whitespace-nowrap select-all border border-slate-700">
                     {getWebhookUrl(selectedProvider.id)}
                   </code>
                   <button type="button" onClick={() => handleCopy(getWebhookUrl(selectedProvider.id), 'modal-url')}
-                    className="p-2 bg-slate-700 rounded-lg hover:bg-slate-600 transition-all flex-shrink-0" title="复制">
-                    {copied === 'modal-url' ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-slate-300" />}
+                    className="p-2 bg-surface-2 rounded-lg hover:bg-surface-hover transition-all flex-shrink-0" title="复制">
+                    {copied === 'modal-url' ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-text-secondary" />}
                   </button>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">将此地址配置到 {selectedProvider.name} 的 Webhook/Alertmanager 中</p>
+                <p className="text-xs text-text-tertiary mt-1">将此地址配置到 {selectedProvider.name} 的 Webhook/Alertmanager 中</p>
               </div>
 
               {/* Usage Guide */}
               {guide && (
                 <div className="p-3 bg-blue-900/20 border border-blue-800/30 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
-                    <Info className="w-4 h-4 text-blue-400" />
+                    <Info className="w-4 h-4 text-blue-600" />
                     <span className="text-sm font-medium text-blue-300">{guide.title}</span>
                   </div>
                   <div className="space-y-1">
                     {guide.steps.map((step, i) => (
-                      <p key={i} className="text-xs text-blue-400/80">{step}</p>
+                      <p key={i} className="text-xs text-blue-600/80">{step}</p>
                     ))}
                   </div>
                   {guide.note && (
-                    <p className="text-xs text-blue-400/60 mt-2 border-t border-blue-800/30 pt-2">{guide.note}</p>
+                    <p className="text-xs text-blue-600/60 mt-2 border-t border-blue-800/30 pt-2">{guide.note}</p>
                   )}
                 </div>
               )}
 
               {/* Test Connection */}
-              <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-lg border border-slate-700">
+              <div className="flex items-center gap-3 bg-background p-3 rounded-lg border border-border">
                 <button type="button" onClick={handleTestConnection} disabled={testing}
                   className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-all text-sm font-medium">
                   {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <TestTube className="w-4 h-4" />}
                   {testing ? '测试中...' : '测试连接'}
                 </button>
                 {testResult && (
-                  <span className={clsx("text-sm", testResult.ok ? "text-green-400" : "text-red-400")}>
+                  <span className={clsx("text-sm", testResult.ok ? "text-green-600" : "text-red-600")}>
                     {testResult.ok ? '✓' : '✗'} {testResult.message}
                   </span>
                 )}
               </div>
 
               {/* Enabled */}
-              <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-lg border border-slate-700">
+              <div className="flex items-center gap-3 bg-background p-3 rounded-lg border border-border">
                 <input type="checkbox" id="config-enabled" checked={configEnabled}
                   onChange={(e) => setConfigEnabled(e.target.checked)}
-                  className="w-5 h-5 text-blue-600 bg-slate-800 border-slate-600 rounded focus:ring-blue-500" />
-                <label htmlFor="config-enabled" className="text-sm text-slate-200">启用此告警源（启用后 Webhook 地址才会生效）</label>
+                  className="w-5 h-5 text-blue-600 bg-surface-2 border-border rounded focus:ring-blue-500" />
+                <label htmlFor="config-enabled" className="text-sm text-text-primary">启用此告警源（启用后 Webhook 地址才会生效）</label>
               </div>
 
               {/* Submit Buttons */}
-              <div className="flex justify-end gap-2 pt-4 border-t border-slate-700">
+              <div className="flex justify-end gap-2 pt-4 border-t border-border">
                 <button type="button" onClick={() => { setShowConfigModal(false); resetForm(); }}
-                  className="px-4 py-2.5 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 hover:bg-slate-600 transition-all font-medium">取消</button>
+                  className="px-4 py-2.5 bg-surface-2 border border-border rounded-lg text-text-primary hover:bg-surface-hover transition-all font-medium">取消</button>
                 <button type="submit" disabled={createConfigMutation.isPending || updateConfigMutation.isPending}
                   className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all font-medium shadow-sm">
                   {createConfigMutation.isPending || updateConfigMutation.isPending ? '保存中...' : (editingConfig ? '更新配置' : '创建配置')}

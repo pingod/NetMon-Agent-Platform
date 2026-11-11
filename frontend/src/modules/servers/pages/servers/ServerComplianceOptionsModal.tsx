@@ -19,11 +19,11 @@ interface ServerComplianceOptionsModalProps {
 }
 
 const LAYER_BADGES: Record<string, { badge: string; text: string }> = {
-  硬件层: { badge: 'bg-rose-500/15 text-rose-400 border-rose-500/30', text: 'text-rose-400' },
-  系统层: { badge: 'bg-sky-500/15 text-sky-400 border-sky-500/30', text: 'text-sky-400' },
-  资源层: { badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', text: 'text-amber-400' },
-  安全层: { badge: 'bg-violet-500/15 text-violet-400 border-violet-500/30', text: 'text-violet-400' },
-  应用层: { badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', text: 'text-emerald-400' },
+  硬件层: { badge: 'bg-rose-500/15 text-rose-600 border-rose-500/30', text: 'text-rose-600' },
+  系统层: { badge: 'bg-sky-500/15 text-sky-600 border-sky-500/30', text: 'text-sky-600' },
+  资源层: { badge: 'bg-amber-500/15 text-amber-600 border-amber-500/30', text: 'text-amber-600' },
+  安全层: { badge: 'bg-violet-500/15 text-violet-600 border-violet-500/30', text: 'text-violet-600' },
+  应用层: { badge: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30', text: 'text-emerald-600' },
 };
 
 export function ServerComplianceOptionsModal({
@@ -48,7 +48,7 @@ export function ServerComplianceOptionsModal({
     return SERVER_VENDORS.find((v) => v.value === serverVendor) || {
       value: 'other',
       label: '其他/通用',
-      color: 'text-slate-400',
+      color: 'text-text-secondary',
       bg: 'bg-slate-500/10',
       border: 'border-slate-500/30',
     };
@@ -217,16 +217,16 @@ export function ServerComplianceOptionsModal({
                 className={clsx(
                   'p-3.5 rounded-xl border text-left transition-all relative overflow-hidden flex flex-col justify-between',
                   mode === 'custom'
-                    ? 'border-purple-500 bg-purple-500/10 text-purple-300 shadow-md shadow-purple-500/10 ring-1 ring-purple-500/40'
+                    ? 'border-purple-500 bg-purple-500/10 text-purple-600 shadow-md shadow-purple-500/10 ring-1 ring-purple-500/40'
                     : 'border-border bg-background hover:border-border/80 text-text-secondary hover:text-text-primary'
                 )}
               >
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-purple-400" />
+                    <Sparkles className="w-4 h-4 text-purple-600" />
                     <span className="text-sm font-bold text-text-primary">自定义模版巡检</span>
                   </div>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-500/20 text-purple-300 font-medium border border-purple-500/30">
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-500/20 text-purple-600 font-medium border border-purple-500/30">
                     模版中心
                   </span>
                 </div>
@@ -242,7 +242,7 @@ export function ServerComplianceOptionsModal({
             <div className="p-4 bg-background rounded-xl border border-border space-y-3 animate-in fade-in slide-in-from-top-2 duration-150">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-text-primary flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-purple-400" />
+                  <Layers className="w-4 h-4 text-purple-600" />
                   选择巡检模版
                 </label>
                 {isLoadingTemplates && (
@@ -254,8 +254,8 @@ export function ServerComplianceOptionsModal({
 
               {/* 品牌自动匹配提示 */}
               {isBrandMatched && (
-                <div className="p-2.5 rounded-lg bg-gradient-to-r from-purple-500/15 to-blue-500/15 border border-purple-500/30 flex items-center gap-2 text-xs text-purple-300">
-                  <Sparkles className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                <div className="p-2.5 rounded-lg bg-gradient-to-r from-purple-500/15 to-blue-500/15 border border-purple-500/30 flex items-center gap-2 text-xs text-purple-600">
+                  <Sparkles className="w-4 h-4 text-purple-600 flex-shrink-0" />
                   <span>
                     已根据该服务器品牌【<strong>{vendorMeta.label.split(' ')[0]}</strong>】自动匹配专属深度巡检模版
                   </span>
@@ -286,7 +286,7 @@ export function ServerComplianceOptionsModal({
 
                   <div className="flex items-center justify-between text-xs pt-1">
                     <div className="flex items-center gap-2 text-text-tertiary">
-                      <span>包含指令: <strong className="text-emerald-400">{activeTemplate.commands?.length || 0}</strong> 项</span>
+                      <span>包含指令: <strong className="text-emerald-600">{activeTemplate.commands?.length || 0}</strong> 项</span>
                       <span>已勾选: <strong className="text-primary">{selectedCommandNames.size}</strong> 项</span>
                     </div>
 
@@ -320,7 +320,7 @@ export function ServerComplianceOptionsModal({
                       <div className="space-y-1.5 pt-1">
                         {activeTemplate.commands?.map((cmd) => {
                           const isSelected = selectedCommandNames.has(cmd.name);
-                          const layerInfo = LAYER_BADGES[cmd.group || '系统层'] || { badge: 'bg-slate-800 text-slate-300', text: '' };
+                          const layerInfo = LAYER_BADGES[cmd.group || '系统层'] || { badge: 'bg-surface-2 text-text-secondary', text: '' };
                           return (
                             <div
                               key={cmd.name}
@@ -342,7 +342,7 @@ export function ServerComplianceOptionsModal({
                                     {cmd.group || '系统层'}
                                   </span>
                                 </div>
-                                <code className="block font-mono text-[11px] text-emerald-400/90 truncate mt-0.5">
+                                <code className="block font-mono text-[11px] text-emerald-600/90 truncate mt-0.5">
                                   {cmd.command}
                                 </code>
                               </div>

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Modal } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -158,50 +159,66 @@ export const VirtualMachinesPage: React.FC = () => {
   };
 
   // 单机删除
-  const handleDelete = async (vm: ServerType) => {
-    if (!window.confirm(`确定要删除虚拟机 "${vm.name}" 吗？此操作无法撤销。`)) return;
-    try {
-      await api.delete(`/servers/${vm.id}`);
-      toast('虚拟机已删除', 'success');
-      queryClient.invalidateQueries({ queryKey: ['virtual-machines'] });
-    } catch (err: any) {
-      toast('删除失败: ' + (err.response?.data?.message || err.message), 'error');
-    }
+  const handleDelete = (vm: ServerType) => {
+    Modal.confirm({
+      title: '确认删除虚拟机',
+      content: `确定要删除虚拟机 "${vm.name}" 吗？此操作无法撤销。`,
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await api.delete(`/servers/${vm.id}`);
+          toast('虚拟机已删除', 'success');
+          queryClient.invalidateQueries({ queryKey: ['virtual-machines'] });
+        } catch (err: any) {
+          toast('删除失败: ' + (err.response?.data?.message || err.message), 'error');
+        }
+      },
+    });
   };
 
   // 批量删除
-  const handleBatchDelete = async () => {
+  const handleBatchDelete = () => {
     if (selectedIds.length === 0) return;
-    if (!window.confirm(`确定要批量删除选中的 ${selectedIds.length} 台虚拟机吗？`)) return;
-    try {
-      await api.post('/servers/batch-delete', { ids: selectedIds });
-      toast(`已成功批量删除 ${selectedIds.length} 台虚拟机`, 'success');
-      setSelectedIds([]);
-      queryClient.invalidateQueries({ queryKey: ['virtual-machines'] });
-    } catch (err: any) {
-      toast('批量删除失败: ' + (err.response?.data?.message || err.message), 'error');
-    }
+    Modal.confirm({
+      title: '确认批量删除',
+      content: `确定要批量删除选中的 ${selectedIds.length} 台虚拟机吗？此操作无法撤销。`,
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await api.post('/servers/batch-delete', { ids: selectedIds });
+          toast(`已成功批量删除 ${selectedIds.length} 台虚拟机`, 'success');
+          setSelectedIds([]);
+          queryClient.invalidateQueries({ queryKey: ['virtual-machines'] });
+        } catch (err: any) {
+          toast('批量删除失败: ' + (err.response?.data?.message || err.message), 'error');
+        }
+      },
+    });
   };
 
   return (
-    <div className="space-y-6 pb-12 font-sans text-slate-100">
+    <div className="space-y-6 pb-12 font-sans text-text-primary">
       
       {/* ── 顶部 Header ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/40 p-6 rounded-2xl border border-slate-800/80 backdrop-blur-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface p-6 rounded-2xl border border-border backdrop-blur-sm">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-inner">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-600 shadow-inner">
             <Cpu className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="text-2xl font-bold text-slate-100 tracking-tight">
+              <h1 className="text-2xl font-bold text-text-primary tracking-tight">
                 虚拟机管理
               </h1>
-              <span className="text-xs px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-semibold">
+              <span className="text-xs px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/30 text-indigo-600 font-semibold">
                 Agent 监控模式
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-text-secondary mt-1">
               超轻量、低开销采集架构 (CPU {'<'} 0.05%, 内存 3.8MB)，支持秒级时序监控与批量并发下发
             </p>
           </div>
@@ -228,9 +245,9 @@ export const VirtualMachinesPage: React.FC = () => {
               setManualTargetVm(null);
               setIsManualModalOpen(true);
             }}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium transition"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-2 hover:bg-surface-hover border border-border text-text-secondary text-xs font-medium transition"
           >
-            <Terminal className="w-4 h-4 text-indigo-400" />
+            <Terminal className="w-4 h-4 text-indigo-600" />
             <span>📋 手动安装命令</span>
           </button>
 
@@ -248,65 +265,65 @@ export const VirtualMachinesPage: React.FC = () => {
           <button
             onClick={() => refetch()}
             disabled={isLoading}
-            className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 transition"
+            className="p-2 rounded-xl bg-surface-2 hover:bg-surface-hover border border-border text-text-secondary transition"
             title="刷新列表"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-indigo-400' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-indigo-600' : ''}`} />
           </button>
         </div>
       </div>
 
       {/* ── 顶部统计卡片 ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-2xl bg-[#0f1422] border border-slate-800/80 flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-surface border border-border flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-400 font-medium">虚拟机总数</p>
-            <p className="text-2xl font-bold text-slate-100 mt-1">{stats.total} <span className="text-xs text-slate-500 font-normal">台</span></p>
+            <p className="text-xs text-text-secondary font-medium">虚拟机总数</p>
+            <p className="text-2xl font-bold text-text-primary mt-1">{stats.total} <span className="text-xs text-text-tertiary font-normal">台</span></p>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+          <div className="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-600">
             <Cpu className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0f1422] border border-slate-800/80 flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-surface border border-border flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-400 font-medium">netmon-agent 在线</p>
+            <p className="text-xs text-text-secondary font-medium">netmon-agent 在线</p>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-bold text-emerald-400">{stats.online}</span>
-              <span className="text-xs text-slate-500">
+              <span className="text-2xl font-bold text-emerald-600">{stats.online}</span>
+              <span className="text-xs text-text-tertiary">
                 ({stats.total > 0 ? Math.round((stats.online / stats.total) * 100) : 0}% 覆盖)
               </span>
             </div>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+          <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600">
             <CheckCircle2 className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0f1422] border border-slate-800/80 flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-surface border border-border flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-400 font-medium">未安装 / 待部署</p>
-            <p className="text-2xl font-bold text-amber-400 mt-1">{stats.uninstalled} <span className="text-xs text-slate-500 font-normal">台</span></p>
+            <p className="text-xs text-text-secondary font-medium">未安装 / 待部署</p>
+            <p className="text-2xl font-bold text-amber-600 mt-1">{stats.uninstalled} <span className="text-xs text-text-tertiary font-normal">台</span></p>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+          <div className="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600">
             <Zap className="w-5 h-5" />
           </div>
         </div>
       </div>
 
       {/* ── 筛选工具栏（无品牌过滤，精简高效） ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-900/40 border border-slate-800">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-surface border border-border">
         
         {/* 左侧：搜索 + 分组 + Agent 过滤 */}
         <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
           <div className="relative flex-1 min-w-[200px] max-w-md">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="搜索虚拟机名称、IP 地址、标签..."
-              className="w-full pl-9 pr-4 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:border-indigo-500 focus:outline-none"
+              className="w-full pl-9 pr-4 py-1.5 bg-background border border-border rounded-xl text-xs text-text-primary focus:border-indigo-500 focus:outline-none"
             />
           </div>
 
@@ -314,7 +331,7 @@ export const VirtualMachinesPage: React.FC = () => {
             aria-label="虚拟机分组筛选"
             value={selectedGroupId || ''}
             onChange={(e) => setSelectedGroupId(e.target.value || null)}
-            className="px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 focus:border-indigo-500"
+            className="px-3 py-1.5 bg-background border border-border rounded-xl text-xs text-text-secondary focus:border-indigo-500"
           >
             <option value="">全部虚拟机分组</option>
             {groups.map((g) => (
@@ -324,11 +341,11 @@ export const VirtualMachinesPage: React.FC = () => {
             ))}
           </select>
 
-          <div className="flex items-center bg-slate-950 p-0.5 rounded-xl border border-slate-800 text-xs">
+          <div className="flex items-center bg-background p-0.5 rounded-xl border border-border text-xs">
             <button
               onClick={() => setAgentStatusFilter('all')}
               className={`px-2.5 py-1 rounded-lg font-medium transition ${
-                agentStatusFilter === 'all' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                agentStatusFilter === 'all' ? 'bg-indigo-600 text-white' : 'text-text-secondary hover:text-text-primary'
               }`}
             >
               全部 ({allServers.length})
@@ -336,7 +353,7 @@ export const VirtualMachinesPage: React.FC = () => {
             <button
               onClick={() => setAgentStatusFilter('online')}
               className={`px-2.5 py-1 rounded-lg font-medium transition ${
-                agentStatusFilter === 'online' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                agentStatusFilter === 'online' ? 'bg-emerald-600 text-white' : 'text-text-secondary hover:text-text-primary'
               }`}
             >
               🟢 在线 ({stats.online})
@@ -344,7 +361,7 @@ export const VirtualMachinesPage: React.FC = () => {
             <button
               onClick={() => setAgentStatusFilter('uninstalled')}
               className={`px-2.5 py-1 rounded-lg font-medium transition ${
-                agentStatusFilter === 'uninstalled' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                agentStatusFilter === 'uninstalled' ? 'bg-amber-600 text-white' : 'text-text-secondary hover:text-text-primary'
               }`}
             >
               ⚪ 未安装 ({stats.uninstalled})
@@ -357,18 +374,18 @@ export const VirtualMachinesPage: React.FC = () => {
           {selectedIds.length > 0 && (
             <button
               onClick={handleBatchDelete}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-medium transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-600 text-xs font-medium transition"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>批量删除 ({selectedIds.length})</span>
             </button>
           )}
 
-          <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
+          <div className="flex items-center bg-background p-1 rounded-xl border border-border">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-1.5 rounded-lg transition ${
-                viewMode === 'grid' ? 'bg-slate-800 text-indigo-400' : 'text-slate-400 hover:text-slate-200'
+                viewMode === 'grid' ? 'bg-surface-2 text-indigo-600' : 'text-text-secondary hover:text-text-primary'
               }`}
               title="网格视图"
             >
@@ -377,7 +394,7 @@ export const VirtualMachinesPage: React.FC = () => {
             <button
               onClick={() => setViewMode('table')}
               className={`p-1.5 rounded-lg transition ${
-                viewMode === 'table' ? 'bg-slate-800 text-indigo-400' : 'text-slate-400 hover:text-slate-200'
+                viewMode === 'table' ? 'bg-surface-2 text-indigo-600' : 'text-text-secondary hover:text-text-primary'
               }`}
               title="表格视图"
             >
@@ -389,7 +406,7 @@ export const VirtualMachinesPage: React.FC = () => {
 
       {/* ── 虚拟机列表展示 ── */}
       {filteredVms.length === 0 ? (
-        <div className="p-12 text-center rounded-2xl bg-slate-900/30 border border-slate-800 text-slate-400 space-y-3">
+        <div className="p-12 text-center rounded-2xl bg-surface border border-border text-text-secondary space-y-3">
           <Cpu className="w-10 h-10 mx-auto text-slate-600" />
           <p className="text-sm font-medium">未找到匹配的虚拟机</p>
           <button
@@ -412,8 +429,8 @@ export const VirtualMachinesPage: React.FC = () => {
             return (
               <div
                 key={vm.id}
-                className={`group relative p-5 rounded-2xl bg-[#0e1322] border transition-all hover:shadow-xl hover:border-indigo-500/40 ${
-                  isSelected ? 'border-indigo-500 ring-1 ring-indigo-500 bg-indigo-950/10' : 'border-slate-800/80'
+                className={`group relative p-5 rounded-2xl bg-surface border transition-all hover:shadow-xl hover:border-indigo-500/40 ${
+                  isSelected ? 'border-indigo-500 ring-1 ring-indigo-500 bg-indigo-950/10' : 'border-border'
                 }`}
               >
                 {/* 勾选框与标题 */}
@@ -421,56 +438,56 @@ export const VirtualMachinesPage: React.FC = () => {
                   <div className="flex items-center gap-2.5 min-w-0">
                     <button
                       onClick={() => handleToggleSelect(vm.id)}
-                      className="text-slate-400 hover:text-indigo-400 transition"
+                      className="text-text-secondary hover:text-indigo-600 transition"
                     >
                       {isSelected ? (
-                        <CheckSquare className="w-4 h-4 text-indigo-400" />
+                        <CheckSquare className="w-4 h-4 text-indigo-600" />
                       ) : (
                         <Square className="w-4 h-4 text-slate-600" />
                       )}
                     </button>
                     <div className="min-w-0">
-                      <h3 className="text-sm font-bold text-slate-100 truncate group-hover:text-indigo-300 transition">
+                      <h3 className="text-sm font-bold text-text-primary truncate group-hover:text-indigo-300 transition">
                         {vm.name}
                       </h3>
-                      <p className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">
+                      <p className="text-[11px] text-text-secondary font-mono mt-0.5 truncate">
                         {vm.hostname || vm.ip_address || '未配置 IP'}
                       </p>
                     </div>
                   </div>
 
                   {/* 操作系统标签 */}
-                  <span className="text-[11px] px-2 py-0.5 rounded-md bg-slate-800/80 border border-slate-700 text-slate-300 shrink-0">
+                  <span className="text-[11px] px-2 py-0.5 rounded-md bg-surface-2 border border-border text-text-secondary shrink-0">
                     {vm.os_type === 'windows' ? 'Windows' : 'Linux'}
                   </span>
                 </div>
 
                 {/* 规格参数概览（由 Agent 自动采集上报） */}
-                <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60 text-xs mb-3.5">
+                <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-background border border-border text-xs mb-3.5">
                   <div>
-                    <span className="text-[10px] text-slate-500 block">CPU</span>
-                    <span className="font-semibold text-slate-200">{vm.cpu_cores ? `${vm.cpu_cores} 核` : isOnline ? '已接入' : '待采集'}</span>
+                    <span className="text-[10px] text-text-tertiary block">CPU</span>
+                    <span className="font-semibold text-text-primary">{vm.cpu_cores ? `${vm.cpu_cores} 核` : isOnline ? '已接入' : '待采集'}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 block">内存</span>
-                    <span className="font-semibold text-slate-200">{vm.memory_gb ? `${vm.memory_gb} GB` : isOnline ? '已接入' : '待采集'}</span>
+                    <span className="text-[10px] text-text-tertiary block">内存</span>
+                    <span className="font-semibold text-text-primary">{vm.memory_gb ? `${vm.memory_gb} GB` : isOnline ? '已接入' : '待采集'}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 block">磁盘</span>
-                    <span className="font-semibold text-slate-200">{vm.disk_gb ? `${vm.disk_gb} GB` : isOnline ? '已接入' : '待采集'}</span>
+                    <span className="text-[10px] text-text-tertiary block">磁盘</span>
+                    <span className="font-semibold text-text-primary">{vm.disk_gb ? `${vm.disk_gb} GB` : isOnline ? '已接入' : '待采集'}</span>
                   </div>
                 </div>
 
                 {/* Agent 状态徽章条 */}
-                <div className="flex items-center justify-between text-xs py-1.5 border-t border-slate-800/60 mb-3.5">
-                  <span className="text-slate-400 text-[11px]">采集器状态:</span>
+                <div className="flex items-center justify-between text-xs py-1.5 border-t border-border mb-3.5">
+                  <span className="text-text-secondary text-[11px]">采集器状态:</span>
                   {isOnline ? (
-                    <div className="flex items-center gap-1.5 text-emerald-400 font-medium text-[11px]">
+                    <div className="flex items-center gap-1.5 text-emerald-600 font-medium text-[11px]">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                       <span>netmon-agent 在线</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
+                    <div className="flex items-center gap-1.5 text-text-secondary text-[11px]">
                       <span className="w-2 h-2 rounded-full bg-slate-600"></span>
                       <span>未安装 Agent</span>
                     </div>
@@ -478,7 +495,7 @@ export const VirtualMachinesPage: React.FC = () => {
                 </div>
 
                 {/* 底部功能快捷操作组 */}
-                <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-800/60">
+                <div className="grid grid-cols-3 gap-2 pt-1 border-t border-border">
                   {/* 性能大屏按钮 (重点突出) */}
                   <button
                     onClick={() => {
@@ -496,10 +513,10 @@ export const VirtualMachinesPage: React.FC = () => {
                   <button
                     onClick={() => handleTestSsh(vm)}
                     disabled={testingVmId === vm.id}
-                    className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium transition shadow-sm disabled:opacity-50"
+                    className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-xl bg-surface-2 hover:bg-surface-hover border border-border text-text-secondary text-xs font-medium transition shadow-sm disabled:opacity-50"
                     title="测试该虚拟机的 SSH 连通性与密码凭据"
                   >
-                    <Wifi className={`w-3.5 h-3.5 ${testingVmId === vm.id ? 'animate-spin text-indigo-400' : 'text-emerald-400'}`} />
+                    <Wifi className={`w-3.5 h-3.5 ${testingVmId === vm.id ? 'animate-spin text-indigo-600' : 'text-emerald-600'}`} />
                     <span>{testingVmId === vm.id ? '测试中' : '测试 SSH'}</span>
                   </button>
 
@@ -507,10 +524,10 @@ export const VirtualMachinesPage: React.FC = () => {
                   {isOnline ? (
                     <button
                       onClick={() => navigate(`/terminal?host=${vm.hostname || vm.ip_address}&user=${vm.username || 'root'}`)}
-                      className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition"
+                      className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-xl bg-surface-2 hover:bg-surface-hover text-text-secondary text-xs font-medium transition"
                       title="打开 Web 终端"
                     >
-                      <Terminal className="w-3.5 h-3.5 text-slate-400" />
+                      <Terminal className="w-3.5 h-3.5 text-text-secondary" />
                       <span>Web 终端</span>
                     </button>
                   ) : (
@@ -529,14 +546,14 @@ export const VirtualMachinesPage: React.FC = () => {
                 </div>
 
                 {/* 右上角悬浮修改与删除菜单 */}
-                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition flex items-center gap-1 bg-slate-900/90 p-1 rounded-lg border border-slate-700">
+                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition flex items-center gap-1 bg-surface p-1 rounded-lg border border-border">
                   <button
                     onClick={() => handleTestSsh(vm)}
                     disabled={testingVmId === vm.id}
                     title="测试 SSH 连接"
-                    className="p-1 hover:text-emerald-400 text-slate-400 transition disabled:opacity-50"
+                    className="p-1 hover:text-emerald-600 text-text-secondary transition disabled:opacity-50"
                   >
-                    <Wifi className={`w-3.5 h-3.5 ${testingVmId === vm.id ? 'animate-spin text-indigo-400' : ''}`} />
+                    <Wifi className={`w-3.5 h-3.5 ${testingVmId === vm.id ? 'animate-spin text-indigo-600' : ''}`} />
                   </button>
                   <button
                     onClick={() => {
@@ -551,7 +568,7 @@ export const VirtualMachinesPage: React.FC = () => {
                   <button
                     onClick={() => handleDelete(vm)}
                     title="删除虚拟机"
-                    className="p-1 hover:text-red-400 transition"
+                    className="p-1 hover:text-red-600 transition"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -562,16 +579,16 @@ export const VirtualMachinesPage: React.FC = () => {
         </div>
       ) : (
         /* 表格视图 */
-        <div className="overflow-x-auto rounded-2xl bg-[#0e1322] border border-slate-800 shadow-xl">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-900/80 border-b border-slate-800 text-slate-400 font-semibold">
+        <div className="overflow-x-auto rounded-2xl bg-surface border border-border shadow-xl">
+          <table className="w-full text-left text-xs text-text-secondary">
+            <thead className="bg-surface border-b border-border text-text-secondary font-semibold">
               <tr>
                 <th className="p-4 w-10">
                   <input
                     type="checkbox"
                     checked={selectedIds.length === filteredVms.length && filteredVms.length > 0}
                     onChange={handleSelectAll}
-                    className="rounded bg-slate-950 border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded bg-background border-border text-indigo-600 focus:ring-indigo-500"
                   />
                 </th>
                 <th className="p-4">虚拟机名称</th>
@@ -582,29 +599,29 @@ export const VirtualMachinesPage: React.FC = () => {
                 <th className="p-4 text-right">操作</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-border">
               {filteredVms.map((vm) => {
                 const isSelected = selectedIds.includes(vm.id);
                 const isOnline = vm.agent_status === 'online' || vm.agent_installed === 1;
 
                 return (
-                  <tr key={vm.id} className="hover:bg-slate-800/30 transition">
+                  <tr key={vm.id} className="hover:bg-surface-hover transition">
                     <td className="p-4">
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => handleToggleSelect(vm.id)}
-                        className="rounded bg-slate-950 border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                        className="rounded bg-background border-border text-indigo-600 focus:ring-indigo-500"
                       />
                     </td>
-                    <td className="p-4 font-bold text-slate-100">{vm.name}</td>
-                    <td className="p-4 font-mono text-slate-400">{vm.hostname || vm.ip_address}</td>
+                    <td className="p-4 font-bold text-text-primary">{vm.name}</td>
+                    <td className="p-4 font-mono text-text-secondary">{vm.hostname || vm.ip_address}</td>
                     <td className="p-4">
-                      <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">
+                      <span className="px-2 py-0.5 rounded bg-surface-2 border border-border text-text-secondary">
                         {vm.os_type === 'windows' ? 'Windows' : 'Linux'}
                       </span>
                     </td>
-                    <td className="p-4 text-slate-300">
+                    <td className="p-4 text-text-secondary">
                       {vm.cpu_cores || vm.memory_gb || vm.disk_gb
                         ? `${vm.cpu_cores || '-'}核 / ${vm.memory_gb || '-'}GB / ${vm.disk_gb || '-'}GB`
                         : isOnline
@@ -613,12 +630,12 @@ export const VirtualMachinesPage: React.FC = () => {
                     </td>
                     <td className="p-4">
                       {isOnline ? (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-medium">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 font-medium">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                           netmon-agent 在线
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-800 text-slate-400">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-surface-2 text-text-secondary">
                           未安装
                         </span>
                       )}
@@ -627,10 +644,10 @@ export const VirtualMachinesPage: React.FC = () => {
                       <button
                         onClick={() => handleTestSsh(vm)}
                         disabled={testingVmId === vm.id}
-                        className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-medium transition disabled:opacity-50 inline-flex items-center gap-1"
+                        className="px-2.5 py-1 rounded-lg bg-surface-2 hover:bg-surface-hover border border-border text-text-secondary font-medium transition disabled:opacity-50 inline-flex items-center gap-1"
                         title="测试该虚拟机的 SSH 连通性与密码凭据"
                       >
-                        <Wifi className={`w-3 h-3 ${testingVmId === vm.id ? 'animate-spin text-indigo-400' : 'text-emerald-400'}`} />
+                        <Wifi className={`w-3 h-3 ${testingVmId === vm.id ? 'animate-spin text-indigo-600' : 'text-emerald-600'}`} />
                         <span>{testingVmId === vm.id ? '测试中' : '测试 SSH'}</span>
                       </button>
                       <button
@@ -647,13 +664,13 @@ export const VirtualMachinesPage: React.FC = () => {
                           setEditingVm(vm);
                           setIsFormModalOpen(true);
                         }}
-                        className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                        className="px-2 py-1 rounded-lg bg-surface-2 hover:bg-surface-hover text-text-secondary transition"
                       >
                         编辑
                       </button>
                       <button
                         onClick={() => handleDelete(vm)}
-                        className="px-2 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition"
+                        className="px-2 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-600 transition"
                       >
                         删除
                       </button>

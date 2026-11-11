@@ -415,11 +415,11 @@ export default function MibTransferModal({ onClose, preselectedModuleIds }: MibT
               <Network className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-text">OID 穿梭框 — 选择监控指标</h2>
+              <h2 className="text-lg font-semibold text-text-primary">OID 穿梭框 — 选择监控指标</h2>
               <p className="text-xs text-text-secondary">从 MIB 库中筛选、测试并选择 OID 发送到网络大屏</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-surface-secondary rounded-lg transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-surface-2 rounded-lg transition-colors">
             <X className="w-5 h-5 text-text-secondary" />
           </button>
         </div>
@@ -432,7 +432,7 @@ export default function MibTransferModal({ onClose, preselectedModuleIds }: MibT
             <select
               value={deviceType}
               onChange={e => { setDeviceType(e.target.value as any); setTestDeviceId(''); }}
-              className="px-2 py-1.5 bg-surface border border-border rounded-lg text-xs text-text focus:outline-none focus:border-blue-500"
+              className="px-2 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:border-blue-500"
             >
               <option value="network">网络设备</option>
               <option value="server">服务器</option>
@@ -441,7 +441,7 @@ export default function MibTransferModal({ onClose, preselectedModuleIds }: MibT
             <select
               value={testDeviceId}
               onChange={e => setTestDeviceId(e.target.value)}
-              className="px-2 py-1.5 bg-surface border border-border rounded-lg text-xs text-text focus:outline-none focus:border-blue-500 min-w-[180px]"
+              className="px-2 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:border-blue-500 min-w-[180px]"
             >
               <option value="">-- 选择测试设备 --</option>
               {allDevices.map((d: any) => (
@@ -457,7 +457,7 @@ export default function MibTransferModal({ onClose, preselectedModuleIds }: MibT
             <select
               value={snmpVersion}
               onChange={e => setSnmpVersion(e.target.value)}
-              className="px-2 py-1.5 bg-surface border border-border rounded-lg text-xs text-text focus:outline-none focus:border-blue-500 cursor-pointer"
+              className="px-2 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:border-blue-500 cursor-pointer"
             >
               <option value="v2c">v2c</option>
               <option value="v3">v3</option>
@@ -497,7 +497,7 @@ export default function MibTransferModal({ onClose, preselectedModuleIds }: MibT
               <input
                 value={community}
                 onChange={e => setCommunity(e.target.value)}
-                className="w-24 px-2 py-1.5 bg-surface border border-border rounded-lg text-xs text-text font-mono focus:outline-none focus:border-blue-500"
+                className="w-24 px-2 py-1.5 bg-surface border border-border rounded-lg text-xs text-text-primary font-mono focus:outline-none focus:border-blue-500"
                 placeholder="community"
               />
             )}
@@ -544,14 +544,14 @@ export default function MibTransferModal({ onClose, preselectedModuleIds }: MibT
                 onClick={() => setCategoryFilter(cat)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   isActive
-                    ? 'bg-surface-secondary text-text shadow-sm ring-1 ring-border'
-                    : 'text-text-secondary hover:text-text hover:bg-surface-secondary/50'
+                    ? 'bg-surface-2 text-text-primary shadow-sm ring-1 ring-border'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-2/50'
                 }`}
                 style={isActive ? { color: meta.color } : {}}
               >
                 <Icon className="w-3.5 h-3.5" style={{ color: isActive ? meta.color : undefined }} />
                 {cat === 'all' ? '全部' : meta.label}
-                <span className="ml-0.5 px-1 py-0.5 bg-surface-secondary rounded text-[10px] text-text-secondary">{count}</span>
+                <span className="ml-0.5 px-1 py-0.5 bg-surface-2 rounded text-[10px] text-text-secondary">{count}</span>
               </button>
             );
           })}
@@ -567,12 +567,12 @@ export default function MibTransferModal({ onClose, preselectedModuleIds }: MibT
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="搜索 OID 名称、编号、模块..."
-                className="flex-1 bg-transparent text-xs text-text placeholder:text-text-secondary focus:outline-none"
+                className="flex-1 bg-transparent text-xs text-text-primary placeholder:text-text-secondary focus:outline-none"
               />
               {leftChecked.size > 0 && (
                 <>
                   <span className="text-xs text-blue-400">{leftChecked.size} 选中</span>
-                  <button onClick={clearLeftChecks} className="text-xs text-text-secondary hover:text-text">取消</button>
+                  <button onClick={clearLeftChecks} className="text-xs text-text-secondary hover:text-text-primary">取消</button>
                 </>
               )}
               <button onClick={selectAllLeft} className="text-xs text-blue-400 hover:underline">全选</button>
@@ -599,7 +599,7 @@ export default function MibTransferModal({ onClose, preselectedModuleIds }: MibT
                       <div
                         key={obj.id || (obj.oid + '|' + obj.module_name + '|' + Math.random())}
                         className={`flex items-center gap-2 px-4 py-2 transition-colors cursor-pointer ${
-                          isChecked ? 'bg-blue-500/5' : 'hover:bg-surface-secondary/30'
+                          isChecked ? 'bg-blue-500/5' : 'hover:bg-surface-2/30'
                         }`}
                         onClick={() => toggleLeftCheck(obj.oid)}
                       >
@@ -626,7 +626,7 @@ export default function MibTransferModal({ onClose, preselectedModuleIds }: MibT
                         {/* OID 信息 */}
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-text truncate">{obj.name}</span>
+                            <span className="text-xs font-medium text-text-primary truncate">{obj.name}</span>
                             <span className="text-[10px] font-mono text-blue-400">{obj.oid}</span>
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
@@ -674,7 +674,7 @@ export default function MibTransferModal({ onClose, preselectedModuleIds }: MibT
           </div>
 
           {/* 中间：穿梭按钮 */}
-          <div className="flex flex-col items-center justify-center gap-3 px-3 border-r border-border bg-surface-secondary/20">
+          <div className="flex flex-col items-center justify-center gap-3 px-3 border-r border-border bg-surface-2/20">
             <button
               onClick={moveToRight}
               disabled={leftChecked.size === 0}
@@ -695,7 +695,7 @@ export default function MibTransferModal({ onClose, preselectedModuleIds }: MibT
             <button
               onClick={() => { /* remove all from right */ setSelectedOids(new Map()); }}
               disabled={selectedOids.size === 0}
-              className="p-2 bg-surface border border-border rounded-lg text-text-secondary hover:bg-surface-secondary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-2 bg-surface border border-border rounded-lg text-text-secondary hover:bg-surface-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               title="全部移回左侧"
             >
               <ChevronsLeft className="w-4 h-4" />
@@ -705,7 +705,7 @@ export default function MibTransferModal({ onClose, preselectedModuleIds }: MibT
           {/* 右侧：已选 OID */}
           <div className="w-[380px] flex-shrink-0 flex flex-col">
             <div className="px-4 py-2 border-b border-border flex items-center justify-between">
-              <span className="text-xs font-medium text-text">已选指标 ({selectedOids.size})</span>
+              <span className="text-xs font-medium text-text-primary">已选指标 ({selectedOids.size})</span>
               {selectedOids.size > 0 && (
                 <button
                   onClick={() => setSelectedOids(new Map())}
@@ -744,7 +744,7 @@ export default function MibTransferModal({ onClose, preselectedModuleIds }: MibT
                           <input
                             value={item.customName}
                             onChange={e => updateCustomName(item.oid, e.target.value)}
-                            className="flex-1 min-w-0 text-xs font-medium text-text bg-transparent border-b border-transparent hover:border-border focus:border-blue-500 focus:outline-none py-0.5 transition-colors"
+                            className="flex-1 min-w-0 text-xs font-medium text-text-primary bg-transparent border-b border-transparent hover:border-border focus:border-blue-500 focus:outline-none py-0.5 transition-colors"
                             placeholder="自定义名称"
                           />
                           <button

@@ -148,31 +148,31 @@ export default function FrontendTests() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-1.5 flex items-center gap-3">
-              <FlaskConical className="w-7 h-7 text-purple-400" />
+            <h1 className="text-2xl font-bold text-text-primary mb-1.5 flex items-center gap-3">
+              <FlaskConical className="w-7 h-7 text-purple-600" />
               前端测试中心
             </h1>
-            <p className="text-slate-400 text-sm">
+            <p className="text-text-secondary text-sm">
               运行组件、页面、工具函数和 API 接口的前端单元测试
             </p>
           </div>
           <div className="flex items-center gap-3">
             {hasResults && (
-              <div className="flex items-center gap-3 px-4 py-2 bg-slate-800/60 rounded-xl border border-slate-700/60 shadow-sm">
+              <div className="flex items-center gap-3 px-4 py-2 bg-surface rounded-xl border border-border shadow-sm">
                 {totalFailed > 0 ? (
-                  <div className="flex items-center gap-1.5 text-red-400">
+                  <div className="flex items-center gap-1.5 text-red-600">
                     <XCircle className="w-5 h-5" />
                     <span className="font-semibold">{totalFailed}</span>
                     <span className="text-sm">失败</span>
                   </div>
                 ) : totalRun > 0 ? (
-                  <div className="flex items-center gap-1.5 text-emerald-400">
+                  <div className="flex items-center gap-1.5 text-emerald-600">
                     <CheckCircle2 className="w-5 h-5" />
                     <span className="font-semibold">{totalPassed}</span>
                     <span className="text-sm">通过</span>
                   </div>
                 ) : null}
-                <span className="text-slate-400 text-sm">/ {totalRun} 项</span>
+                <span className="text-text-secondary text-sm">/ {totalRun} 项</span>
               </div>
             )}
             <button
@@ -200,25 +200,25 @@ export default function FrontendTests() {
               <div
                 key={cat.id}
                 className={clsx(
-                  'bg-slate-800/40 rounded-2xl border transition-all p-5 shadow-sm',
+                  'bg-surface rounded-2xl border transition-all p-5 shadow-sm',
                   result?.status === 'passed' ? 'border-emerald-500/40 bg-emerald-950/10' :
                   result?.status === 'failed' ? 'border-red-500/40 bg-red-950/10' :
-                  'border-slate-700/50 hover:border-purple-500/40 hover:bg-slate-800/60'
+                  'border-border hover:border-purple-500/40 hover:bg-surface-hover'
                 )}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div className={clsx(
                       'w-10 h-10 rounded-xl flex items-center justify-center',
-                      result?.status === 'passed' ? 'bg-emerald-500/20 text-emerald-400' :
-                      result?.status === 'failed' ? 'bg-red-500/20 text-red-400' :
-                      'bg-purple-500/20 text-purple-400'
+                      result?.status === 'passed' ? 'bg-emerald-500/20 text-emerald-600' :
+                      result?.status === 'failed' ? 'bg-red-500/20 text-red-600' :
+                      'bg-purple-500/20 text-purple-600'
                     )}>
                       <Icon className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-white">{cat.name}</h3>
-                      <p className="text-xs text-slate-400 mt-0.5">{cat.description}</p>
+                      <h3 className="font-semibold text-text-primary">{cat.name}</h3>
+                      <p className="text-xs text-text-secondary mt-0.5">{cat.description}</p>
                     </div>
                   </div>
                   <button
@@ -226,9 +226,9 @@ export default function FrontendTests() {
                     disabled={runningAll || result?.status === 'running'}
                     className={clsx(
                       'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all',
-                      result?.status === 'passed' ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30' :
-                      result?.status === 'failed' ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30' :
-                      'bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30'
+                      result?.status === 'passed' ? 'bg-emerald-500/20 text-emerald-600 hover:bg-emerald-500/30' :
+                      result?.status === 'failed' ? 'bg-red-500/20 text-red-600 hover:bg-red-500/30' :
+                      'bg-purple-500/20 text-purple-600 hover:bg-purple-500/30 border border-purple-500/30'
                     )}
                   >
                     {result?.status === 'running' ? (
@@ -242,15 +242,15 @@ export default function FrontendTests() {
 
                 {/* Test Files */}
                 <details className="group">
-                  <summary className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-400 hover:text-slate-200 transition-colors py-1">
+                  <summary className="flex items-center gap-1.5 cursor-pointer text-xs text-text-secondary hover:text-text-primary transition-colors py-1">
                     <FileCode2 className="w-3.5 h-3.5" />
                     测试文件 ({cat.files.length})
                   </summary>
                   <div className="mt-2 space-y-1">
                     {cat.files.map((file) => (
-                      <div key={file} className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 rounded-lg border border-slate-800 text-xs">
-                        <Code2 className="w-3 h-3 text-slate-500" />
-                        <code className="text-slate-300 font-mono">{file}</code>
+                      <div key={file} className="flex items-center gap-2 px-3 py-1.5 bg-background rounded-lg border border-border text-xs">
+                        <Code2 className="w-3 h-3 text-text-tertiary" />
+                        <code className="text-text-secondary font-mono">{file}</code>
                       </div>
                     ))}
                   </div>
@@ -262,20 +262,20 @@ export default function FrontendTests() {
                     'mt-3 pt-3 border-t flex items-center gap-4 text-sm',
                     result.status === 'passed' ? 'border-emerald-500/20' :
                     result.status === 'failed' ? 'border-red-500/20' :
-                    'border-slate-700/50'
+                    'border-border'
                   )}>
-                    <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
+                    <div className="flex items-center gap-1.5 text-emerald-600 font-medium">
                       <CheckCircle2 className="w-4 h-4" />
                       <span>{result.passed} 通过</span>
                     </div>
                     {result.failed > 0 && (
-                      <div className="flex items-center gap-1.5 text-red-400 font-medium">
+                      <div className="flex items-center gap-1.5 text-red-600 font-medium">
                         <XCircle className="w-4 h-4" />
                         <span>{result.failed} 失败</span>
                       </div>
                     )}
                     {result.error && (
-                      <div className="flex-1 text-xs text-red-400 truncate" title={result.error}>
+                      <div className="flex-1 text-xs text-red-600 truncate" title={result.error}>
                         ⚠️ {result.error}
                       </div>
                     )}
@@ -287,10 +287,10 @@ export default function FrontendTests() {
         </div>
 
         {/* Quick Terminal Commands */}
-        <div className="bg-slate-800/40 rounded-2xl border border-slate-700/50 p-5 shadow-sm">
+        <div className="bg-surface rounded-2xl border border-border p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
-            <Terminal className="w-5 h-5 text-purple-400" />
-            <h3 className="font-semibold text-white">终端命令</h3>
+            <Terminal className="w-5 h-5 text-purple-600" />
+            <h3 className="font-semibold text-text-primary">终端命令</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
@@ -298,18 +298,18 @@ export default function FrontendTests() {
               { label: '监控模式', cmd: 'npm run test:watch' },
               { label: '查看覆盖率', cmd: 'npm run test:coverage' },
             ].map((item) => (
-              <div key={item.cmd} className="bg-slate-900/60 rounded-xl p-3.5 border border-slate-800">
-                <p className="text-xs text-slate-400 mb-2">{item.label}</p>
+              <div key={item.cmd} className="bg-background rounded-xl p-3.5 border border-border">
+                <p className="text-xs text-text-secondary mb-2">{item.label}</p>
                 <div className="flex items-center justify-between gap-2">
                   <code className="text-xs font-mono text-slate-200 bg-slate-950/80 px-2.5 py-1.5 rounded-lg border border-slate-800 flex-1 truncate">
                     {item.cmd}
                   </code>
                   <button
                     onClick={() => handleCopyCmd(item.cmd)}
-                    className="text-slate-400 hover:text-white transition-colors p-1.5 hover:bg-slate-800 rounded-lg flex-shrink-0"
+                    className="text-text-secondary hover:text-text-primary transition-colors p-1.5 hover:bg-surface-hover rounded-lg flex-shrink-0"
                     title="复制命令"
                   >
-                    {copiedCmd === item.cmd ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                    {copiedCmd === item.cmd ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
@@ -319,9 +319,9 @@ export default function FrontendTests() {
 
         {/* Log Output */}
         {logOutput.length > 0 && (
-          <div className="bg-slate-800/40 rounded-2xl border border-slate-700/50 p-5 shadow-sm">
-            <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
-              <Terminal className="w-4 h-4 text-emerald-400" />
+          <div className="bg-surface rounded-2xl border border-border p-5 shadow-sm">
+            <h3 className="font-semibold text-text-primary mb-3 flex items-center gap-2">
+              <Terminal className="w-4 h-4 text-emerald-600" />
               运行日志
             </h3>
             <div className="bg-slate-950/90 rounded-xl p-3.5 font-mono text-xs max-h-48 overflow-y-auto space-y-1 text-slate-300 border border-slate-800">

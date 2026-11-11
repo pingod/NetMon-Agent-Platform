@@ -166,7 +166,7 @@ export default function NetworkDiscovery() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-text-primary mb-2 flex items-center gap-3">
-              <Radio className="w-7 h-7 text-emerald-400" />
+              <Radio className="w-7 h-7 text-emerald-600" />
               Ping 网络探测
             </h1>
             <p className="text-text-secondary">批量 Ping IP 范围，快速探测主机可达性</p>
@@ -244,11 +244,11 @@ export default function NetworkDiscovery() {
                       job.status === 'failed' ? 'bg-red-500/10' :
                       'bg-slate-500/10'
                     )}>
-                      {job.status === 'running' ? <Loader2 className="w-5 h-5 animate-spin text-blue-400" /> :
-                       job.status === 'completed' ? <CheckCircle2 className="w-5 h-5 text-emerald-400" /> :
-                       job.status === 'cancelled' ? <XCircle className="w-5 h-5 text-yellow-400" /> :
-                       job.status === 'failed' ? <AlertCircle className="w-5 h-5 text-red-400" /> :
-                       <Clock className="w-5 h-5 text-slate-400" />}
+                      {job.status === 'running' ? <Loader2 className="w-5 h-5 animate-spin text-blue-600" /> :
+                       job.status === 'completed' ? <CheckCircle2 className="w-5 h-5 text-emerald-600" /> :
+                       job.status === 'cancelled' ? <XCircle className="w-5 h-5 text-yellow-600" /> :
+                       job.status === 'failed' ? <AlertCircle className="w-5 h-5 text-red-600" /> :
+                       <Clock className="w-5 h-5 text-text-secondary" />}
                     </div>
                     <div>
                       <p className="font-medium text-text-primary">{job.name}</p>
@@ -257,7 +257,7 @@ export default function NetworkDiscovery() {
                         <span>{job.total_hosts} 个主机</span>
                         <span>在线 {job.found_devices} 个</span>
                         {job.status === 'running' && (
-                          <span className="text-blue-400 font-medium">扫描中 {job.progress}%</span>
+                          <span className="text-blue-600 font-medium">扫描中 {job.progress}%</span>
                         )}
                         <span>{job.created_at ? new Date(job.created_at).toLocaleString() : ''}</span>
                       </div>
@@ -266,7 +266,7 @@ export default function NetworkDiscovery() {
                   <div className="flex items-center gap-2">
                     {job.status === 'running' && (
                       <button onClick={(e) => { e.stopPropagation(); cancelJob.mutate(job.id); }}
-                        className="p-2 text-yellow-400 hover:text-yellow-300 transition-colors" title="取消">
+                        className="p-2 text-yellow-600 hover:text-yellow-700 transition-colors" title="取消">
                         <Square className="w-4 h-4" />
                       </button>
                     )}
@@ -291,7 +291,7 @@ export default function NetworkDiscovery() {
         <div className="bg-surface rounded-xl border border-border p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Monitor className="w-5 h-5 text-emerald-400" />
+              <Monitor className="w-5 h-5 text-emerald-600" />
               <h3 className="font-medium text-text-primary">
                 探测结果 {selectedJob ? `(${selectedJob.name})` : ''}
               </h3>
@@ -303,7 +303,7 @@ export default function NetworkDiscovery() {
             </div>
             {selectedJob && (
               <div className="flex items-center gap-3">
-                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">
                   在线 {onlineResults.length}
                 </span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-slate-500/10 text-text-tertiary">
@@ -350,7 +350,7 @@ export default function NetworkDiscovery() {
                         ? 'bg-emerald-500/10' : 'bg-slate-500/10'
                     )}>
                       {result.status === 'online' || result.status === 'snmp_ok'
-                        ? <Server className="w-4 h-4 text-emerald-400" />
+                        ? <Server className="w-4 h-4 text-emerald-600" />
                         : <HardDrive className="w-4 h-4 text-text-tertiary" />}
                     </div>
                     <div className="min-w-0">
@@ -373,7 +373,7 @@ export default function NetworkDiscovery() {
                     <span className={clsx(
                       'text-xs px-2 py-0.5 rounded-full',
                       result.status === 'online' || result.status === 'snmp_ok'
-                        ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-500/10 text-text-tertiary'
+                        ? 'bg-emerald-500/10 text-emerald-600' : 'bg-slate-500/10 text-text-tertiary'
                     )}>
                       {result.status === 'online' || result.status === 'snmp_ok' ? '在线' : '离线'}
                     </span>
@@ -387,7 +387,7 @@ export default function NetworkDiscovery() {
           {selectedJobId && snmpOkResults.length > 0 && (
             <div className="mt-4 pt-4 border-t border-border">
               <button onClick={() => { setShowImportModal(true); setSelectedResults(new Set(snmpOkResults.map(r => r.id))); }}
-                className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-lg hover:bg-emerald-500/20 transition-all text-sm flex items-center gap-2"
+                className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 rounded-lg hover:bg-emerald-500/20 transition-all text-sm flex items-center gap-2"
               >
                 <Download className="w-4 h-4" />
                 导入 SNMP 可达设备（{snmpOkResults.length} 个）
@@ -458,7 +458,7 @@ export default function NetworkDiscovery() {
               {importResult && (
                 <div className={clsx(
                   'p-3 rounded-lg text-sm',
-                  importResult.imported > 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-yellow-500/10 text-yellow-400'
+                  importResult.imported > 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-yellow-500/10 text-yellow-600'
                 )}>
                   {importResult.imported > 0
                     ? `成功导入 ${importResult.imported} 个设备`

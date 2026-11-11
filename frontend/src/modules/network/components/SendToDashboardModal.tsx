@@ -282,7 +282,7 @@ export default function SendToDashboardModal({
   const renderValuePreview = () => {
     const chosenInst = selectedInstanceRow ? parsedInstances.find(i => i.rowNum === selectedInstanceRow) : null;
     const rawVal = chosenInst ? chosenInst.value : cleanDisplayValue(initialData.lastValue);
-    if (rawVal === '-' || rawVal === undefined || rawVal === null) return <span className="text-slate-500">暂无测试值</span>;
+    if (rawVal === '-' || rawVal === undefined || rawVal === null) return <span className="text-text-tertiary">暂无测试值</span>;
 
     const mappingObj: Record<string, string> = {};
     for (const m of mappings) {
@@ -334,15 +334,15 @@ export default function SendToDashboardModal({
               <Monitor className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+              <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
                 发送到网络监控大屏 (支持同厂商多设备复用)
               </h3>
-              <p className="text-xs text-slate-400">配置自定义符号与 Grafana 值映射，批量发布到多台设备</p>
+              <p className="text-xs text-text-secondary">配置自定义符号与 Grafana 值映射，批量发布到多台设备</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition-colors"
+            className="p-1.5 hover:bg-slate-800 rounded-lg text-text-secondary hover:text-slate-200 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -352,12 +352,12 @@ export default function SendToDashboardModal({
         <div className="p-5 space-y-4">
           {/* 测试对象与 OID 卡片 */}
           <div className="p-3 bg-[#111836] border border-blue-500/15 rounded-lg text-xs space-y-1.5">
-            <div className="flex items-center justify-between text-slate-300">
-              <span className="text-slate-400">采集 OID:</span>
+            <div className="flex items-center justify-between text-text-secondary">
+              <span className="text-text-secondary">采集 OID:</span>
               <span className="font-mono text-amber-400 select-all">{initialData.oid}</span>
             </div>
             <div className="flex items-center justify-between pt-1 border-t border-blue-500/10">
-              <span className="text-slate-400">测试采样值:</span>
+              <span className="text-text-secondary">测试采样值:</span>
               <div>{renderValuePreview()}</div>
             </div>
           </div>
@@ -369,7 +369,7 @@ export default function SendToDashboardModal({
                 <span className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
                   🎯 选择下发到大屏的实例 (共 {parsedInstances.length} 个实例)
                 </span>
-                <span className="text-[10px] text-slate-400">点击切换要绑定的实例</span>
+                <span className="text-[10px] text-text-secondary">点击切换要绑定的实例</span>
               </div>
               <div className="max-h-36 overflow-y-auto rounded-lg border border-slate-800 bg-[#0d1225] divide-y divide-slate-800/60">
                 {parsedInstances.map(inst => {
@@ -379,17 +379,17 @@ export default function SendToDashboardModal({
                       key={inst.rowNum}
                       onClick={() => setSelectedInstanceRow(inst.rowNum)}
                       className={`flex items-center justify-between px-2.5 py-1.5 text-xs font-mono cursor-pointer transition-colors ${
-                        isSelected ? 'bg-purple-900/40 border-l-2 border-purple-400 text-white' : 'hover:bg-slate-800/60 text-slate-300'
+                        isSelected ? 'bg-purple-900/40 border-l-2 border-purple-400 text-white' : 'hover:bg-slate-800/60 text-text-secondary'
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-slate-400">#{inst.rowNum} (索引: {inst.displayIndex})</span>
+                        <span className="text-text-secondary">#{inst.rowNum} (索引: {inst.displayIndex})</span>
                         {inst.hasValue && (
                           <span className="px-1 py-0.2 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">★ 有效值</span>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`font-bold ${inst.hasValue ? 'text-emerald-400' : 'text-slate-500'}`}>{inst.value} {unit}</span>
+                        <span className={`font-bold ${inst.hasValue ? 'text-emerald-400' : 'text-text-tertiary'}`}>{inst.value} {unit}</span>
                         {isSelected && <span className="text-[10px] text-purple-300 font-bold">已选</span>}
                       </div>
                     </div>
@@ -401,27 +401,27 @@ export default function SendToDashboardModal({
 
           {/* 1. 指标名称 */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-text-secondary mb-1">
               1. 指标名称 <span className="text-red-400">*</span>
             </label>
             <input
               value={customName}
               onChange={e => setCustomName(e.target.value)}
               placeholder="如：核心交换机 - 内存使用率"
-              className="w-full px-3 py-2 bg-[#111836] border border-blue-500/20 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-[#111836] border border-blue-500/20 rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
             />
           </div>
 
           {/* 2. 自定义符号 / 单位 */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
-              2. 自定义符号 / 单位 <span className="text-slate-500 font-normal">(如内存使用率填 %、温度填 ℃)</span>
+            <label className="block text-xs font-semibold text-text-secondary mb-1">
+              2. 自定义符号 / 单位 <span className="text-text-tertiary font-normal">(如内存使用率填 %、温度填 ℃)</span>
             </label>
             <input
               value={unit}
               onChange={e => setUnit(e.target.value)}
               placeholder="输入任意自定义单位符号，如 %、MB、GB、℃、bps、ms 等"
-              className="w-full px-3 py-2 bg-[#111836] border border-blue-500/20 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-blue-500 mb-2"
+              className="w-full px-3 py-2 bg-[#111836] border border-blue-500/20 rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500 mb-2"
             />
             <div className="flex flex-wrap gap-1.5">
               {UNIT_PRESETS.map(u => (
@@ -432,7 +432,7 @@ export default function SendToDashboardModal({
                   className={`px-2 py-0.5 text-xs rounded border transition-colors ${
                     unit === u.value
                       ? 'bg-blue-500 text-white border-blue-400'
-                      : 'bg-[#111836] text-slate-400 border-slate-700 hover:text-slate-200 hover:border-slate-500'
+                      : 'bg-[#111836] text-text-secondary border-slate-700 hover:text-slate-200 hover:border-slate-500'
                   }`}
                 >
                   {u.label}
@@ -442,7 +442,7 @@ export default function SendToDashboardModal({
                 <button
                   type="button"
                   onClick={() => setUnit('')}
-                  className="px-2 py-0.5 text-xs text-slate-500 hover:text-slate-300"
+                  className="px-2 py-0.5 text-xs text-text-tertiary hover:text-slate-300"
                 >
                   清空单位
                 </button>
@@ -452,7 +452,7 @@ export default function SendToDashboardModal({
 
           {/* 3. 大屏卡片展现样式 */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label className="block text-xs font-semibold text-text-secondary mb-1.5">
               3. 大屏卡片展现样式
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -462,7 +462,7 @@ export default function SendToDashboardModal({
                 className={`px-2.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
                   chartType === 'circle' || chartType === 'auto'
                     ? 'bg-blue-500/25 border-blue-400 text-blue-300 shadow-md shadow-blue-500/10'
-                    : 'bg-[#111836] border-blue-500/15 text-slate-400 hover:text-slate-200'
+                    : 'bg-[#111836] border-blue-500/15 text-text-secondary hover:text-slate-200'
                 }`}
               >
                 <span>🍩 环形圆盘</span>
@@ -473,7 +473,7 @@ export default function SendToDashboardModal({
                 className={`px-2.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
                   chartType === 'bar'
                     ? 'bg-blue-500/25 border-blue-400 text-blue-300 shadow-md shadow-blue-500/10'
-                    : 'bg-[#111836] border-blue-500/15 text-slate-400 hover:text-slate-200'
+                    : 'bg-[#111836] border-blue-500/15 text-text-secondary hover:text-slate-200'
                 }`}
               >
                 <span>📊 柱状进度条</span>
@@ -484,7 +484,7 @@ export default function SendToDashboardModal({
                 className={`px-2.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
                   chartType === 'number'
                     ? 'bg-blue-500/25 border-blue-400 text-blue-300 shadow-md shadow-blue-500/10'
-                    : 'bg-[#111836] border-blue-500/15 text-slate-400 hover:text-slate-200'
+                    : 'bg-[#111836] border-blue-500/15 text-text-secondary hover:text-slate-200'
                 }`}
               >
                 <span>🔢 数字卡片</span>
@@ -495,9 +495,9 @@ export default function SendToDashboardModal({
           {/* 3. Grafana 风格值映射 */}
           <div className="pt-2 border-t border-blue-500/10">
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+              <label className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
                 <Settings className="w-3.5 h-3.5 text-blue-400" />
-                3. Grafana 风格值映射 <span className="text-slate-500 font-normal">(可选)</span>
+                3. Grafana 风格值映射 <span className="text-text-tertiary font-normal">(可选)</span>
               </label>
               <button
                 type="button"
@@ -508,12 +508,12 @@ export default function SendToDashboardModal({
                 添加规则
               </button>
             </div>
-            <p className="text-[11px] text-slate-400 mb-2">
+            <p className="text-[11px] text-text-secondary mb-2">
               将数字/原始值映射为直观文本（如 1 映射为"正常"、2 映射为"告警"、0 映射为"离线"）
             </p>
 
             <div className="mb-2">
-              <span className="text-[10px] text-slate-500 block mb-1">快捷模板:</span>
+              <span className="text-[10px] text-text-tertiary block mb-1">快捷模板:</span>
               <div className="flex flex-wrap gap-1.5">
                 {VALUE_MAP_PRESETS.map((p, idx) => (
                   <button
@@ -529,7 +529,7 @@ export default function SendToDashboardModal({
             </div>
 
             {mappings.length === 0 ? (
-              <div className="p-2.5 text-center text-xs text-slate-500 bg-[#111836]/60 rounded-lg border border-dashed border-slate-700">
+              <div className="p-2.5 text-center text-xs text-text-tertiary bg-[#111836]/60 rounded-lg border border-dashed border-slate-700">
                 暂未设置值映射
               </div>
             ) : (
@@ -540,19 +540,19 @@ export default function SendToDashboardModal({
                       value={m.key}
                       onChange={e => updateMappingRow(idx, 'key', e.target.value)}
                       placeholder="原始采集值 (如 1)"
-                      className="w-1/3 px-2.5 py-1 bg-[#111836] border border-blue-500/20 rounded text-xs text-slate-200 font-mono focus:outline-none focus:border-blue-500"
+                      className="w-1/3 px-2.5 py-1 bg-[#111836] border border-blue-500/20 rounded text-xs text-text-primary font-mono focus:outline-none focus:border-blue-500"
                     />
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+                    <ArrowRight className="w-3.5 h-3.5 text-text-tertiary flex-shrink-0" />
                     <input
                       value={m.value}
                       onChange={e => updateMappingRow(idx, 'value', e.target.value)}
                       placeholder="大屏映射显示 (如 正常)"
-                      className="flex-1 px-2.5 py-1 bg-[#111836] border border-blue-500/20 rounded text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                      className="flex-1 px-2.5 py-1 bg-[#111836] border border-blue-500/20 rounded text-xs text-text-primary focus:outline-none focus:border-blue-500"
                     />
                     <button
                       type="button"
                       onClick={() => removeMappingRow(idx)}
-                      className="p-1 text-slate-500 hover:text-red-400 transition-colors"
+                      className="p-1 text-text-tertiary hover:text-red-400 transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -565,7 +565,7 @@ export default function SendToDashboardModal({
           {/* 4. 复用应用到网络设备多选 (关键新特性) */}
           <div className="pt-2 border-t border-blue-500/10">
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+              <label className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
                 <Server className="w-3.5 h-3.5 text-cyan-400" />
                 4. 复用发布到网络设备 <span className="text-blue-400">({selectedDeviceIds.size}/{devices.length} 台)</span>
               </label>
@@ -582,7 +582,7 @@ export default function SendToDashboardModal({
                 <button
                   type="button"
                   onClick={selectAllModalDevices}
-                  className="px-2 py-0.5 text-[11px] bg-slate-800 text-slate-300 border border-slate-700 rounded hover:bg-slate-700 transition-colors"
+                  className="px-2 py-0.5 text-[11px] bg-slate-800 text-text-secondary border border-slate-700 rounded hover:bg-slate-700 transition-colors"
                 >
                   {selectedDeviceIds.size === devices.length ? '清空' : '全选所有'}
                 </button>
@@ -591,7 +591,7 @@ export default function SendToDashboardModal({
 
             {/* 厂商筛选分类 Pills */}
             <div className="flex items-center gap-1 mb-2 overflow-x-auto pb-1">
-              <span className="text-[10px] text-slate-500 flex-shrink-0">按厂商筛选:</span>
+              <span className="text-[10px] text-text-tertiary flex-shrink-0">按厂商筛选:</span>
               {['all', 'huawei', 'h3c', 'cisco', 'ruijie', 'zte', 'other'].map(v => (
                 <button
                   key={v}
@@ -600,7 +600,7 @@ export default function SendToDashboardModal({
                   className={`px-2 py-0.5 text-[10px] rounded transition-colors whitespace-nowrap ${
                     modalVendorFilter === v
                       ? 'bg-blue-500 text-white font-semibold'
-                      : 'bg-[#111836] text-slate-400 hover:text-slate-200'
+                      : 'bg-[#111836] text-text-secondary hover:text-slate-200'
                   }`}
                 >
                   {v === 'all' ? '全部' : (VENDOR_LABELS[v] || v)}
@@ -611,7 +611,7 @@ export default function SendToDashboardModal({
             {/* 设备勾选列表 */}
             <div className="max-h-36 overflow-y-auto border border-blue-500/15 rounded-lg bg-[#111836] divide-y divide-blue-500/5">
               {filteredDevicesForModal.length === 0 ? (
-                <p className="text-center py-3 text-xs text-slate-500">暂无符合条件的网络设备</p>
+                <p className="text-center py-3 text-xs text-text-tertiary">暂无符合条件的网络设备</p>
               ) : filteredDevicesForModal.map((d: any) => {
                 const isSelected = selectedDeviceIds.has(d.id);
                 const vLabel = VENDOR_LABELS[d.vendor] || d.vendor || '其他';
@@ -629,8 +629,8 @@ export default function SendToDashboardModal({
                       }`}>
                         {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
                       </div>
-                      <span className="text-xs text-slate-200 truncate">{d.name}</span>
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-medium">
+                      <span className="text-xs text-text-primary truncate">{d.name}</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-text-secondary font-medium">
                         {vLabel}
                       </span>
                     </div>
@@ -644,13 +644,13 @@ export default function SendToDashboardModal({
 
         {/* Modal 底部 */}
         <div className="flex items-center justify-between px-5 py-3 border-t border-blue-500/20 sticky bottom-0 bg-[#0d1225]">
-          <div className="text-xs text-slate-500 flex items-center gap-1">
+          <div className="text-xs text-text-tertiary flex items-center gap-1">
             预览效果: {renderValuePreview()}
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+              className="px-4 py-1.5 text-xs text-text-secondary hover:text-slate-200 transition-colors"
             >
               取消
             </button>

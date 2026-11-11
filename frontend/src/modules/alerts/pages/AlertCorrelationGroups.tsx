@@ -106,9 +106,9 @@ export default function AlertCorrelationGroups() {
 
   const severityColors: Record<string, string> = {
     critical: 'bg-status-failed/10 text-status-failed border-status-failed/30',
-    high: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-    medium: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
-    low: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+    high: 'bg-orange-500/10 text-orange-600 border-orange-500/30',
+    medium: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/30',
+    low: 'bg-blue-500/10 text-blue-600 border-blue-500/30',
   };
 
   const statusLabels: Record<string, string> = {
@@ -124,7 +124,7 @@ export default function AlertCorrelationGroups() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-text-primary mb-2 flex items-center gap-3">
-              <Layers className="w-7 h-7 text-purple-400" />
+              <Layers className="w-7 h-7 text-purple-600" />
               告警关联聚合
             </h1>
             <p className="text-text-secondary">将相关告警自动归组，快速定位故障根因</p>
@@ -134,11 +134,11 @@ export default function AlertCorrelationGroups() {
         {/* 统计 + 操作 */}
         <div className="grid grid-cols-5 gap-4">
           {[
-            { label: '总关联组', value: stats?.total_groups || 0, color: 'text-blue-400' },
+            { label: '总关联组', value: stats?.total_groups || 0, color: 'text-blue-600' },
             { label: '待处理', value: stats?.open_groups || 0, color: 'text-status-failed' },
             { label: '已解决', value: stats?.resolved_groups || 0, color: 'text-status-success' },
-            { label: '自动发现', value: stats?.auto_detected || 0, color: 'text-purple-400' },
-            { label: '平均组大小', value: stats?.avg_group_size || 0, color: 'text-emerald-400' },
+            { label: '自动发现', value: stats?.auto_detected || 0, color: 'text-purple-600' },
+            { label: '平均组大小', value: stats?.avg_group_size || 0, color: 'text-emerald-600' },
           ].map((stat, idx) => (
             <div key={idx} className="bg-surface rounded-xl p-4 border border-border">
               <p className={clsx('text-2xl font-bold', stat.color)}>{stat.value}</p>
@@ -156,7 +156,7 @@ export default function AlertCorrelationGroups() {
                 className={clsx(
                   'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
                   statusFilter === status
-                    ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
+                    ? 'bg-purple-500/10 text-purple-600 border border-purple-500/30'
                     : 'text-text-secondary hover:text-text-primary border border-transparent'
                 )}
               >
@@ -202,9 +202,9 @@ export default function AlertCorrelationGroups() {
                       group.status === 'open' ? 'bg-purple-500/10' : 'bg-slate-500/10'
                     )}>
                       {group.auto_detected ? (
-                        <Zap className={clsx('w-5 h-5', group.status === 'open' ? 'text-purple-400' : 'text-slate-400')} />
+                        <Zap className={clsx('w-5 h-5', group.status === 'open' ? 'text-purple-600' : 'text-text-secondary')} />
                       ) : (
-                        <Link2 className={clsx('w-5 h-5', group.status === 'open' ? 'text-purple-400' : 'text-slate-400')} />
+                        <Link2 className={clsx('w-5 h-5', group.status === 'open' ? 'text-purple-600' : 'text-text-secondary')} />
                       )}
                     </div>
                     <div className="min-w-0">
@@ -212,18 +212,18 @@ export default function AlertCorrelationGroups() {
                         <p className="font-medium text-text-primary truncate">{group.title}</p>
                         <span className={clsx(
                           'text-xs px-2 py-0.5 rounded-full border',
-                          severityColors[group.severity] || 'bg-slate-500/10 text-slate-400'
+                          severityColors[group.severity] || 'bg-slate-500/10 text-text-secondary'
                         )}>
                           {group.severity}
                         </span>
                         <span className={clsx(
                           'text-xs px-2 py-0.5 rounded-full',
-                          group.status === 'open' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-emerald-500/10 text-emerald-400'
+                          group.status === 'open' ? 'bg-yellow-500/10 text-yellow-600' : 'bg-emerald-500/10 text-emerald-600'
                         )}>
                           {group.status === 'open' ? '待处理' : '已解决'}
                         </span>
                         {group.auto_detected === 1 && (
-                          <span className="text-xs text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full">
+                          <span className="text-xs text-purple-600 bg-purple-500/10 px-2 py-0.5 rounded-full">
                             自动发现
                           </span>
                         )}
@@ -255,7 +255,7 @@ export default function AlertCorrelationGroups() {
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-medium text-text-primary text-lg">
                 <span className="flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-purple-400" />
+                  <Layers className="w-5 h-5 text-purple-600" />
                   {groupDetail.group?.title}
                 </span>
               </h3>
@@ -271,17 +271,17 @@ export default function AlertCorrelationGroups() {
               <div className="flex flex-wrap gap-3">
                 <span className={clsx(
                   'text-xs px-2.5 py-1 rounded-full border',
-                  severityColors[groupDetail.group?.severity] || 'bg-slate-500/10 text-slate-400'
+                  severityColors[groupDetail.group?.severity] || 'bg-slate-500/10 text-text-secondary'
                 )}>{groupDetail.group?.severity}</span>
                 <span className={clsx(
                   'text-xs px-2.5 py-1 rounded-full',
-                  groupDetail.group?.status === 'open' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-emerald-500/10 text-emerald-400'
+                  groupDetail.group?.status === 'open' ? 'bg-yellow-500/10 text-yellow-600' : 'bg-emerald-500/10 text-emerald-600'
                 )}>{statusLabels[groupDetail.group?.status] || groupDetail.group?.status}</span>
                 <span className="text-xs text-text-secondary bg-background px-2.5 py-1 rounded-full">
                   {groupDetail.members?.length || 0} 条告警
                 </span>
                 {groupDetail.group?.auto_detected === 1 && (
-                  <span className="text-xs text-purple-400 bg-purple-500/10 px-2.5 py-1 rounded-full">自动关联</span>
+                  <span className="text-xs text-purple-600 bg-purple-500/10 px-2.5 py-1 rounded-full">自动关联</span>
                 )}
                 <span className="text-xs text-text-secondary bg-background px-2.5 py-1 rounded-full">
                   创建于 {groupDetail.group?.created_at ? new Date(groupDetail.group.created_at).toLocaleString() : ''}
@@ -301,7 +301,7 @@ export default function AlertCorrelationGroups() {
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2 min-w-0">
                         {member.is_root && (
-                          <span className="text-xs text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full flex-shrink-0">
+                          <span className="text-xs text-purple-600 bg-purple-500/10 px-2 py-0.5 rounded-full flex-shrink-0">
                             根因
                           </span>
                         )}
@@ -336,7 +336,7 @@ export default function AlertCorrelationGroups() {
             <div className="flex items-center justify-end gap-2 mt-6 pt-4 border-t border-border">
               {groupDetail.group?.status === 'open' && (
                 <button onClick={() => resolveGroup.mutate(groupDetail.group.id)}
-                  className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-lg hover:bg-emerald-500/20 transition-all text-sm flex items-center gap-2"
+                  className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 rounded-lg hover:bg-emerald-500/20 transition-all text-sm flex items-center gap-2"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   标记已解决

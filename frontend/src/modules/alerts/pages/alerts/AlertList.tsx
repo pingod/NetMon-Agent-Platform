@@ -113,10 +113,10 @@ export default function AlertList({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-text-primary mb-1 group-hover:text-blue-400 transition-colors">
+                  <h3 className="font-semibold text-text-primary mb-1 group-hover:text-blue-600 transition-colors">
                     {sanitizeText(alert.title)}
                   </h3>
-                  <span className="text-xs text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center">
+                  <span className="text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center">
                     查看详情 &rarr;
                   </span>
                 </div>
@@ -127,26 +127,26 @@ export default function AlertList({
                 {(promql || triggerValue !== null || deviceName || Object.keys(tags).length > 0) && (
                   <div className="mb-3 p-2 rounded-lg bg-slate-950/70 border border-slate-800/80 flex flex-wrap items-center gap-2.5 text-xs font-mono">
                     {triggerValue !== null && (
-                      <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 font-bold border border-rose-500/30">
+                      <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-600 font-bold border border-rose-500/30">
                         触发采样值: {String(triggerValue)}
                       </span>
                     )}
 
                     {promql && (
-                      <span className="text-emerald-400 truncate max-w-md">
-                        <span className="text-slate-500 font-sans">PromQL:</span> {promql}
+                      <span className="text-emerald-600 truncate max-w-md">
+                        <span className="text-text-tertiary font-sans">PromQL:</span> {promql}
                       </span>
                     )}
 
                     {(deviceName || deviceIp) && (
-                      <span className="text-blue-400 font-sans">
+                      <span className="text-blue-600 font-sans">
                         设备: {deviceName} {deviceIp ? `(${deviceIp})` : ''}
                       </span>
                     )}
 
                     {/* Tag 预览 */}
                     {Object.entries(tags).slice(0, 3).map(([tk, tv]) => (
-                      <span key={tk} className="px-1.5 py-0.2 rounded bg-slate-800/80 text-purple-300 text-[11px]">
+                      <span key={tk} className="px-1.5 py-0.2 rounded bg-surface-2 text-purple-600 text-[11px]">
                         {tk}={tv}
                       </span>
                     ))}
@@ -165,7 +165,7 @@ export default function AlertList({
               <div className="flex items-center gap-2 ml-4 shrink-0" onClick={e => e.stopPropagation()}>
                 <button
                   onClick={() => onSelectAlert(alert)}
-                  className="px-3 py-1 text-xs bg-blue-600/10 text-blue-400 hover:bg-blue-600/20 border border-blue-500/30 rounded-lg transition-colors flex items-center gap-1 font-medium"
+                  className="px-3 py-1 text-xs bg-blue-600/10 text-blue-600 hover:bg-blue-600/20 border border-blue-500/30 rounded-lg transition-colors flex items-center gap-1 font-medium"
                 >
                   <Search className="w-3.5 h-3.5" />
                   详情
@@ -175,7 +175,7 @@ export default function AlertList({
                   <button
                     onClick={() => onProcess(alert.id)}
                     disabled={processPending}
-                    className="px-3 py-1 text-xs bg-purple-600/10 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-600/20 transition-colors flex items-center gap-1"
+                    className="px-3 py-1 text-xs bg-purple-600/10 text-purple-600 rounded-lg hover:bg-purple-600/20 transition-colors flex items-center gap-1"
                     title="手动触发匹配映射+修复策略+根因分析"
                   >
                     <Play className="w-3.5 h-3.5" />
@@ -207,7 +207,7 @@ export default function AlertList({
             <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50" onClick={e => e.stopPropagation()}>
               <button
                 onClick={() => onSelectAlert(alert)}
-                className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors px-2 py-1 rounded bg-blue-500/10 hover:bg-blue-500/20 font-medium"
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 transition-colors px-2 py-1 rounded bg-blue-500/10 hover:bg-blue-500/20 font-medium"
               >
                 <Search className="w-3 h-3" />
                 告警详情
@@ -216,7 +216,7 @@ export default function AlertList({
               {analysisMap[alert.id] && (
                 <button
                   onClick={() => navigate(`/alert-auto-analysis?alertId=${alert.id}`)}
-                  className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-2 py-1 rounded bg-emerald-500/5 hover:bg-emerald-500/10"
+                  className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 transition-colors px-2 py-1 rounded bg-emerald-500/5 hover:bg-emerald-500/10"
                 >
                   <Zap className="w-3 h-3" />
                   AI 分析
@@ -224,14 +224,14 @@ export default function AlertList({
               )}
               <button
                 onClick={() => navigate(`/remediation-executions?alertId=${alert.id}`)}
-                className="flex items-center gap-1 text-xs text-orange-400 hover:text-orange-300 transition-colors px-2 py-1 rounded bg-orange-500/5 hover:bg-orange-500/10"
+                className="flex items-center gap-1 text-xs text-orange-600 hover:text-orange-700 transition-colors px-2 py-1 rounded bg-orange-500/5 hover:bg-orange-500/10"
               >
                 <Wrench className="w-3 h-3" />
                 修复记录
               </button>
               <button
                 onClick={() => onViewAutomationLog(alert)}
-                className="flex items-center gap-1 text-xs text-slate-300 hover:text-white transition-colors px-2 py-1 rounded bg-slate-500/10 hover:bg-slate-500/20"
+                className="flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary transition-colors px-2 py-1 rounded bg-slate-500/10 hover:bg-slate-500/20"
               >
                 <Clock className="w-3 h-3" />
                 自动处理记录
@@ -239,7 +239,7 @@ export default function AlertList({
               {alert.related_task_id && (
                 <button
                   onClick={() => navigate(`/tasks?taskId=${encodeURIComponent(alert.related_task_id!)}`)}
-                  className="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 transition-colors px-2 py-1 rounded bg-cyan-500/5 hover:bg-cyan-500/10"
+                  className="flex items-center gap-1 text-xs text-cyan-600 hover:text-cyan-700 transition-colors px-2 py-1 rounded bg-cyan-500/5 hover:bg-cyan-500/10"
                 >
                   <Terminal className="w-3 h-3" />
                   工作流任务
@@ -247,14 +247,14 @@ export default function AlertList({
               )}
               <button
                 onClick={() => navigate(`/inspection-center?alertId=${alert.id}`)}
-                className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors px-2 py-1 rounded bg-blue-500/5 hover:bg-blue-500/10"
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 transition-colors px-2 py-1 rounded bg-blue-500/5 hover:bg-blue-500/10"
               >
                 <Wifi className="w-3 h-3" />
                 巡检结果
               </button>
               <button
                 onClick={() => navigate(`/root-cause-analysis?alertId=${alert.id}`)}
-                className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition-colors px-2 py-1 rounded bg-purple-500/5 hover:bg-purple-500/10"
+                className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-700 transition-colors px-2 py-1 rounded bg-purple-500/5 hover:bg-purple-500/10"
               >
                 <Search className="w-3 h-3" />
                 根因分析

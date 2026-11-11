@@ -125,7 +125,7 @@ export default function NetworkDashboard() {
   }, [devices, selectedVendorFilter]);
 
   return (
-    <div className="viz-dark min-h-screen bg-[#0a0e1a] text-white overflow-y-auto">
+    <div className="viz-dark min-h-screen bg-[#0a0e1a] text-text-primary overflow-y-auto">
       {/* 顶部标题栏 */}
       <div className="sticky top-0 z-30 bg-gradient-to-r from-[#0d1225] via-[#111836] to-[#0d1225] border-b border-blue-500/20 px-6 py-3">
         <div className="flex items-center justify-between">
@@ -143,17 +143,17 @@ export default function NetworkDashboard() {
                 网络设备监控大屏
               </h1>
             </div>
-            <span className="text-xs text-slate-500">实时监控</span>
+            <span className="text-xs text-text-tertiary">实时监控</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+            <div className="flex items-center gap-1.5 text-xs text-text-secondary">
               <Clock className="w-3.5 h-3.5" />
               {new Date().toLocaleString('zh-CN')}
             </div>
             <button
               onClick={() => setAutoRefresh(!autoRefresh)}
               className={`flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md transition-colors ${
-                autoRefresh ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-700/50 text-slate-400'
+                autoRefresh ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-700/50 text-text-secondary'
               }`}
             >
               <RefreshCw className={`w-3 h-3 ${autoRefresh ? 'animate-spin' : ''}`} style={{ animationDuration: '3s' }} />
@@ -162,7 +162,7 @@ export default function NetworkDashboard() {
             <button
               onClick={handleRefresh}
               aria-label="刷新数据"
-              className="p-1.5 hover:bg-white/5 rounded-lg transition-colors text-slate-400 hover:text-white"
+              className="p-1.5 hover:bg-white/5 rounded-lg transition-colors text-text-secondary hover:text-white"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
@@ -173,7 +173,7 @@ export default function NetworkDashboard() {
       {/* 厂商快捷筛选器 Bar */}
       <div className="bg-[#111836]/90 border-b border-blue-500/10 px-6 py-2 flex items-center justify-between overflow-x-auto sticky top-[53px] z-20 backdrop-blur-md">
         <div className="flex items-center gap-1.5 text-xs">
-          <span className="text-slate-400 font-medium mr-1 flex items-center gap-1">
+          <span className="text-text-secondary font-medium mr-1 flex items-center gap-1">
             <Server className="w-3.5 h-3.5 text-blue-400" /> 厂商筛选:
           </span>
           {[
@@ -195,12 +195,12 @@ export default function NetworkDashboard() {
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                   isSelected
                     ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-md shadow-blue-500/20'
-                    : 'bg-[#0d1225] text-slate-400 hover:text-slate-200 border border-blue-500/10 hover:border-blue-500/30'
+                    : 'bg-[#0d1225] text-text-secondary hover:text-slate-200 border border-blue-500/10 hover:border-blue-500/30'
                 }`}
               >
                 {v.id !== 'all' && <span className="w-2 h-2 rounded-full" style={{ backgroundColor: isSelected ? '#ffffff' : vColor }} />}
                 {v.label}
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-800 text-text-secondary'}`}>
                   {count}
                 </span>
               </button>
@@ -267,7 +267,7 @@ export default function NetworkDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* 上下行吞吐量 */}
             <div className="bg-[#111836] rounded-xl border border-blue-500/10 p-4">
-              <h3 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-medium text-text-secondary mb-3 flex items-center gap-2">
                 <Activity className="w-4 h-4 text-blue-400" />
                 吞吐量概览
               </h3>
@@ -275,25 +275,25 @@ export default function NetworkDashboard() {
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-1 mb-2">
                     <ArrowUpRight className="w-4 h-4 text-emerald-400" />
-                    <span className="text-xs text-slate-400">上行</span>
+                    <span className="text-xs text-text-secondary">上行</span>
                   </div>
                   <p className="text-2xl font-bold text-emerald-400">
                     {(throughput.totalOutMbps ?? 0).toFixed(2)}
                   </p>
-                  <p className="text-xs text-slate-500 mt-1">Mbps</p>
+                  <p className="text-xs text-text-tertiary mt-1">Mbps</p>
                 </div>
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-1 mb-2">
                     <ArrowDownRight className="w-4 h-4 text-amber-400" />
-                    <span className="text-xs text-slate-400">下行</span>
+                    <span className="text-xs text-text-secondary">下行</span>
                   </div>
                   <p className="text-2xl font-bold text-amber-400">
                     {(throughput.totalInMbps ?? 0).toFixed(2)}
                   </p>
-                  <p className="text-xs text-slate-500 mt-1">Mbps</p>
+                  <p className="text-xs text-text-tertiary mt-1">Mbps</p>
                 </div>
               </div>
-              <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
+              <div className="mt-4 flex items-center justify-between text-xs text-text-tertiary">
                 <span>SNMP 采集设备数</span>
                 <span className="text-blue-400 font-medium">{deviceStats.snmpEnabled}</span>
               </div>
@@ -307,7 +307,7 @@ export default function NetworkDashboard() {
 
             {/* 厂商分布 */}
             <div className="bg-[#111836] rounded-xl border border-blue-500/10 p-4">
-              <h3 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-medium text-text-secondary mb-3 flex items-center gap-2">
                 <Server className="w-4 h-4 text-purple-400" />
                 厂商分布
               </h3>
@@ -316,7 +316,7 @@ export default function NetworkDashboard() {
                   <AnimatedBarChart data={vendorChartData} height={160} />
                 </>
               ) : (
-                <div className="flex items-center justify-center h-40 text-slate-500 text-sm">暂无数据</div>
+                <div className="flex items-center justify-center h-40 text-text-tertiary text-sm">暂无数据</div>
               )}
             </div>
 
@@ -329,22 +329,22 @@ export default function NetworkDashboard() {
             {/* 设备状态表 */}
             <div className="bg-[#111836] rounded-xl border border-blue-500/10 overflow-hidden">
               <div className="px-4 py-3 border-b border-blue-500/10 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                <h3 className="text-sm font-medium text-text-secondary flex items-center gap-2">
                   <Server className="w-4 h-4 text-blue-400" />
                   设备资源状态
-                  <span className="text-xs text-slate-500">({devices.length})</span>
+                  <span className="text-xs text-text-tertiary">({devices.length})</span>
                 </h3>
               </div>
               <div className="max-h-80 overflow-y-auto">
                 <table className="w-full">
                   <thead className="sticky top-0 bg-[#111836] z-10">
                     <tr className="border-b border-blue-500/10">
-                      <th className="text-left text-xs font-medium text-slate-500 px-3 py-2">设备名称</th>
-                      <th className="text-left text-xs font-medium text-slate-500 px-3 py-2">IP</th>
-                      <th className="text-left text-xs font-medium text-slate-500 px-3 py-2">厂商</th>
-                      <th className="text-left text-xs font-medium text-slate-500 px-3 py-2">状态</th>
-                      <th className="text-left text-xs font-medium text-slate-500 px-3 py-2">运行时长</th>
-                      <th className="text-right text-xs font-medium text-slate-500 px-3 py-2 w-10">指标</th>
+                      <th className="text-left text-xs font-medium text-text-tertiary px-3 py-2">设备名称</th>
+                      <th className="text-left text-xs font-medium text-text-tertiary px-3 py-2">IP</th>
+                      <th className="text-left text-xs font-medium text-text-tertiary px-3 py-2">厂商</th>
+                      <th className="text-left text-xs font-medium text-text-tertiary px-3 py-2">状态</th>
+                      <th className="text-left text-xs font-medium text-text-tertiary px-3 py-2">运行时长</th>
+                      <th className="text-right text-xs font-medium text-text-tertiary px-3 py-2 w-10">指标</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -357,7 +357,7 @@ export default function NetworkDashboard() {
                         }`}
                       >
                         <td className="px-3 py-2">
-                          <span className="text-sm text-slate-200">{d.name}</span>
+                          <span className="text-sm text-text-primary">{d.name}</span>
                         </td>
                         <td className="px-3 py-2">
                           <span className="text-xs font-mono text-amber-400">{d.ip_address}</span>
@@ -386,7 +386,7 @@ export default function NetworkDashboard() {
                         <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => navigate(`/device-metrics/${d.id}`)}
-                            className="p-1 text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded transition-colors"
+                            className="p-1 text-text-tertiary hover:text-cyan-400 hover:bg-cyan-500/10 rounded transition-colors"
                             title="查看设备采集仪表盘"
                           >
                             <BarChart3 className="w-3.5 h-3.5" />
@@ -402,7 +402,7 @@ export default function NetworkDashboard() {
             {/* 接口流量详情 / 设备详情面板 */}
             <div className="bg-[#111836] rounded-xl border border-blue-500/10 overflow-hidden">
               <div className="px-4 py-3 border-b border-blue-500/10 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                <h3 className="text-sm font-medium text-text-secondary flex items-center gap-2">
                   <Activity className="w-4 h-4 text-cyan-400" />
                   {selectedDevice
                     ? `接口详情 - ${(devices as any[]).find((d: any) => d.id === selectedDevice)?.name || ''}`
@@ -414,12 +414,12 @@ export default function NetworkDashboard() {
                   <table className="w-full">
                     <thead className="sticky top-0 bg-[#111836] z-10">
                       <tr className="border-b border-blue-500/10">
-                        <th className="text-left text-xs font-medium text-slate-500 px-3 py-2">接口</th>
-                        <th className="text-left text-xs font-medium text-slate-500 px-3 py-2">描述</th>
-                        <th className="text-left text-xs font-medium text-slate-500 px-3 py-2">状态</th>
-                        <th className="text-left text-xs font-medium text-slate-500 px-3 py-2">入站速率</th>
-                        <th className="text-left text-xs font-medium text-slate-500 px-3 py-2">出站速率</th>
-                        <th className="text-left text-xs font-medium text-slate-500 px-3 py-2">利用率</th>
+                        <th className="text-left text-xs font-medium text-text-tertiary px-3 py-2">接口</th>
+                        <th className="text-left text-xs font-medium text-text-tertiary px-3 py-2">描述</th>
+                        <th className="text-left text-xs font-medium text-text-tertiary px-3 py-2">状态</th>
+                        <th className="text-left text-xs font-medium text-text-tertiary px-3 py-2">入站速率</th>
+                        <th className="text-left text-xs font-medium text-text-tertiary px-3 py-2">出站速率</th>
+                        <th className="text-left text-xs font-medium text-text-tertiary px-3 py-2">利用率</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -438,7 +438,7 @@ export default function NetworkDashboard() {
                               <span className="text-sm text-emerald-400">{ifaceName}</span>
                             </td>
                             <td className="px-3 py-2">
-                              <span className="text-xs text-slate-400" title={ifaceDesc}>
+                              <span className="text-xs text-text-secondary" title={ifaceDesc}>
                                 {ifaceDesc ? (ifaceDesc.length > 16 ? ifaceDesc.slice(0, 16) + '..' : ifaceDesc) : '-'}
                               </span>
                             </td>
@@ -470,7 +470,7 @@ export default function NetworkDashboard() {
                                     }}
                                   />
                                 </div>
-                                <span className="text-xs text-slate-400">
+                                <span className="text-xs text-text-secondary">
                                   {inUtil != null ? `${Number(inUtil).toFixed(1)}%` : '-'}
                                 </span>
                               </div>
@@ -479,12 +479,12 @@ export default function NetworkDashboard() {
                         );
                       })}
                       {(!interfaceSummary?.interfaces || interfaceSummary.interfaces.length === 0) && (
-                        <tr><td colSpan={6} className="text-center py-8 text-sm text-slate-500">暂无接口数据</td></tr>
+                        <tr><td colSpan={6} className="text-center py-8 text-sm text-text-tertiary">暂无接口数据</td></tr>
                       )}
                     </tbody>
                   </table>
                 ) : (
-                  <div className="flex items-center justify-center h-40 text-slate-500 text-sm">
+                  <div className="flex items-center justify-center h-40 text-text-tertiary text-sm">
                     <div className="text-center">
                       <Monitor className="w-8 h-8 mx-auto mb-2 text-slate-600" />
                       <p>点击左侧设备查看接口详情</p>
@@ -499,7 +499,7 @@ export default function NetworkDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* 设备健康仪表盘 */}
             <div className="bg-[#111836] rounded-xl border border-blue-500/10 p-4">
-              <h3 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
+              <h3 className="text-sm font-medium text-text-secondary mb-4 flex items-center gap-2">
                 <Cpu className="w-4 h-4 text-blue-400" />
                 设备健康概览
               </h3>
@@ -539,7 +539,7 @@ export default function NetworkDashboard() {
             {/* 最近巡检 */}
             <div className="bg-[#111836] rounded-xl border border-blue-500/10 overflow-hidden">
               <div className="px-4 py-3 border-b border-blue-500/10">
-                <h3 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                <h3 className="text-sm font-medium text-text-secondary flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   最近巡检
                 </h3>
@@ -548,7 +548,7 @@ export default function NetworkDashboard() {
                 {recentInspections.length > 0 ? recentInspections.map((insp: any, i: number) => (
                   <div key={i} className="px-4 py-2.5 border-b border-slate-700/30 hover:bg-white/[0.02] transition-colors">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-200">{insp.device_name}</span>
+                      <span className="text-sm text-text-primary">{insp.device_name}</span>
                       <span className={`text-xs px-1.5 py-0.5 rounded ${
                         insp.status === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
                       }`}>
@@ -556,15 +556,15 @@ export default function NetworkDashboard() {
                       </span>
                     </div>
                     <div className="flex items-center justify-between mt-1">
-                      <span className="text-xs text-slate-500">{insp.inspection_type}</span>
-                      <span className="text-xs text-slate-500">{insp.duration_ms ? `${insp.duration_ms}ms` : '-'}</span>
+                      <span className="text-xs text-text-tertiary">{insp.inspection_type}</span>
+                      <span className="text-xs text-text-tertiary">{insp.duration_ms ? `${insp.duration_ms}ms` : '-'}</span>
                     </div>
                     <div className="text-xs text-slate-600 mt-0.5">
                       {insp.created_at ? new Date(insp.created_at).toLocaleString('zh-CN') : '-'}
                     </div>
                   </div>
                 )) : (
-                  <div className="text-center py-8 text-sm text-slate-500">暂无巡检记录</div>
+                  <div className="text-center py-8 text-sm text-text-tertiary">暂无巡检记录</div>
                 )}
               </div>
             </div>
@@ -572,7 +572,7 @@ export default function NetworkDashboard() {
             {/* 告警列表 */}
             <div className="bg-[#111836] rounded-xl border border-blue-500/10 overflow-hidden">
               <div className="px-4 py-3 border-b border-blue-500/10">
-                <h3 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                <h3 className="text-sm font-medium text-text-secondary flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-red-400" />
                   最近告警
                 </h3>
@@ -581,7 +581,7 @@ export default function NetworkDashboard() {
                 {alerts.length > 0 ? alerts.map((alert: any, i: number) => (
                   <div key={alert.id || i} className="px-4 py-2.5 border-b border-slate-700/30 hover:bg-white/[0.02] transition-colors">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-200 truncate max-w-[70%]">{alert.title || alert.name || '-'}</span>
+                      <span className="text-sm text-text-primary truncate max-w-[70%]">{alert.title || alert.name || '-'}</span>
                       <span className={`text-xs px-1.5 py-0.5 rounded ${
                         alert.severity === 'critical' ? 'bg-red-500/10 text-red-400' :
                         alert.severity === 'warning' ? 'bg-amber-500/10 text-amber-400' :
@@ -590,7 +590,7 @@ export default function NetworkDashboard() {
                         {alert.severity === 'critical' ? '严重' : alert.severity === 'warning' ? '警告' : '信息'}
                       </span>
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">
+                    <div className="text-xs text-text-tertiary mt-1">
                       {alert.source_name || alert.source || '-'}
                     </div>
                     <div className="text-xs text-slate-600 mt-0.5">
@@ -598,7 +598,7 @@ export default function NetworkDashboard() {
                     </div>
                   </div>
                 )) : (
-                  <div className="flex items-center justify-center h-32 text-sm text-slate-500">
+                  <div className="flex items-center justify-center h-32 text-sm text-text-tertiary">
                     <CheckCircle2 className="w-5 h-5 mr-2 text-emerald-500" />
                     暂无告警
                   </div>
@@ -700,10 +700,10 @@ function CustomMetricsPanel({ vendorFilter = 'all' }: { vendorFilter?: string })
   return (
     <div className="bg-[#111836] rounded-xl border border-blue-500/10 p-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+        <h3 className="text-sm font-medium text-text-secondary flex items-center gap-2">
           <Zap className="w-4 h-4 text-amber-400" />
           自定义监控指标
-          <span className="text-xs text-slate-500">({filteredMetrics.length})</span>
+          <span className="text-xs text-text-tertiary">({filteredMetrics.length})</span>
         </h3>
         <div className="flex items-center gap-3">
           {/* 设备 IP 选择器 */}
@@ -711,7 +711,7 @@ function CustomMetricsPanel({ vendorFilter = 'all' }: { vendorFilter?: string })
             aria-label="选择设备"
             value={selectedDeviceId}
             onChange={e => setSelectedDeviceId(e.target.value)}
-            className="px-2.5 py-1 bg-[#0d1225] border border-blue-500/20 rounded-md text-xs text-slate-300 focus:outline-none focus:border-blue-500 cursor-pointer"
+            className="px-2.5 py-1 bg-[#0d1225] border border-blue-500/20 rounded-md text-xs text-text-secondary focus:outline-none focus:border-blue-500 cursor-pointer"
           >
             {deviceOptions.map(d => (
               <option key={d.id} value={d.id}>
@@ -733,7 +733,7 @@ function CustomMetricsPanel({ vendorFilter = 'all' }: { vendorFilter?: string })
           <RefreshCw className="w-5 h-5 text-blue-400 animate-spin" />
         </div>
       ) : filteredMetrics.length === 0 ? (
-        <div className="text-center py-8 text-sm text-slate-500">
+        <div className="text-center py-8 text-sm text-text-tertiary">
           {selectedDeviceId !== 'all' ? '该设备暂无自定义指标' : '暂无自定义指标'}
         </div>
       ) : (
@@ -775,13 +775,13 @@ function CustomMetricsPanel({ vendorFilter = 'all' }: { vendorFilter?: string })
                     <div className={`p-1.5 rounded-lg border flex items-center justify-center ${iconConfig.bg}`}>
                       <IconComponent className="w-4 h-4" />
                     </div>
-                    <span className="text-xs font-bold text-slate-200 truncate" title={m.custom_name}>
+                    <span className="text-xs font-bold text-text-primary truncate" title={m.custom_name}>
                       {m.custom_name}
                     </span>
                   </div>
                   <button
                     onClick={() => setEditingMetric(m)}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1 text-text-tertiary hover:text-blue-400 hover:bg-blue-500/10 rounded transition-all"
                     title="配置指标"
                   >
                     <Settings className="w-3.5 h-3.5" />
@@ -811,7 +811,7 @@ function CustomMetricsPanel({ vendorFilter = 'all' }: { vendorFilter?: string })
                   ) : isBar && hasValidNum ? (
                     <div className="w-full space-y-1.5 px-1">
                       <div className="flex justify-between items-baseline text-xs font-mono">
-                        <span className="text-xl font-extrabold text-white tracking-tight">{display}</span>
+                        <span className="text-xl font-extrabold text-text-primary tracking-tight">{display}</span>
                         <span className="text-xs font-bold text-cyan-400">{m.unit || '%'}</span>
                       </div>
                       <div className="w-full h-2.5 bg-slate-800/90 rounded-full overflow-hidden p-0.5 border border-slate-700/50">
@@ -826,7 +826,7 @@ function CustomMetricsPanel({ vendorFilter = 'all' }: { vendorFilter?: string })
                     </div>
                   ) : (
                     <div className="flex items-baseline gap-1.5">
-                      <span className="text-2xl font-extrabold font-mono text-white tracking-tight">
+                      <span className="text-2xl font-extrabold font-mono text-text-primary tracking-tight">
                         {display}
                       </span>
                       {m.unit && (
@@ -840,7 +840,7 @@ function CustomMetricsPanel({ vendorFilter = 'all' }: { vendorFilter?: string })
 
                 {/* 设备名称与厂商标识 */}
                 <div className="flex items-center justify-between gap-1 mt-1 mb-2 pt-1 border-t border-slate-700/30">
-                  <span className="text-xs font-semibold text-slate-300 truncate" title={targetDevice?.name || m.device_id}>
+                  <span className="text-xs font-semibold text-text-secondary truncate" title={targetDevice?.name || m.device_id}>
                     {targetDevice?.name || '网络设备'}
                   </span>
                   {vendorName && (
@@ -866,7 +866,7 @@ function CustomMetricsPanel({ vendorFilter = 'all' }: { vendorFilter?: string })
                     <Network className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
                     <span>{targetDevice?.ip_address || m.device_id}</span>
                   </div>
-                  <span className="text-xs font-mono text-slate-400 font-medium" title={`OID: ${m.oid}`}>
+                  <span className="text-xs font-mono text-text-secondary font-medium" title={`OID: ${m.oid}`}>
                     {m.last_sampled_at ? new Date(m.last_sampled_at).toLocaleTimeString('zh-CN') : '-'}
                   </span>
                 </div>
@@ -1151,7 +1151,7 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
         <div className="flex items-center justify-between px-5 py-4 border-b border-blue-500/20 bg-[#0d1225] flex-shrink-0">
           <div className="flex items-center gap-2">
             <Settings className="w-4 h-4 text-blue-400" />
-            <h3 className="text-sm font-bold text-slate-100">
+            <h3 className="text-sm font-bold text-text-primary">
               编辑指标属性与 Tag 标签
             </h3>
             <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/30">
@@ -1161,7 +1161,7 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
           <button
             type="button"
             onClick={onClose}
-            className="p-1 hover:bg-slate-800 text-slate-400 hover:text-white rounded-md transition-colors"
+            className="p-1 hover:bg-slate-800 text-text-secondary hover:text-white rounded-md transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -1173,7 +1173,7 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
           <div className="p-3 bg-[#0d1225] rounded-xl border border-blue-500/20 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] uppercase font-bold text-blue-400">OID 采样节点:</span>
-              <span className="text-[10px] text-slate-500 font-mono">ID: {metric.id?.slice(0, 8)}...</span>
+              <span className="text-[10px] text-text-tertiary font-mono">ID: {metric.id?.slice(0, 8)}...</span>
             </div>
             <div className="flex items-center gap-2">
               <input
@@ -1184,7 +1184,7 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
                 className="w-full px-2.5 py-1.5 bg-[#080c17] border border-blue-500/30 rounded-lg text-xs font-mono text-cyan-300 focus:outline-none focus:border-cyan-400"
               />
             </div>
-            <p className="text-[11px] text-slate-400">原始名称: {metric.original_name || metric.custom_name || '-'}</p>
+            <p className="text-[11px] text-text-secondary">原始名称: {metric.original_name || metric.custom_name || '-'}</p>
 
             {/* 如果检测到表量多实例数据，显示实例切换器 */}
             {parsedInstances.length > 0 && (
@@ -1193,7 +1193,7 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
                   <span className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
                     🎯 表量多实例切换 (共 {parsedInstances.length} 个实例)
                   </span>
-                  <span className="text-[10px] text-slate-400">点击切换要在大屏绑定的实例</span>
+                  <span className="text-[10px] text-text-secondary">点击切换要在大屏绑定的实例</span>
                 </div>
                 <div className="max-h-36 overflow-y-auto rounded-lg border border-slate-800 bg-[#080c17] divide-y divide-slate-800/60">
                   {parsedInstances.map((inst: TableInstanceItem) => {
@@ -1206,17 +1206,17 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
                           setCurrentOid(inst.fullOid);
                         }}
                         className={`flex items-center justify-between px-2.5 py-1.5 text-xs font-mono cursor-pointer transition-colors ${
-                          isSelected ? 'bg-purple-900/40 border-l-2 border-purple-400 text-white' : 'hover:bg-slate-800/60 text-slate-300'
+                          isSelected ? 'bg-purple-900/40 border-l-2 border-purple-400 text-white' : 'hover:bg-slate-800/60 text-text-secondary'
                         }`}
                       >
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-400">#{inst.rowNum} (索引: {inst.displayIndex})</span>
+                          <span className="text-text-secondary">#{inst.rowNum} (索引: {inst.displayIndex})</span>
                           {inst.hasValue && (
                             <span className="px-1 py-0.2 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">★ 有效值</span>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`font-bold ${inst.hasValue ? 'text-emerald-400' : 'text-slate-500'}`}>{inst.value} {unit}</span>
+                          <span className={`font-bold ${inst.hasValue ? 'text-emerald-400' : 'text-text-tertiary'}`}>{inst.value} {unit}</span>
                           {isSelected && <span className="text-[10px] text-purple-300 font-bold">已选</span>}
                         </div>
                       </div>
@@ -1229,9 +1229,9 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
 
           {/* 1. 自定义指标大屏显示名称 */}
           <div>
-            <label className="block text-xs font-semibold text-slate-200 mb-1 flex items-center justify-between">
+            <label className="block text-xs font-semibold text-text-primary mb-1 flex items-center justify-between">
               <span>自定义指标显示名称 <span className="text-red-400">*</span></span>
-              <span className="text-[10px] text-slate-400 font-normal">在大屏卡片与拓扑图上直观呈现</span>
+              <span className="text-[10px] text-text-secondary font-normal">在大屏卡片与拓扑图上直观呈现</span>
             </label>
             <input
               type="text"
@@ -1249,14 +1249,14 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
                 });
               }}
               placeholder="例：CPU使用率、内存占用、核心交换机-1 CPU利用率"
-              className="w-full px-3 py-2 bg-[#0d1225] border border-blue-500/20 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-[#0d1225] border border-blue-500/20 rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
             />
           </div>
 
           {/* 2. Prometheus 英文指标标识 (Metric Name) */}
           <div className="p-3 bg-[#0d1225] rounded-xl border border-blue-500/20 space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+              <label className="text-xs font-semibold text-text-primary flex items-center gap-1.5">
                 <Tag className="w-3.5 h-3.5 text-cyan-400" />
                 <span>Prometheus 指标英文标识 (Metric Name)</span>
               </label>
@@ -1278,7 +1278,7 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
               className="w-full px-3 py-1.5 bg-[#080c17] border border-blue-500/30 rounded-lg text-xs font-mono text-cyan-300 focus:outline-none focus:border-cyan-400"
             />
             <div className="flex flex-wrap items-center gap-1.5 pt-1">
-              <span className="text-[10px] text-slate-500">快捷预设:</span>
+              <span className="text-[10px] text-text-tertiary">快捷预设:</span>
               {METRIC_NAME_PRESETS.map((p) => (
                 <button
                   key={p.value}
@@ -1287,7 +1287,7 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
                   className={`px-2 py-0.5 text-[10px] font-mono rounded border transition-colors ${
                     metricName === p.value
                       ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
-                      : 'bg-[#080c17] border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-600'
+                      : 'bg-[#080c17] border-slate-700 text-text-secondary hover:text-slate-200 hover:border-slate-600'
                   }`}
                   title={p.desc}
                 >
@@ -1300,7 +1300,7 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
           {/* 3. 自定义 Tag 标签列表 (Prometheus Labels Key-Value 键值对编辑) */}
           <div className="p-3 bg-[#0d1225] rounded-xl border border-blue-500/20 space-y-2.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+              <label className="text-xs font-semibold text-text-primary flex items-center gap-1.5">
                 <Tag className="w-3.5 h-3.5 text-amber-400" />
                 <span>自定义 Tag 标签键值对 (Prometheus Labels)</span>
               </label>
@@ -1313,13 +1313,13 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
                 添加 Tag 标签
               </button>
             </div>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-text-secondary">
               设置透出至 Prometheus 导出与 Tag 视图的自定义标签维度（如环境、机房、集群、角色等）
             </p>
 
             {/* Tag 快捷预设 */}
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] text-slate-500">常用标签:</span>
+              <span className="text-[10px] text-text-tertiary">常用标签:</span>
               {TAG_PRESETS.map((p) => (
                 <button
                   key={p.key}
@@ -1334,7 +1334,7 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
 
             {/* Tag 输入行列表 */}
             {tagList.length === 0 ? (
-              <div className="text-center py-2.5 text-xs text-slate-500 bg-[#080c17]/60 rounded-lg border border-dashed border-slate-700/50">
+              <div className="text-center py-2.5 text-xs text-text-tertiary bg-[#080c17]/60 rounded-lg border border-dashed border-slate-700/50">
                 暂无自定义 Tag 标签，点击上方“添加 Tag 标签”新增
               </div>
             ) : (
@@ -1348,7 +1348,7 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
                       placeholder="标签键 (如 env)"
                       className="w-1/3 px-2.5 py-1.5 bg-[#080c17] border border-amber-500/20 rounded text-xs text-amber-300 font-mono focus:outline-none focus:border-amber-400 placeholder:text-slate-600"
                     />
-                    <span className="text-slate-500 text-xs font-mono">=</span>
+                    <span className="text-text-tertiary text-xs font-mono">=</span>
                     <input
                       type="text"
                       value={tag.value}
@@ -1372,8 +1372,8 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
 
           {/* 4. 实时 Prometheus Exposition & Tag 动态采集预览 */}
           <div className="p-3 bg-[#080c17] rounded-xl border border-cyan-500/30 space-y-1.5 font-mono text-xs">
-            <div className="text-slate-400 text-[11px] flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-slate-300">
+            <div className="text-text-secondary text-[11px] flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-text-secondary">
                 <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
                 <span>实时 Prometheus Exposition & Tag 采集预览</span>
               </span>
@@ -1381,40 +1381,40 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
                 实时编译生效
               </span>
             </div>
-            <div className="text-[11px] text-slate-400 leading-tight">
+            <div className="text-[11px] text-text-secondary leading-tight">
               # HELP {formattedMetricName} ({customName || '用户自定义标签'})<br />
               # TYPE {formattedMetricName} gauge
             </div>
             <div className="flex flex-wrap items-baseline gap-0.5 text-xs bg-[#050811] p-2.5 rounded-lg border border-slate-800">
               <span className="font-bold text-cyan-300">{formattedMetricName}</span>
-              <span className="text-slate-400">&#123;</span>
+              <span className="text-text-secondary">&#123;</span>
               <span className="text-amber-400">device_ip</span>
-              <span className="text-slate-400">=</span>
+              <span className="text-text-secondary">=</span>
               <span className="text-emerald-300">"{metric.device_ip || '10.136.251.14'}"</span>
               {validTags.map((t) => (
                 <span key={t.id} className="inline-flex items-baseline">
-                  <span className="text-slate-400">, </span>
+                  <span className="text-text-secondary">, </span>
                   <span className="text-amber-300 font-bold ml-1">{t.key}</span>
-                  <span className="text-slate-400">=</span>
+                  <span className="text-text-secondary">=</span>
                   <span className="text-emerald-300 font-bold">"{t.value || '-'}"</span>
                 </span>
               ))}
-              <span className="text-slate-400">&#125;</span>
+              <span className="text-text-secondary">&#125;</span>
               <span className="ml-2.5 font-bold text-blue-300">{cleanDisplayValue(metric.last_value) || '10.00'}</span>
             </div>
           </div>
 
           {/* 5. 自定义单位 / 符号 */}
           <div>
-            <label className="block text-xs font-semibold text-slate-200 mb-1 flex items-center justify-between">
-              <span>自定义单位 / 符号 <span className="text-slate-500 font-normal">(如 %、℃、Mbps、个、RPM)</span></span>
+            <label className="block text-xs font-semibold text-text-primary mb-1 flex items-center justify-between">
+              <span>自定义单位 / 符号 <span className="text-text-tertiary font-normal">(如 %、℃、Mbps、个、RPM)</span></span>
             </label>
             <input
               type="text"
               value={unit}
               onChange={e => setUnit(e.target.value)}
               placeholder="如 %、℃、MB、Gbps"
-              className="w-full px-3 py-2 bg-[#0d1225] border border-blue-500/20 rounded-lg text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-[#0d1225] border border-blue-500/20 rounded-lg text-sm text-text-primary focus:outline-none focus:border-blue-500"
             />
             <div className="flex flex-wrap gap-1 mt-1.5">
               {UNIT_PRESETS.map((u) => (
@@ -1425,7 +1425,7 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
                   className={`px-2 py-0.5 text-xs rounded border transition-colors ${
                     unit === u
                       ? 'bg-blue-500/30 border-blue-400 text-blue-200'
-                      : 'bg-[#0d1225] border-blue-500/15 text-slate-400 hover:text-slate-200'
+                      : 'bg-[#0d1225] border-blue-500/15 text-text-secondary hover:text-slate-200'
                   }`}
                 >
                   {u}
@@ -1436,7 +1436,7 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
 
           {/* 6. 大屏展现样式 */}
           <div>
-            <label className="block text-xs font-semibold text-slate-200 mb-1.5">
+            <label className="block text-xs font-semibold text-text-primary mb-1.5">
               大屏展现样式
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -1446,7 +1446,7 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
                 className={`px-2.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
                   chartType === 'circle' || chartType === 'auto'
                     ? 'bg-blue-500/25 border-blue-400 text-blue-300 shadow-md shadow-blue-500/10'
-                    : 'bg-[#0d1225] border-blue-500/20 text-slate-400 hover:text-slate-200'
+                    : 'bg-[#0d1225] border-blue-500/20 text-text-secondary hover:text-slate-200'
                 }`}
               >
                 <span>🍩 环形圆盘</span>
@@ -1457,7 +1457,7 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
                 className={`px-2.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
                   chartType === 'bar'
                     ? 'bg-blue-500/25 border-blue-400 text-blue-300 shadow-md shadow-blue-500/10'
-                    : 'bg-[#0d1225] border-blue-500/20 text-slate-400 hover:text-slate-200'
+                    : 'bg-[#0d1225] border-blue-500/20 text-text-secondary hover:text-slate-200'
                 }`}
               >
                 <span>📊 柱状进度</span>
@@ -1468,7 +1468,7 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
                 className={`px-2.5 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
                   chartType === 'number'
                     ? 'bg-blue-500/25 border-blue-400 text-blue-300 shadow-md shadow-blue-500/10'
-                    : 'bg-[#0d1225] border-blue-500/20 text-slate-400 hover:text-slate-200'
+                    : 'bg-[#0d1225] border-blue-500/20 text-text-secondary hover:text-slate-200'
                 }`}
               >
                 <span>🔢 数字卡片</span>
@@ -1479,7 +1479,7 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
           {/* 7. Grafana 风格值映射 */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-slate-200">Grafana 风格值映射</label>
+              <label className="text-xs font-semibold text-text-primary">Grafana 风格值映射</label>
               <button
                 type="button"
                 onClick={addMapping}
@@ -1489,9 +1489,9 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
                 添加规则
               </button>
             </div>
-            <p className="text-[11px] text-slate-400 mb-2">将采集出的数字映射为直观文本（例：1 → 正常，2 → 告警，0 → 离线）</p>
+            <p className="text-[11px] text-text-secondary mb-2">将采集出的数字映射为直观文本（例：1 → 正常，2 → 告警，0 → 离线）</p>
             {mappings.length === 0 ? (
-              <div className="text-center py-3 text-xs text-slate-500 bg-[#0d1225]/60 rounded-lg border border-dashed border-slate-700/50">
+              <div className="text-center py-3 text-xs text-text-tertiary bg-[#0d1225]/60 rounded-lg border border-dashed border-slate-700/50">
                 暂未设置值映射规则
               </div>
             ) : (
@@ -1503,15 +1503,15 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
                       value={m.key}
                       onChange={e => updateMapping(i, 'key', e.target.value)}
                       placeholder="采集原始值 (如 1)"
-                      className="w-24 px-2.5 py-1.5 bg-[#0d1225] border border-blue-500/20 rounded text-xs text-slate-200 text-center font-mono focus:outline-none focus:border-blue-500"
+                      className="w-24 px-2.5 py-1.5 bg-[#0d1225] border border-blue-500/20 rounded text-xs text-text-primary text-center font-mono focus:outline-none focus:border-blue-500"
                     />
-                    <span className="text-slate-500 text-xs">→</span>
+                    <span className="text-text-tertiary text-xs">→</span>
                     <input
                       type="text"
                       value={m.value}
                       onChange={e => updateMapping(i, 'value', e.target.value)}
                       placeholder="大屏映射文本 (如 正常)"
-                      className="flex-1 px-2.5 py-1.5 bg-[#0d1225] border border-blue-500/20 rounded text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                      className="flex-1 px-2.5 py-1.5 bg-[#0d1225] border border-blue-500/20 rounded text-xs text-text-primary focus:outline-none focus:border-blue-500"
                     />
                     <button
                       type="button"
@@ -1544,7 +1544,7 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
                 <button
                   type="button"
                   onClick={() => setConfirmDelete(false)}
-                  className="px-2 py-1 text-xs text-slate-400 hover:text-slate-200"
+                  className="px-2 py-1 text-xs text-text-secondary hover:text-slate-200"
                 >
                   取消
                 </button>
@@ -1573,7 +1573,7 @@ function MetricEditModal({ metric, onClose, onSave, onDelete }: {
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 text-xs text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 text-xs text-text-secondary hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
             >
               取消
             </button>
@@ -1673,10 +1673,10 @@ function SnmpMetricPanelsSection() {
 
   return (
     <div className="bg-[#111836] rounded-xl border border-blue-500/10 p-4">
-      <h3 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2">
+      <h3 className="text-sm font-medium text-text-secondary mb-4 flex items-center gap-2">
         <BarChart3 className="w-4 h-4 text-cyan-400" />
         SNMP 指标面板
-        <span className="text-xs text-slate-500">({enabledPanels.length})</span>
+        <span className="text-xs text-text-tertiary">({enabledPanels.length})</span>
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
         {enabledPanels.map(panel => (
@@ -1728,12 +1728,12 @@ function SnmpPanelCard({ panel }: { panel: PanelConfig }) {
     <div className="group relative bg-[#0d1225] rounded-lg border border-blue-500/10 p-3 hover:border-blue-500/30 transition-colors">
       <div className="flex items-center justify-between mb-2">
         <div className="min-w-0 flex-1 pr-2">
-          <p className="text-xs font-semibold text-slate-200 truncate">{displayTitle}</p>
-          <p className="text-[10px] text-slate-500 font-mono truncate">{panel.metric_name}</p>
+          <p className="text-xs font-semibold text-text-primary truncate">{displayTitle}</p>
+          <p className="text-[10px] text-text-tertiary font-mono truncate">{panel.metric_name}</p>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">{panel.time_range || '24h'}</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">{aggLabel}</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/50 text-text-secondary">{panel.time_range || '24h'}</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/50 text-text-secondary">{aggLabel}</span>
           <button
             type="button"
             onClick={handleDelete}
@@ -1747,9 +1747,9 @@ function SnmpPanelCard({ panel }: { panel: PanelConfig }) {
       {isFetching && series.length === 0 ? (
         <div className="flex items-center justify-center py-8"><RefreshCw className="w-4 h-4 text-blue-400 animate-spin" /></div>
       ) : error ? (
-        <div className="flex items-center justify-center py-6 text-xs text-slate-500">查询失败</div>
+        <div className="flex items-center justify-center py-6 text-xs text-text-tertiary">查询失败</div>
       ) : series.length === 0 ? (
-        <div className="flex items-center justify-center py-6 text-xs text-slate-500">暂无数据</div>
+        <div className="flex items-center justify-center py-6 text-xs text-text-tertiary">暂无数据</div>
       ) : (
         <PanelSvgChart series={series} chartType={panel.chart_type || 'line'} />
       )}
@@ -1760,7 +1760,7 @@ function SnmpPanelCard({ panel }: { panel: PanelConfig }) {
 function PanelSvgChart({ series, chartType }: { series: SeriesData[]; chartType: string }) {
   const w = 320, h = 120, pad = 28;
   const allPoints = series.flatMap(s => s.points);
-  if (allPoints.length < 2) return <div className="text-center py-4 text-xs text-slate-500">数据点不足</div>;
+  if (allPoints.length < 2) return <div className="text-center py-4 text-xs text-text-tertiary">数据点不足</div>;
 
   const values = allPoints.map(p => p.value);
   const min = Math.min(...values);
@@ -1838,12 +1838,12 @@ function KpiCard({ icon, label, value, suffix, unit, color }: {
     <div className="bg-[#111836] rounded-xl border border-blue-500/10 p-4 hover:border-blue-500/30 transition-colors">
       <div className="flex items-center gap-2 mb-2">
         <span style={{ color }}>{icon}</span>
-        <span className="text-xs text-slate-400">{label}</span>
+        <span className="text-xs text-text-secondary">{label}</span>
       </div>
       <div className="flex items-baseline gap-1">
         <span className="text-2xl font-bold" style={{ color }}>{value}</span>
-        {suffix && <span className="text-sm text-slate-500">{suffix}</span>}
-        {unit && <span className="text-xs text-slate-500">{unit}</span>}
+        {suffix && <span className="text-sm text-text-tertiary">{suffix}</span>}
+        {unit && <span className="text-xs text-text-tertiary">{unit}</span>}
       </div>
     </div>
   );
@@ -1920,10 +1920,10 @@ function TopInterfaceMetricsSection({ devices = [] }: { devices?: any[] }) {
             <Activity className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+            <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
               网络设备接口流量概览
             </h3>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-text-secondary">
               下拉切换目标网络设备，实时查看上行/下行吞吐率、累计数据流量及包损率
             </p>
           </div>
@@ -1931,12 +1931,12 @@ function TopInterfaceMetricsSection({ devices = [] }: { devices?: any[] }) {
 
         {/* 设备选择下拉框 */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-slate-300">目标设备:</span>
+          <span className="text-xs font-semibold text-text-secondary">目标设备:</span>
           <select
             aria-label="选择目标设备"
             value={selectedDeviceId}
             onChange={e => setSelectedDeviceId(e.target.value)}
-            className="px-3 py-1.5 bg-[#111836] border border-blue-500/30 rounded-lg text-xs text-slate-100 font-medium focus:outline-none focus:border-blue-500 cursor-pointer shadow-inner"
+            className="px-3 py-1.5 bg-[#111836] border border-blue-500/30 rounded-lg text-xs text-text-primary font-medium focus:outline-none focus:border-blue-500 cursor-pointer shadow-inner"
           >
             <option value="all">🌐 全局汇总 (全部网络设备)</option>
             {devices.map((d: any) => (
@@ -1952,10 +1952,10 @@ function TopInterfaceMetricsSection({ devices = [] }: { devices?: any[] }) {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {/* 卡片 1: 总体上行吞吐量 (当前) */}
         <div className="bg-[#0d1225] border border-slate-800 rounded-lg p-3.5 flex flex-col justify-between hover:border-blue-500/30 transition-all shadow-md group">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium mb-2">
+          <div className="flex items-center justify-between text-text-secondary text-xs font-medium mb-2">
             <span className="truncate">总体上行吞吐量 (当前)</span>
             <span title="当前实时上行传输速率">
-              <Info className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-400 cursor-help" />
+              <Info className="w-3.5 h-3.5 text-text-tertiary group-hover:text-blue-400 cursor-help" />
             </span>
           </div>
           <div className="my-1 flex items-baseline gap-1">
@@ -1970,7 +1970,7 @@ function TopInterfaceMetricsSection({ devices = [] }: { devices?: any[] }) {
               <span>{Math.abs(inMbpsTrend)}%</span>
             </div>
           ) : (
-            <div className="text-[11px] text-slate-500 mt-0.5">
+            <div className="text-[11px] text-text-tertiary mt-0.5">
               <span>0.00%</span>
             </div>
           )}
@@ -1978,10 +1978,10 @@ function TopInterfaceMetricsSection({ devices = [] }: { devices?: any[] }) {
 
         {/* 卡片 2: 总体下行吞吐量 (当前) */}
         <div className="bg-[#0d1225] border border-slate-800 rounded-lg p-3.5 flex flex-col justify-between hover:border-blue-500/30 transition-all shadow-md group">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium mb-2">
+          <div className="flex items-center justify-between text-text-secondary text-xs font-medium mb-2">
             <span className="truncate">总体下行吞吐量 (当前)</span>
             <span title="当前实时下行传输速率">
-              <Info className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-400 cursor-help" />
+              <Info className="w-3.5 h-3.5 text-text-tertiary group-hover:text-blue-400 cursor-help" />
             </span>
           </div>
           <div className="my-1 flex items-baseline gap-1">
@@ -1996,7 +1996,7 @@ function TopInterfaceMetricsSection({ devices = [] }: { devices?: any[] }) {
               <span>{Math.abs(outMbpsTrend)}%</span>
             </div>
           ) : (
-            <div className="text-[11px] text-slate-500 mt-0.5">
+            <div className="text-[11px] text-text-tertiary mt-0.5">
               <span>0.00%</span>
             </div>
           )}
@@ -2004,10 +2004,10 @@ function TopInterfaceMetricsSection({ devices = [] }: { devices?: any[] }) {
 
         {/* 卡片 3: 上行总流量 */}
         <div className="bg-[#0d1225] border border-slate-800 rounded-lg p-3.5 flex flex-col justify-between hover:border-blue-500/30 transition-all shadow-md group">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium mb-2">
+          <div className="flex items-center justify-between text-text-secondary text-xs font-medium mb-2">
             <span className="truncate">上行总流量</span>
             <span title="选定设备累计发送数据总量">
-              <Info className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-400 cursor-help" />
+              <Info className="w-3.5 h-3.5 text-text-tertiary group-hover:text-blue-400 cursor-help" />
             </span>
           </div>
           <div className="my-1 flex items-baseline gap-1">
@@ -2021,10 +2021,10 @@ function TopInterfaceMetricsSection({ devices = [] }: { devices?: any[] }) {
 
         {/* 卡片 4: 下行总流量 */}
         <div className="bg-[#0d1225] border border-slate-800 rounded-lg p-3.5 flex flex-col justify-between hover:border-blue-500/30 transition-all shadow-md group">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium mb-2">
+          <div className="flex items-center justify-between text-text-secondary text-xs font-medium mb-2">
             <span className="truncate">下行总流量</span>
             <span title="选定设备累计接收数据总量">
-              <Info className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-400 cursor-help" />
+              <Info className="w-3.5 h-3.5 text-text-tertiary group-hover:text-blue-400 cursor-help" />
             </span>
           </div>
           <div className="my-1 flex items-baseline gap-1">
@@ -2038,10 +2038,10 @@ function TopInterfaceMetricsSection({ devices = [] }: { devices?: any[] }) {
 
         {/* 卡片 5: 当前设备丢包率 */}
         <div className="bg-[#0d1225] border border-slate-800 rounded-lg p-3.5 flex flex-col justify-between hover:border-blue-500/30 transition-all shadow-md group">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium mb-2">
+          <div className="flex items-center justify-between text-text-secondary text-xs font-medium mb-2">
             <span className="truncate">当前设备丢包率</span>
             <span title="数据包丢失比例">
-              <Info className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-400 cursor-help" />
+              <Info className="w-3.5 h-3.5 text-text-tertiary group-hover:text-blue-400 cursor-help" />
             </span>
           </div>
           <div className="my-1 flex items-baseline gap-1">
@@ -2054,10 +2054,10 @@ function TopInterfaceMetricsSection({ devices = [] }: { devices?: any[] }) {
 
         {/* 卡片 6: 当前设备错包率 */}
         <div className="bg-[#0d1225] border border-slate-800 rounded-lg p-3.5 flex flex-col justify-between hover:border-blue-500/30 transition-all shadow-md group">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium mb-2">
+          <div className="flex items-center justify-between text-text-secondary text-xs font-medium mb-2">
             <span className="truncate">当前设备错包率</span>
             <span title="数据包校验错误比例">
-              <Info className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-400 cursor-help" />
+              <Info className="w-3.5 h-3.5 text-text-tertiary group-hover:text-blue-400 cursor-help" />
             </span>
           </div>
           <div className="my-1 flex items-baseline gap-1">
@@ -2085,11 +2085,11 @@ function WaterfallMeteorTopTrafficPanel({ topDevices = [] }: { topDevices?: any[
   if (!topDevices || topDevices.length === 0) {
     return (
       <div className="bg-[#111836] rounded-xl border border-blue-500/10 p-4">
-        <h3 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-medium text-text-secondary mb-3 flex items-center gap-2">
           <Zap className="w-4 h-4 text-amber-400" />
           Top 流量设备
         </h3>
-        <div className="flex items-center justify-center h-40 text-slate-500 text-sm">暂无数据</div>
+        <div className="flex items-center justify-center h-40 text-text-tertiary text-sm">暂无数据</div>
       </div>
     );
   }
@@ -2098,14 +2098,14 @@ function WaterfallMeteorTopTrafficPanel({ topDevices = [] }: { topDevices?: any[
     <div className="bg-[#111836] rounded-xl border border-blue-500/15 p-4 flex flex-col justify-between shadow-xl relative overflow-hidden">
       {/* 头部标题 */}
       <div className="flex items-center justify-between mb-3.5">
-        <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+        <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
           <Zap className="w-4 h-4 text-amber-400 animate-pulse" />
           Top 流量设备
           <span className="text-[10px] font-semibold text-cyan-400 px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20">
             瀑布流星极速带
           </span>
         </h3>
-        <span className="text-xs text-slate-400 font-mono">TOP {topDevices.length}</span>
+        <span className="text-xs text-text-secondary font-mono">TOP {topDevices.length}</span>
       </div>
 
       {/* 瀑布型流星雨设备列表 */}
@@ -2124,7 +2124,7 @@ function WaterfallMeteorTopTrafficPanel({ topDevices = [] }: { topDevices?: any[
 
           const rankStyle = rankColors[idx] || {
             border: 'border-blue-500/20',
-            badge: 'bg-slate-800 text-slate-400',
+            badge: 'bg-slate-800 text-text-secondary',
             gradient: 'from-blue-600 to-blue-400',
             meteor: 'bg-blue-300 shadow-[0_0_6px_#60a5fa]',
           };
@@ -2136,10 +2136,10 @@ function WaterfallMeteorTopTrafficPanel({ topDevices = [] }: { topDevices?: any[
                   <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] font-black font-mono border ${rankStyle.badge} ${rankStyle.border}`}>
                     {idx + 1}
                   </span>
-                  <span className="font-bold text-slate-200 truncate max-w-[130px]" title={d.device_name || d.device_id}>
+                  <span className="font-bold text-text-primary truncate max-w-[130px]" title={d.device_name || d.device_id}>
                     {d.device_name || d.device_id}
                   </span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded text-slate-400 bg-slate-800/80 border border-slate-700/50">
+                  <span className="text-[10px] px-1.5 py-0.2 rounded text-text-secondary bg-slate-800/80 border border-slate-700/50">
                     {VENDOR_LABELS[(d.vendor || '').toLowerCase()] || d.vendor || '网络'}
                   </span>
                 </div>

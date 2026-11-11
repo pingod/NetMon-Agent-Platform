@@ -300,7 +300,7 @@ export const DeviceLibraryPanel: React.FC<DeviceLibraryPanelProps> = ({
                       <GripVertical className="w-3.5 h-3.5 text-text-tertiary group-hover:text-primary flex-shrink-0" />
 
                       {/* 设备缩略图：统一深色面板边框，图片内缩显示 */}
-                      <div className="w-12 h-6 rounded-md bg-[#0b1220] border border-[#243149] flex items-center justify-center relative overflow-hidden flex-shrink-0 shadow-inner">
+                      <div className="w-12 h-6 rounded-md bg-surface border border-border flex items-center justify-center relative overflow-hidden flex-shrink-0 shadow-inner">
                         {tpl.frontImage ? (
                           <img
                             src={tpl.frontImage}
@@ -308,7 +308,7 @@ export const DeviceLibraryPanel: React.FC<DeviceLibraryPanelProps> = ({
                             className="w-full h-full object-contain p-0.5"
                           />
                         ) : (
-                          <div className={`flex items-center gap-0.5 ${isFirewall ? 'text-red-400' : isPatch ? 'text-slate-400' : 'text-purple-400'}`}>
+                          <div className={`flex items-center gap-0.5 ${isFirewall ? 'text-red-600' : isPatch ? 'text-text-secondary' : 'text-purple-600'}`}>
                             <span className="w-1 h-1 rounded-full bg-current" />
                             <span className="w-3 h-0.5 bg-current opacity-60" />
                           </div>

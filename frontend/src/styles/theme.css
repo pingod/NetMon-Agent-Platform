@@ -2,6 +2,8 @@
    NetMon 设计系统 —— 统一视觉语言
    目标：克制的暗色玻璃质感 + 清晰的层级 + 一致的间距/圆角/描边
    说明：所有变量按 data-theme 切换，组件类只依赖变量，页面无需逐个改色
+   注意：.btn / .input-base 基础类在 index.css 的 @layer components 中定义，
+        以便 Tailwind 工具类(h-/pl- 等)能覆盖默认尺寸；本文件只保留变体。
    ========================================================================== */
 
 :root {
@@ -242,28 +244,7 @@ body {
 }
 
 /* ---------- 按钮 ---------- */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  height: 36px;
-  padding: 0 14px;
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  font-weight: 550;
-  line-height: 1;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.18s ease;
-  white-space: nowrap;
-}
-
-.btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
+/* .btn 基础类见 index.css @layer components（此处仅保留变体） */
 .btn-primary,
 .btn-primary:focus {
   color: #fff;
@@ -309,28 +290,7 @@ body {
 }
 
 /* ---------- 表单 ---------- */
-.input-base {
-  width: 100%;
-  height: 36px;
-  padding: 0 12px;
-  color: var(--text-1);
-  background: var(--surface-2);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  outline: none;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-}
-
-.input-base::placeholder {
-  color: var(--text-3);
-}
-
-.input-base:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-soft);
-  background: var(--surface-1);
-}
+/* .input-base 基础类见 index.css @layer components */
 
 /* ---------- 徽标 ---------- */
 .badge {
@@ -790,6 +750,10 @@ body {
 .viz-dark {
   color-scheme: dark;
   color: #eef2fa;
+  /* 文字令牌在深色区域内必须解析为浅色，否则浅主题默认值会深底深字 */
+  --color-text-primary: #eef2fa;
+  --color-text-secondary: #94a3b8;
+  --color-text-tertiary: #64748b;
 }
 
 .viz-dark .text-slate-300 { color: #cbd5e1 !important; }

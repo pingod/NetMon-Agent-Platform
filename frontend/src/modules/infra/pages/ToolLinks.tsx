@@ -298,7 +298,7 @@ export default function ToolLinks() {
                 return (
                   <div key={category}>
                     <div className="flex items-center gap-3 mb-4">
-                      <div className="px-3 py-1 rounded-full text-xs font-semibold border bg-slate-800 border-slate-600 text-slate-300">{category}</div>
+                      <div className="px-3 py-1 rounded-full text-xs font-semibold border bg-surface-2 border-border text-text-secondary">{category}</div>
                       <div className="flex-1 h-px bg-border/50" />
                       <span className="text-xs text-text-tertiary">{tools.length} 个工具</span>
                     </div>
@@ -311,7 +311,7 @@ export default function ToolLinks() {
                           <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-primary/0 to-primary/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                           <div className="relative p-4">
                             <div className="flex items-start gap-3">
-                              <div className="flex items-center justify-center w-10 h-10 rounded-xl shrink-0 overflow-hidden border bg-slate-800/80 border-slate-700/30 group-hover:border-primary/30 transition-all">
+                              <div className="flex items-center justify-center w-10 h-10 rounded-xl shrink-0 overflow-hidden border bg-surface-2 border-border group-hover:border-primary/30 transition-all">
                                 {tool.image_icon ? (
                                   <img src={tool.image_icon} alt={tool.name} className="w-full h-full object-contain p-1" />
                                 ) : (
@@ -329,10 +329,10 @@ export default function ToolLinks() {
                               <button onClick={() => handleOpen(tool.url)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
                                 <ExternalLink className="w-3 h-3" />打开
                               </button>
-                              <button onClick={(e) => { e.stopPropagation(); handleEdit(tool); }} className="p-1.5 rounded-lg text-text-tertiary hover:text-blue-400 hover:bg-blue-500/10 transition-colors" title="编辑">
+                              <button onClick={(e) => { e.stopPropagation(); handleEdit(tool); }} className="p-1.5 rounded-lg text-text-tertiary hover:text-blue-600 hover:bg-blue-500/10 transition-colors" title="编辑">
                                 <Edit className="w-3.5 h-3.5" />
                               </button>
-                              <button onClick={(e) => handleCopyUrl(e, tool.url)} className="ml-auto p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-slate-700/30 transition-colors" title={t('toolLinks.copyLink')}>
+                              <button onClick={(e) => handleCopyUrl(e, tool.url)} className="ml-auto p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface-hover transition-colors" title={t('toolLinks.copyLink')}>
                                 <Copy className="w-3 h-3" />
                               </button>
                             </div>
@@ -352,7 +352,7 @@ export default function ToolLinks() {
           <div className="bg-surface border border-border rounded-xl overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border bg-slate-800/30">
+                <tr className="border-b border-border bg-background">
                   <th className="text-left px-4 py-3 text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">排序</th>
                   <th className="text-left px-4 py-3 text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">名称</th>
                   <th className="text-left px-4 py-3 text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">URL</th>
@@ -367,7 +367,7 @@ export default function ToolLinks() {
                   </td></tr>
                 ) : (
                   filteredAllTools.map((tool, index) => (
-                    <tr key={tool.id} className="border-b border-border/50 hover:bg-slate-800/20 transition-colors">
+                    <tr key={tool.id} className="border-b border-border/50 hover:bg-surface-hover transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
                           <span className="text-xs text-text-tertiary w-5">{tool.sort_order}</span>
@@ -377,12 +377,12 @@ export default function ToolLinks() {
                       </td>
                       <td className="px-4 py-3"><span className="text-sm font-medium text-text-primary">{tool.name}</span></td>
                       <td className="px-4 py-3"><span className="text-xs text-text-tertiary truncate max-w-[200px] block">{tool.url}</span></td>
-                      <td className="px-4 py-3"><span className="text-xs px-2 py-0.5 rounded-full bg-slate-700/50 text-text-primary">{tool.category}</span></td>
+                      <td className="px-4 py-3"><span className="text-xs px-2 py-0.5 rounded-full bg-surface-2 text-text-primary">{tool.category}</span></td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <a href={tool.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-text-tertiary hover:text-primary hover:bg-primary/10 transition-colors"><ExternalLink className="w-4 h-4" /></a>
-                          <button onClick={() => handleEdit(tool)} className="p-1.5 rounded-lg text-text-tertiary hover:text-blue-400 hover:bg-blue-500/10 transition-colors"><Edit className="w-4 h-4" /></button>
-                          <button onClick={() => setDeleteConfirm(tool)} className="p-1.5 rounded-lg text-text-tertiary hover:text-red-400 hover:bg-red-500/10 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                          <button onClick={() => handleEdit(tool)} className="p-1.5 rounded-lg text-text-tertiary hover:text-blue-600 hover:bg-blue-500/10 transition-colors"><Edit className="w-4 h-4" /></button>
+                          <button onClick={() => setDeleteConfirm(tool)} className="p-1.5 rounded-lg text-text-tertiary hover:text-red-600 hover:bg-red-500/10 transition-colors"><Trash2 className="w-4 h-4" /></button>
                         </div>
                       </td>
                     </tr>
@@ -418,8 +418,8 @@ export default function ToolLinks() {
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-2">图标</label>
                 <div className="flex gap-1 mb-3">
-                  <button type="button" onClick={() => setIconMode('lucide')} className={clsx('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium', iconMode === 'lucide' ? 'bg-primary/20 text-primary border border-primary/30' : 'text-text-tertiary hover:text-text-primary hover:bg-slate-700/30')}>Lucide 图标</button>
-                  <button type="button" onClick={() => { setIconMode('upload'); setShowIconPicker(false); }} className={clsx('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium', iconMode === 'upload' ? 'bg-primary/20 text-primary border border-primary/30' : 'text-text-tertiary hover:text-text-primary hover:bg-slate-700/30')}>上传图片</button>
+                  <button type="button" onClick={() => setIconMode('lucide')} className={clsx('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium', iconMode === 'lucide' ? 'bg-primary/20 text-primary border border-primary/30' : 'text-text-tertiary hover:text-text-primary hover:bg-surface-hover')}>Lucide 图标</button>
+                  <button type="button" onClick={() => { setIconMode('upload'); setShowIconPicker(false); }} className={clsx('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium', iconMode === 'upload' ? 'bg-primary/20 text-primary border border-primary/30' : 'text-text-tertiary hover:text-text-primary hover:bg-surface-hover')}>上传图片</button>
                 </div>
                 {iconMode === 'lucide' ? (
                   <div className="relative">
@@ -427,7 +427,7 @@ export default function ToolLinks() {
                     {showIconPicker && (
                       <div className="absolute top-full left-0 mt-1 w-72 max-h-48 overflow-y-auto bg-surface border border-border rounded-lg shadow-xl z-10 p-2 grid grid-cols-6 gap-1">
                         {ICON_OPTIONS.map(icon => (
-                          <button key={icon} type="button" onClick={() => { setFormData({ ...formData, icon }); setShowIconPicker(false); }} className={clsx('p-2 rounded-lg text-xs flex flex-col items-center gap-1', formData.icon === icon ? 'bg-primary/20 text-primary border border-primary/30' : 'text-text-tertiary hover:bg-slate-700/30 hover:text-text-primary')}><Cog className="w-4 h-4" /><span className="truncate w-full text-center text-[9px]">{icon}</span></button>
+                          <button key={icon} type="button" onClick={() => { setFormData({ ...formData, icon }); setShowIconPicker(false); }} className={clsx('p-2 rounded-lg text-xs flex flex-col items-center gap-1', formData.icon === icon ? 'bg-primary/20 text-primary border border-primary/30' : 'text-text-tertiary hover:bg-surface-hover hover:text-text-primary')}><Cog className="w-4 h-4" /><span className="truncate w-full text-center text-[9px]">{icon}</span></button>
                         ))}
                       </div>
                     )}
@@ -443,7 +443,7 @@ export default function ToolLinks() {
                       )}
                     </div>
                     {selectedTool?.image_icon && (
-                      <button type="button" onClick={() => deleteIconMutation.mutate(selectedTool.id)} className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 mt-2"><XCircle className="w-3 h-3" />移除图标</button>
+                      <button type="button" onClick={() => deleteIconMutation.mutate(selectedTool.id)} className="text-xs text-red-600 hover:text-red-700 flex items-center gap-1 mt-2"><XCircle className="w-3 h-3" />移除图标</button>
                     )}
                     {!selectedTool && <p className="text-xs text-text-tertiary mt-1">先创建工具，再编辑上传图标</p>}
                   </div>
@@ -488,7 +488,7 @@ export default function ToolLinks() {
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-surface rounded-xl p-6 w-full max-w-md mx-4">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-red-400" /></div>
+              <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
               <h3 className="text-lg font-bold text-text-primary">确认删除</h3>
             </div>
             <p className="text-sm text-text-secondary mb-2">确定要删除此工具链接吗？此操作不可撤销。</p>

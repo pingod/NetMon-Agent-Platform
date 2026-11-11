@@ -170,28 +170,28 @@ export const MountDeviceModal: React.FC<MountDeviceModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-lg shadow-2xl relative select-none">
+      <div className="bg-surface border border-border rounded-2xl p-6 w-full max-w-lg shadow-2xl relative select-none">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+          className="absolute top-4 right-4 text-text-secondary hover:text-text-primary p-1 rounded-lg hover:bg-surface-hover transition"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-          <Server className="w-5 h-5 text-purple-400" />
+        <h3 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
+          <Server className="w-5 h-5 text-purple-600" />
           <span>上架设备至机柜 {rackName} (U{startU})</span>
         </h3>
 
         {/* 来源切换 */}
-        <div className="flex p-1 bg-slate-950 rounded-lg border border-slate-800 mb-4 text-xs font-medium">
+        <div className="flex p-1 bg-background rounded-lg border border-border mb-4 text-xs font-medium">
           <button
             type="button"
             onClick={() => setSourceType('template')}
             className={`flex-1 py-1.5 rounded-md transition ${
               sourceType === 'template'
                 ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white font-bold shadow-md shadow-purple-500/25'
-                : 'text-slate-400 hover:text-white'
+                : 'text-text-secondary hover:text-text-primary'
             }`}
           >
             从设备库模板
@@ -202,7 +202,7 @@ export const MountDeviceModal: React.FC<MountDeviceModalProps> = ({
             className={`flex-1 py-1.5 rounded-md transition ${
               sourceType === 'managed'
                 ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white font-bold shadow-md shadow-purple-500/25'
-                : 'text-slate-400 hover:text-white'
+                : 'text-text-secondary hover:text-text-primary'
             }`}
           >
             已纳管资产
@@ -213,7 +213,7 @@ export const MountDeviceModal: React.FC<MountDeviceModalProps> = ({
             className={`flex-1 py-1.5 rounded-md transition ${
               sourceType === 'custom'
                 ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white font-bold shadow-md shadow-purple-500/25'
-                : 'text-slate-400 hover:text-white'
+                : 'text-text-secondary hover:text-text-primary'
             }`}
           >
             直接输入
@@ -223,11 +223,11 @@ export const MountDeviceModal: React.FC<MountDeviceModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           {sourceType === 'template' && (
             <div>
-              <label className="block text-slate-300 font-medium mb-1">选择设备模板</label>
+              <label className="block text-text-secondary font-medium mb-1">选择设备模板</label>
               <select
                 value={selectedTemplateId}
                 onChange={e => handleTemplateChange(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:border-purple-500 focus:outline-none"
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text-primary focus:border-purple-500 focus:outline-none"
               >
                 {templates.map(t => (
                   <option key={t.id} value={t.id}>
@@ -240,16 +240,16 @@ export const MountDeviceModal: React.FC<MountDeviceModalProps> = ({
 
           {sourceType === 'managed' && (
             <div>
-              <label className="block text-slate-300 font-medium mb-1">选择未上架纳管资产</label>
+              <label className="block text-text-secondary font-medium mb-1">选择未上架纳管资产</label>
               {unallocatedDevices.length === 0 ? (
-                <div className="p-3 bg-slate-950 rounded border border-slate-800 text-slate-500 text-center">
+                <div className="p-3 bg-background rounded border border-border text-text-tertiary text-center">
                   暂无未上架的服务器或网络设备
                 </div>
               ) : (
                 <select
                   value={selectedManagedId}
                   onChange={e => handleManagedChange(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:border-purple-500 focus:outline-none"
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text-primary focus:border-purple-500 focus:outline-none"
                 >
                   <option value="">-- 请选择设备 --</option>
                   {unallocatedDevices.map(d => (
@@ -264,26 +264,26 @@ export const MountDeviceModal: React.FC<MountDeviceModalProps> = ({
 
           {sourceType === 'custom' && (
             <div>
-              <label className="block text-slate-300 font-medium mb-1">设备名称 *</label>
+              <label className="block text-text-secondary font-medium mb-1">设备名称 *</label>
               <input
                 type="text"
                 required
                 value={customDeviceName}
                 onChange={e => setCustomDeviceName(e.target.value)}
                 placeholder="如: 临时测试交换机 / 防火墙"
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:border-purple-500 focus:outline-none"
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text-primary focus:border-purple-500 focus:outline-none"
               />
             </div>
           )}
 
           {/* 重点：U 高度快捷选择器与区间设定 */}
-          <div className="p-3.5 bg-slate-950/80 border border-slate-800 rounded-xl space-y-3">
+          <div className="p-3.5 bg-background border border-border rounded-xl space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-slate-200 font-semibold flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-purple-400" />
+              <span className="text-text-primary font-semibold flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-purple-600" />
                 <span>设备占用高度 (U数选择)</span>
               </span>
-              <span className="text-[11px] font-mono text-purple-400 font-bold bg-purple-950/60 border border-purple-800/60 px-2 py-0.5 rounded-full">
+              <span className="text-[11px] font-mono text-purple-600 font-bold bg-purple-500/10 border border-purple-500/30 px-2 py-0.5 rounded-full">
                 当前: {uHeight} U
               </span>
             </div>
@@ -300,7 +300,7 @@ export const MountDeviceModal: React.FC<MountDeviceModalProps> = ({
                     className={`px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition-all flex items-center gap-1 ${
                       isActive
                         ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30 scale-105 border border-purple-400'
-                        : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200 hover:bg-slate-800'
+                        : 'bg-surface text-text-secondary border border-border hover:text-text-primary hover:bg-surface-hover'
                     }`}
                   >
                     <span>{u}U</span>
@@ -313,24 +313,24 @@ export const MountDeviceModal: React.FC<MountDeviceModalProps> = ({
             {/* 起始 U 位、占用高度微调与终止 U 位 */}
             <div className="grid grid-cols-3 gap-2.5 pt-1">
               <div>
-                <label className="block text-[11px] text-slate-400 mb-1">起始 U 位</label>
+                <label className="block text-[11px] text-text-secondary mb-1">起始 U 位</label>
                 <input
                   type="number"
                   min={1}
                   max={maxU}
                   value={startU}
                   onChange={e => handleStartUChange(parseInt(e.target.value, 10) || 1)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-100 font-mono text-xs focus:border-purple-500 focus:outline-none"
+                  className="w-full bg-surface border border-border rounded-lg px-2.5 py-1.5 text-text-primary font-mono text-xs focus:border-purple-500 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] text-slate-400 mb-1">占用高度 (U)</label>
+                <label className="block text-[11px] text-text-secondary mb-1">占用高度 (U)</label>
                 <div className="flex items-center">
                   <button
                     type="button"
                     onClick={() => handleUHeightChange(uHeight - 1)}
-                    className="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-l-lg border border-r-0 border-slate-700"
+                    className="px-2 py-1.5 bg-surface-2 hover:bg-surface-hover text-text-secondary rounded-l-lg border border-r-0 border-border"
                   >
                     -
                   </button>
@@ -340,12 +340,12 @@ export const MountDeviceModal: React.FC<MountDeviceModalProps> = ({
                     max={maxU - startU + 1}
                     value={uHeight}
                     onChange={e => handleUHeightChange(parseInt(e.target.value, 10) || 1)}
-                    className="w-full bg-slate-900 border border-slate-700 text-center py-1.5 text-slate-100 font-mono text-xs focus:border-purple-500 focus:outline-none"
+                    className="w-full bg-surface border border-border text-center py-1.5 text-text-primary font-mono text-xs focus:border-purple-500 focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => handleUHeightChange(uHeight + 1)}
-                    className="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-r-lg border border-l-0 border-slate-700"
+                    className="px-2 py-1.5 bg-surface-2 hover:bg-surface-hover text-text-secondary rounded-r-lg border border-l-0 border-border"
                   >
                     +
                   </button>
@@ -353,30 +353,30 @@ export const MountDeviceModal: React.FC<MountDeviceModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-[11px] text-slate-400 mb-1">结束 U 位</label>
+                <label className="block text-[11px] text-text-secondary mb-1">结束 U 位</label>
                 <input
                   type="number"
                   min={startU}
                   max={maxU}
                   value={endU}
                   onChange={e => handleEndUChange(parseInt(e.target.value, 10) || startU)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-purple-300 font-mono font-bold text-xs focus:border-purple-500 focus:outline-none"
+                  className="w-full bg-surface border border-border rounded-lg px-2.5 py-1.5 text-purple-600 font-mono font-bold text-xs focus:border-purple-500 focus:outline-none"
                 />
               </div>
             </div>
 
             {/* 机架占用区间横幅 */}
-            <div className="px-3 py-2 bg-purple-950/40 border border-purple-800/40 rounded-lg flex items-center justify-between">
-              <span className="text-slate-400 text-[11px]">将在机柜占据机位：</span>
-              <span className="font-mono text-xs font-bold text-purple-300">
-                U{startU} ~ U{endU} <span className="text-[10px] text-purple-400 font-normal">（共 {uHeight} 个U位）</span>
+            <div className="px-3 py-2 bg-purple-500/10 border border-purple-500/30 rounded-lg flex items-center justify-between">
+              <span className="text-text-secondary text-[11px]">将在机柜占据机位：</span>
+              <span className="font-mono text-xs font-bold text-purple-600">
+                U{startU} ~ U{endU} <span className="text-[10px] text-purple-600 font-normal">（共 {uHeight} 个U位）</span>
               </span>
             </div>
 
             {/* 冲突提示 */}
             {conflictDevice && (
-              <div className="p-2 bg-amber-950/60 border border-amber-800/80 rounded-lg text-amber-300 text-[11px] flex items-center gap-1.5">
-                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 text-amber-400" />
+              <div className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-600 text-[11px] flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 text-amber-600" />
                 <span>
                   提示: U{conflictDevice.startU}~U{conflictDevice.endU} 已存在「{conflictDevice.deviceName || '已上架设备'}」，上架将占用该区间。
                 </span>
@@ -387,33 +387,33 @@ export const MountDeviceModal: React.FC<MountDeviceModalProps> = ({
           {/* 朝向与备注 */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-300 font-medium mb-1">安装朝向</label>
+              <label className="block text-text-secondary font-medium mb-1">安装朝向</label>
               <select
                 value={positionFace}
                 onChange={e => setPositionFace(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:border-purple-500 focus:outline-none"
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text-primary focus:border-purple-500 focus:outline-none"
               >
                 <option value="front">正面安装 (Front)</option>
                 <option value="rear">背面安装 (Rear)</option>
               </select>
             </div>
             <div>
-              <label className="block text-slate-300 font-medium mb-1">备注信息</label>
+              <label className="block text-text-secondary font-medium mb-1">备注信息</label>
               <input
                 type="text"
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 placeholder="可选备注说明"
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:border-purple-500 focus:outline-none"
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text-primary focus:border-purple-500 focus:outline-none"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
+              className="px-4 py-2 bg-surface-2 hover:bg-surface-hover text-text-secondary rounded-lg transition"
             >
               取消
             </button>

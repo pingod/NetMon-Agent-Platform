@@ -95,14 +95,14 @@ export default function AlertDetailModal({
       case 'critical':
         return {
           label: 'P1 紧急 (Critical)',
-          bg: 'bg-rose-500/15 border-rose-500/30 text-rose-400',
+          bg: 'bg-rose-500/15 border-rose-500/30 text-rose-600',
           icon: AlertCircle,
         };
       case 'high':
       case 'warning':
         return {
           label: 'P2 警告 (Warning)',
-          bg: 'bg-amber-500/15 border-amber-500/30 text-amber-400',
+          bg: 'bg-amber-500/15 border-amber-500/30 text-amber-600',
           icon: AlertTriangle,
         };
       case 'medium':
@@ -111,7 +111,7 @@ export default function AlertDetailModal({
       default:
         return {
           label: 'P3 提醒 (Info)',
-          bg: 'bg-blue-500/15 border-blue-500/30 text-blue-400',
+          bg: 'bg-blue-500/15 border-blue-500/30 text-blue-600',
           icon: Info,
         };
     }
@@ -134,15 +134,15 @@ export default function AlertDetailModal({
 
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
                 alert.status === 'resolved'
-                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                  ? 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30'
                   : alert.status === 'acknowledged'
-                  ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                  : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+                  ? 'bg-amber-500/15 text-amber-600 border-amber-500/30'
+                  : 'bg-rose-500/15 text-rose-600 border-rose-500/30'
               }`}>
                 {alert.status === 'resolved' ? '已解决' : alert.status === 'acknowledged' ? '已确认' : '触发中 (Firing)'}
               </span>
 
-              <span className="px-2 py-0.5 rounded bg-surface-secondary text-text-secondary text-xs font-mono border border-border">
+              <span className="px-2 py-0.5 rounded bg-surface-2 text-text-secondary text-xs font-mono border border-border">
                 来源: {alert.source || 'promql_alert'}
               </span>
             </div>
@@ -162,7 +162,7 @@ export default function AlertDetailModal({
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-surface-secondary text-text-secondary hover:text-text-primary transition-colors"
+            className="p-1.5 rounded-lg hover:bg-surface-2 text-text-secondary hover:text-text-primary transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -229,14 +229,14 @@ export default function AlertDetailModal({
 
         {/* 2. 🖥️ 关联设备与位置信息 */}
         {(deviceName || deviceIp || vendor || deviceId) && (
-          <div className="bg-surface-secondary/40 border border-border rounded-xl p-4 space-y-2.5">
+          <div className="bg-surface-2/40 border border-border rounded-xl p-4 space-y-2.5">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
                 <Server className="w-4 h-4" /> 关联设备与资产信息
               </h3>
               <button
                 onClick={() => navigate('/network-devices')}
-                className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+                className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors"
               >
                 前往网络设备 <ExternalLink className="w-3 h-3" />
               </button>
@@ -272,8 +272,8 @@ export default function AlertDetailModal({
 
         {/* 3. 🏷️ 采集 Tag 标签全量维度 */}
         {tags && Object.keys(tags).length > 0 && (
-          <div className="bg-surface-secondary/40 border border-border rounded-xl p-4 space-y-2.5">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+          <div className="bg-surface-2/40 border border-border rounded-xl p-4 space-y-2.5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-600 flex items-center gap-1.5">
               <Tag className="w-4 h-4" /> 采集端 Tag 标签全量维度
             </h3>
 
@@ -283,8 +283,8 @@ export default function AlertDetailModal({
                   key={key}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface border border-border text-xs font-mono"
                 >
-                  <span className="text-purple-400 font-semibold">{key}:</span>
-                  <span className="text-emerald-400 font-medium">"{String(val)}"</span>
+                  <span className="text-purple-600 font-semibold">{key}:</span>
+                  <span className="text-emerald-600 font-medium">"{String(val)}"</span>
                 </div>
               ))}
             </div>
@@ -296,7 +296,7 @@ export default function AlertDetailModal({
           <h3 className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
             <Sliders className="w-3.5 h-3.5" /> 告警消息描述
           </h3>
-          <div className="p-3 bg-surface-secondary/60 rounded-xl border border-border text-sm text-text-primary leading-relaxed font-sans">
+          <div className="p-3 bg-surface-2/60 rounded-xl border border-border text-sm text-text-primary leading-relaxed font-sans">
             {sanitizeText(alert.content) || '无详细消息描述'}
           </div>
 
@@ -328,7 +328,7 @@ export default function AlertDetailModal({
                 onClose();
                 navigate(`/alert-auto-analysis?alertId=${alert.id}`);
               }}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg text-xs font-medium transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg text-xs font-medium transition-colors"
             >
               <Zap className="w-3.5 h-3.5" /> AI 根因分析
             </button>
@@ -338,7 +338,7 @@ export default function AlertDetailModal({
                 onClose();
                 navigate(`/remediation-executions?alertId=${alert.id}`);
               }}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border border-orange-500/30 rounded-lg text-xs font-medium transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-1.5 bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 border border-orange-500/30 rounded-lg text-xs font-medium transition-colors"
             >
               <Wrench className="w-3.5 h-3.5" /> 修复记录
             </button>
@@ -348,7 +348,7 @@ export default function AlertDetailModal({
                 onClose();
                 navigate(`/inspection-center?alertId=${alert.id}`);
               }}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg text-xs font-medium transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg text-xs font-medium transition-colors"
             >
               <Wifi className="w-3.5 h-3.5" /> 巡检结果
             </button>
@@ -362,7 +362,7 @@ export default function AlertDetailModal({
                   onAcknowledge(alert.id);
                   onClose();
                 }}
-                className="px-3.5 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-400 rounded-lg text-xs font-semibold transition-colors"
+                className="px-3.5 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-600 rounded-lg text-xs font-semibold transition-colors"
               >
                 确认告警
               </button>
@@ -382,7 +382,7 @@ export default function AlertDetailModal({
 
             <button
               onClick={onClose}
-              className="px-4 py-1.5 bg-surface-secondary border border-border text-text-secondary hover:text-text-primary rounded-lg text-xs font-medium transition-colors"
+              className="px-4 py-1.5 bg-surface-2 border border-border text-text-secondary hover:text-text-primary rounded-lg text-xs font-medium transition-colors"
             >
               关闭
             </button>

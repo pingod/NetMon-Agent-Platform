@@ -76,32 +76,32 @@ interface InspectionTemplate {
 }
 
 const vendorMeta: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  huawei: { label: '华为', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/30' },
-  inspur: { label: '浪潮', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
-  tongfang: { label: '清华同方', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
-  lenovo: { label: '联想', color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/30' },
-  dell: { label: '戴尔', color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/30' },
-  hpe: { label: '惠普/HPE', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
-  h3c: { label: '华三/H3C', color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/30' },
-  sugon: { label: '中科曙光', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
-  supermicro: { label: '超微', color: 'text-teal-400', bg: 'bg-teal-500/10', border: 'border-teal-500/30' },
-  zte: { label: '中兴', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
-  cisco: { label: '思科', color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/30' },
-  ruijie: { label: '锐捷', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
-  sangfor: { label: '深信服', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
-  maipu: { label: '迈普', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
-  fortinet: { label: '飞塔', color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/30' },
-  juniper: { label: '瞻博', color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'border-pink-500/30' },
-  paloalto: { label: 'PaloAlto', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30' },
-  other: { label: '通用/其他', color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/30' },
+  huawei: { label: '华为', color: 'text-red-600', bg: 'bg-red-500/10', border: 'border-red-500/30' },
+  inspur: { label: '浪潮', color: 'text-blue-600', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
+  tongfang: { label: '清华同方', color: 'text-purple-600', bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
+  lenovo: { label: '联想', color: 'text-rose-600', bg: 'bg-rose-500/10', border: 'border-rose-500/30' },
+  dell: { label: '戴尔', color: 'text-sky-600', bg: 'bg-sky-500/10', border: 'border-sky-500/30' },
+  hpe: { label: '惠普/HPE', color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
+  h3c: { label: '华三/H3C', color: 'text-cyan-600', bg: 'bg-cyan-500/10', border: 'border-cyan-500/30' },
+  sugon: { label: '中科曙光', color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
+  supermicro: { label: '超微', color: 'text-teal-600', bg: 'bg-teal-500/10', border: 'border-teal-500/30' },
+  zte: { label: '中兴', color: 'text-purple-600', bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
+  cisco: { label: '思科', color: 'text-sky-600', bg: 'bg-sky-500/10', border: 'border-sky-500/30' },
+  ruijie: { label: '锐捷', color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
+  sangfor: { label: '深信服', color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
+  maipu: { label: '迈普', color: 'text-blue-600', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
+  fortinet: { label: '飞塔', color: 'text-indigo-600', bg: 'bg-indigo-500/10', border: 'border-indigo-500/30' },
+  juniper: { label: '瞻博', color: 'text-pink-600', bg: 'bg-pink-500/10', border: 'border-pink-500/30' },
+  paloalto: { label: 'PaloAlto', color: 'text-orange-600', bg: 'bg-orange-500/10', border: 'border-orange-500/30' },
+  other: { label: '通用/其他', color: 'text-text-secondary', bg: 'bg-slate-500/10', border: 'border-slate-500/30' },
 };
 
 const groupColors: Record<string, { badge: string; text: string; dot: string }> = {
-  '硬件层': { badge: 'bg-rose-500/15 text-rose-400 border-rose-500/30', text: 'text-rose-400', dot: 'bg-rose-500' },
-  '系统层': { badge: 'bg-sky-500/15 text-sky-400 border-sky-500/30', text: 'text-sky-400', dot: 'bg-sky-500' },
-  '资源层': { badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', text: 'text-amber-400', dot: 'bg-amber-500' },
-  '安全层': { badge: 'bg-violet-500/15 text-violet-400 border-violet-500/30', text: 'text-violet-400', dot: 'bg-violet-500' },
-  '应用层': { badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', text: 'text-emerald-400', dot: 'bg-emerald-500' },
+  '硬件层': { badge: 'bg-rose-500/15 text-rose-600 border-rose-500/30', text: 'text-rose-600', dot: 'bg-rose-500' },
+  '系统层': { badge: 'bg-sky-500/15 text-sky-600 border-sky-500/30', text: 'text-sky-600', dot: 'bg-sky-500' },
+  '资源层': { badge: 'bg-amber-500/15 text-amber-600 border-amber-500/30', text: 'text-amber-600', dot: 'bg-amber-500' },
+  '安全层': { badge: 'bg-violet-500/15 text-violet-600 border-violet-500/30', text: 'text-violet-600', dot: 'bg-violet-500' },
+  '应用层': { badge: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30', text: 'text-emerald-600', dot: 'bg-emerald-500' },
 };
 
 export default function InspectionTemplates() {
@@ -310,12 +310,12 @@ export default function InspectionTemplates() {
     const order = ['硬件层', '系统层', '资源层', '安全层', '应用层'];
     return order.map(g => {
       const items = groups[g] || [];
-      const col = groupColors[g] || { text: 'text-slate-400', badge: 'bg-slate-800' };
+      const col = groupColors[g] || { text: 'text-text-secondary', badge: 'bg-surface-2' };
       return {
         key: g,
         label: (
           <div className="flex items-center justify-between w-full pr-4">
-            <span className="flex items-center gap-2 font-medium text-sm text-slate-200">
+            <span className="flex items-center gap-2 font-medium text-sm text-text-primary">
               <span className={`px-2 py-0.5 rounded text-xs border ${col.badge}`}>{g}</span>
               <span>{items.length} 项指令</span>
             </span>
@@ -339,7 +339,7 @@ export default function InspectionTemplates() {
               return (
                 <div
                   key={i}
-                  className="p-3 bg-slate-900/60 rounded-lg border border-slate-800 hover:border-slate-700 transition-all space-y-2"
+                  className="p-3 bg-surface rounded-lg border border-border hover:border-border transition-all space-y-2"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2 flex-1">
@@ -348,14 +348,14 @@ export default function InspectionTemplates() {
                         value={cmd.name}
                         onChange={e => updateCommand(globalIdx, 'name', e.target.value)}
                         placeholder="巡检项名称 (如: CPU使用率)"
-                        className="w-48 bg-slate-950/80 border-slate-700 text-slate-200"
+                        className="w-48 bg-background border-border text-text-primary"
                       />
                       <Input
                         size="small"
                         value={cmd.type}
                         onChange={e => updateCommand(globalIdx, 'type', e.target.value)}
                         placeholder="类型标识 (如: cpu)"
-                        className="w-32 bg-slate-950/80 border-slate-700 text-slate-300 font-mono text-xs"
+                        className="w-32 bg-background border-border text-text-secondary font-mono text-xs"
                       />
                       <Select
                         size="small"
@@ -392,14 +392,14 @@ export default function InspectionTemplates() {
                     value={cmd.description}
                     onChange={e => updateCommand(globalIdx, 'description', e.target.value)}
                     placeholder="巡检项目说明与判定标准 (如: 检查 CPU 综合利用率，正常应低于 80%)"
-                    className="bg-slate-950/50 border-slate-800 text-slate-400 text-xs"
+                    className="bg-background border-border text-text-secondary text-xs"
                   />
                 </div>
               );
             })}
           </div>
         ) : (
-          <div className="text-center py-4 text-xs text-slate-500">该层暂无指令，点击右上角「在该层新增」添加</div>
+          <div className="text-center py-4 text-xs text-text-tertiary">该层暂无指令，点击右上角「在该层新增」添加</div>
         ),
       };
     });
@@ -414,18 +414,18 @@ export default function InspectionTemplates() {
       render: (name: string, record: InspectionTemplate) => (
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-100">{name}</span>
+            <span className="font-semibold text-text-primary">{name}</span>
             {record.isPreset ? (
-              <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center gap-0.5">
+              <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/20 text-blue-600 border border-blue-500/30 flex items-center gap-0.5">
                 <Lock size={9} /> 预置
               </span>
             ) : (
-              <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center gap-0.5">
+              <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/20 text-purple-600 border border-purple-500/30 flex items-center gap-0.5">
                 <Sparkles size={9} /> 自定义
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-400 line-clamp-1">{record.description || '暂无说明'}</p>
+          <p className="text-xs text-text-secondary line-clamp-1">{record.description || '暂无说明'}</p>
         </div>
       ),
     },
@@ -435,7 +435,7 @@ export default function InspectionTemplates() {
       key: 'category',
       width: 100,
       render: (c: string) => (
-        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c === 'server' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'bg-sky-500/20 text-sky-400 border border-sky-500/30'}`}>
+        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${c === 'server' ? 'bg-indigo-500/20 text-indigo-600 border border-indigo-500/30' : 'bg-sky-500/20 text-sky-600 border border-sky-500/30'}`}>
           {c === 'server' ? '🖥️ 服务器' : '🌐 网络设备'}
         </span>
       ),
@@ -459,7 +459,7 @@ export default function InspectionTemplates() {
       key: 'cmdCount',
       width: 90,
       render: (_: unknown, r: InspectionTemplate) => (
-        <span className="font-semibold text-emerald-400 text-xs px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+        <span className="font-semibold text-emerald-600 text-xs px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
           {r.commands?.length || 0} 条
         </span>
       ),
@@ -469,7 +469,7 @@ export default function InspectionTemplates() {
       dataIndex: 'usageCount',
       key: 'usageCount',
       width: 90,
-      render: (c: number) => <span className="text-xs text-slate-400">{c || 0} 次</span>,
+      render: (c: number) => <span className="text-xs text-text-secondary">{c || 0} 次</span>,
     },
     {
       title: '标签',
@@ -479,7 +479,7 @@ export default function InspectionTemplates() {
       render: (tags: string[]) => (
         <div className="flex flex-wrap gap-1">
           {(tags || []).map(t => (
-            <span key={t} className="px-1.5 py-0.5 rounded text-[11px] bg-slate-800 text-slate-300 border border-slate-700">
+            <span key={t} className="px-1.5 py-0.5 rounded text-[11px] bg-surface-2 text-text-secondary border border-border">
               {t}
             </span>
           ))}
@@ -497,7 +497,7 @@ export default function InspectionTemplates() {
               type="text"
               size="small"
               aria-label="查看指令"
-              icon={<Eye size={14} className="text-sky-400" />}
+              icon={<Eye size={14} className="text-sky-600" />}
               onClick={() => setPreviewTemplate(record)}
             />
           </Tooltip>
@@ -506,7 +506,7 @@ export default function InspectionTemplates() {
               type="text"
               size="small"
               aria-label="克隆模版"
-              icon={<Copy size={14} className="text-purple-400" />}
+              icon={<Copy size={14} className="text-purple-600" />}
               onClick={() => handleClone(record.id)}
             />
           </Tooltip>
@@ -515,7 +515,7 @@ export default function InspectionTemplates() {
               type="text"
               size="small"
               aria-label="编辑"
-              icon={<Edit size={14} className="text-amber-400" />}
+              icon={<Edit size={14} className="text-amber-600" />}
               onClick={() => openEdit(record)}
             />
           </Tooltip>
@@ -524,7 +524,7 @@ export default function InspectionTemplates() {
               type="text"
               size="small"
               aria-label="导出 JSON"
-              icon={<Download size={14} className="text-emerald-400" />}
+              icon={<Download size={14} className="text-emerald-600" />}
               onClick={() => exportTemplateJSON(record)}
             />
           </Tooltip>
@@ -543,22 +543,22 @@ export default function InspectionTemplates() {
   return (
     <div className="p-6 space-y-6 max-w-[1600px] mx-auto min-h-screen">
       {/* 顶部页头与统计 */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800/80 p-6 shadow-2xl">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary-soft via-surface to-surface border border-border p-6 shadow-2xl">
         <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
           <div>
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 shadow-lg shadow-indigo-500/10">
+              <div className="p-2.5 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-600 shadow-lg shadow-indigo-500/10">
                 <Sliders className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+                <h1 className="text-xl md:text-2xl font-bold text-text-primary tracking-tight flex items-center gap-2">
                   模版管理中心
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 text-indigo-300 font-normal">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 text-indigo-600 font-normal">
                     同品牌设备联动巡检
                   </span>
                 </h1>
-                <p className="text-xs md:text-sm text-slate-400 mt-1">
+                <p className="text-xs md:text-sm text-text-secondary mt-1">
                   内置华为、中兴、思科、华三、锐捷、深信服、迈普等网络设备巡检模板及 SmartKit 服务器五层深度巡检规范，支持自定义配置与一键克隆
                 </p>
               </div>
@@ -567,35 +567,35 @@ export default function InspectionTemplates() {
 
           {/* 统计指标卡 */}
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 w-full md:w-auto">
-            <div className="px-3 py-2 rounded-xl bg-slate-800/60 border border-slate-700/60 text-center">
-              <div className="text-[11px] text-slate-400">总模版数</div>
-              <div className="text-lg font-bold text-white">{stats.total}</div>
+            <div className="px-3 py-2 rounded-xl bg-surface border border-border text-center">
+              <div className="text-[11px] text-text-secondary">总模版数</div>
+              <div className="text-lg font-bold text-text-primary">{stats.total}</div>
             </div>
             <div className="px-3 py-2 rounded-xl bg-sky-500/10 border border-sky-500/20 text-center">
-              <div className="text-[11px] text-sky-400">网络模版</div>
-              <div className="text-lg font-bold text-sky-300">{stats.networkCount}</div>
+              <div className="text-[11px] text-sky-600">网络模版</div>
+              <div className="text-lg font-bold text-sky-600">{stats.networkCount}</div>
             </div>
             <div className="px-3 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-center">
-              <div className="text-[11px] text-indigo-400">SmartKit/服务器</div>
-              <div className="text-lg font-bold text-indigo-300">{stats.serverCount}</div>
+              <div className="text-[11px] text-indigo-600">SmartKit/服务器</div>
+              <div className="text-lg font-bold text-indigo-600">{stats.serverCount}</div>
             </div>
             <div className="px-3 py-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-center">
-              <div className="text-[11px] text-purple-400">自定义模版</div>
-              <div className="text-lg font-bold text-purple-300">{stats.customCount}</div>
+              <div className="text-[11px] text-purple-600">自定义模版</div>
+              <div className="text-lg font-bold text-purple-600">{stats.customCount}</div>
             </div>
             <div className="px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-              <div className="text-[11px] text-emerald-400">已执行次数</div>
-              <div className="text-lg font-bold text-emerald-300">{stats.totalExecutions}</div>
+              <div className="text-[11px] text-emerald-600">已执行次数</div>
+              <div className="text-lg font-bold text-emerald-600">{stats.totalExecutions}</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* 筛选与操作工具栏 */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-slate-900/60 backdrop-blur-md p-4 rounded-xl border border-slate-800/80">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-surface backdrop-blur-md p-4 rounded-xl border border-border">
         {/* 左侧：分类 Tabs 与搜索 */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="inline-flex p-1 bg-slate-950/80 rounded-lg border border-slate-800">
+          <div className="inline-flex p-1 bg-background rounded-lg border border-border">
             {[
               { key: 'all', label: '全部模版', icon: Layers },
               { key: 'network', label: '网络设备', icon: Network },
@@ -607,7 +607,7 @@ export default function InspectionTemplates() {
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                   categoryFilter === tab.key
                     ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-md shadow-indigo-500/20'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
                 }`}
               >
                 <tab.icon size={13} />
@@ -640,8 +640,8 @@ export default function InspectionTemplates() {
 
           <Input
             placeholder="搜索模版名称、指令或描述..."
-            prefix={<Search size={14} className="text-slate-500 mr-1" />}
-            className="w-64 bg-slate-950/80 border-slate-700 text-slate-200"
+            prefix={<Search size={14} className="text-text-tertiary mr-1" />}
+            className="w-64 bg-background border-border text-text-primary"
             value={search}
             onChange={e => setSearch(e.target.value)}
             allowClear
@@ -650,29 +650,29 @@ export default function InspectionTemplates() {
 
         {/* 右侧：视图切换与创建/导入 */}
         <div className="flex items-center gap-2.5">
-          <div className="inline-flex p-1 bg-slate-950/80 rounded-lg border border-slate-800">
+          <div className="inline-flex p-1 bg-background rounded-lg border border-border">
             <button
               onClick={() => setViewMode('card')}
-              className={`p-1.5 rounded text-xs transition-colors ${viewMode === 'card' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-white'}`}
+              className={`p-1.5 rounded text-xs transition-colors ${viewMode === 'card' ? 'bg-surface text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}
               title="卡片网格视图"
             >
               <LayoutGrid size={14} />
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`p-1.5 rounded text-xs transition-colors ${viewMode === 'table' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-white'}`}
+              className={`p-1.5 rounded text-xs transition-colors ${viewMode === 'table' ? 'bg-surface text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}
               title="表格列表视图"
             >
               <ListIcon size={14} />
             </button>
           </div>
 
-          <Button icon={<RefreshCw size={13} />} onClick={fetchData} className="bg-slate-800 border-slate-700 text-slate-200">
+          <Button icon={<RefreshCw size={13} />} onClick={fetchData} className="bg-surface-2 border-border text-text-primary">
             刷新
           </Button>
 
           <Upload beforeUpload={handleImportJSON} showUploadList={false} accept=".json">
-            <Button icon={<UploadIcon size={13} />} className="bg-slate-800 border-slate-700 text-slate-200">
+            <Button icon={<UploadIcon size={13} />} className="bg-surface-2 border-border text-text-primary">
               导入
             </Button>
           </Upload>
@@ -703,7 +703,7 @@ export default function InspectionTemplates() {
             return (
               <div
                 key={tpl.id}
-                className="group bg-slate-900/70 backdrop-blur-md rounded-xl border border-slate-800 hover:border-indigo-500/40 transition-all duration-200 p-5 flex flex-col justify-between hover:shadow-xl hover:shadow-indigo-500/5 relative overflow-hidden"
+                className="group bg-surface backdrop-blur-md rounded-xl border border-border hover:border-indigo-500/40 transition-all duration-200 p-5 flex flex-col justify-between hover:shadow-xl hover:shadow-indigo-500/5 relative overflow-hidden"
               >
                 <div className="space-y-3">
                   {/* 厂商 & 类别头部 */}
@@ -713,15 +713,15 @@ export default function InspectionTemplates() {
                     </span>
 
                     <div className="flex items-center gap-1.5">
-                      <span className={`px-2 py-0.5 rounded text-[11px] ${tpl.category === 'server' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'bg-sky-500/10 text-sky-400 border border-sky-500/20'}`}>
+                      <span className={`px-2 py-0.5 rounded text-[11px] ${tpl.category === 'server' ? 'bg-indigo-500/10 text-indigo-600 border border-indigo-500/20' : 'bg-sky-500/10 text-sky-600 border border-sky-500/20'}`}>
                         {tpl.category === 'server' ? '服务器' : '网络设备'}
                       </span>
                       {tpl.isPreset ? (
-                        <span className="px-2 py-0.5 rounded text-[11px] bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center gap-1">
+                        <span className="px-2 py-0.5 rounded text-[11px] bg-blue-500/10 text-blue-600 border border-blue-500/20 flex items-center gap-1">
                           <Lock size={9} /> 官方预置
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded text-[11px] bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center gap-1">
+                        <span className="px-2 py-0.5 rounded text-[11px] bg-purple-500/10 text-purple-600 border border-purple-500/20 flex items-center gap-1">
                           <Sparkles size={9} /> 自定义
                         </span>
                       )}
@@ -730,25 +730,25 @@ export default function InspectionTemplates() {
 
                   {/* 模版名称与描述 */}
                   <div>
-                    <h3 className="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors line-clamp-1">
+                    <h3 className="text-base font-semibold text-text-primary group-hover:text-indigo-600 transition-colors line-clamp-1">
                       {tpl.name}
                     </h3>
-                    <p className="text-xs text-slate-400 mt-1 line-clamp-2 min-h-[32px]">
+                    <p className="text-xs text-text-secondary mt-1 line-clamp-2 min-h-[32px]">
                       {tpl.description || '暂无说明'}
                     </p>
                   </div>
 
                   {/* SmartKit 五层分层指标预览 */}
-                  <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
+                  <div className="space-y-1.5 pt-2 border-t border-border">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400">巡检指令分布</span>
-                      <span className="font-semibold text-emerald-400">{tpl.commands?.length || 0} 条</span>
+                      <span className="text-text-secondary">巡检指令分布</span>
+                      <span className="font-semibold text-emerald-600">{tpl.commands?.length || 0} 条</span>
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {['硬件层', '系统层', '资源层', '安全层', '应用层'].map(g => {
                         const count = layerCounts[g] || 0;
                         if (count === 0) return null;
-                        const col = groupColors[g] || { badge: 'bg-slate-800 text-slate-400 border-slate-700' };
+                        const col = groupColors[g] || { badge: 'bg-surface-2 text-text-secondary border-border' };
                         return (
                           <span key={g} className={`px-2 py-0.5 rounded text-[10px] font-medium border ${col.badge}`}>
                             {g} ({count})
@@ -762,7 +762,7 @@ export default function InspectionTemplates() {
                   {(tpl.tags || []).length > 0 && (
                     <div className="flex flex-wrap gap-1 pt-1">
                       {tpl.tags.map(t => (
-                        <span key={t} className="px-1.5 py-0.5 rounded text-[10px] bg-slate-800/80 text-slate-400 border border-slate-700/50">
+                        <span key={t} className="px-1.5 py-0.5 rounded text-[10px] bg-surface-2 text-text-secondary border border-border">
                           #{t}
                         </span>
                       ))}
@@ -771,15 +771,15 @@ export default function InspectionTemplates() {
                 </div>
 
                 {/* 底部操作栏 */}
-                <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-800/80">
-                  <span className="text-[11px] text-slate-500">已执行 {tpl.usageCount || 0} 次</span>
+                <div className="flex items-center justify-between pt-4 mt-4 border-t border-border">
+                  <span className="text-[11px] text-text-tertiary">已执行 {tpl.usageCount || 0} 次</span>
                   <div className="flex items-center gap-1">
                     <Tooltip title="查看全部指令">
                       <Button
                         size="small"
                         aria-label="查看全部指令"
                         type="text"
-                        className="text-slate-300 hover:text-white"
+                        className="text-text-secondary hover:text-text-primary"
                         icon={<Eye size={14} />}
                         onClick={() => setPreviewTemplate(tpl)}
                       />
@@ -789,7 +789,7 @@ export default function InspectionTemplates() {
                         size="small"
                         aria-label="克隆为自定义模版"
                         type="text"
-                        className="text-purple-400 hover:text-purple-300"
+                        className="text-purple-600 hover:text-purple-600"
                         icon={<Copy size={14} />}
                         onClick={() => handleClone(tpl.id)}
                       />
@@ -799,7 +799,7 @@ export default function InspectionTemplates() {
                         size="small"
                         aria-label="编辑模版"
                         type="text"
-                        className="text-amber-400 hover:text-amber-300"
+                        className="text-amber-600 hover:text-amber-600"
                         icon={<Edit size={14} />}
                         onClick={() => openEdit(tpl)}
                       />
@@ -809,7 +809,7 @@ export default function InspectionTemplates() {
                         size="small"
                         aria-label="导出 JSON"
                         type="text"
-                        className="text-emerald-400 hover:text-emerald-300"
+                        className="text-emerald-600 hover:text-emerald-600"
                         icon={<Download size={14} />}
                         onClick={() => exportTemplateJSON(tpl)}
                       />
@@ -835,7 +835,7 @@ export default function InspectionTemplates() {
           loading={loading}
           size="middle"
           pagination={{ pageSize: 15, showSizeChanger: true, showTotal: (t: number) => `共 ${t} 个模版` }}
-          className="bg-slate-900/60 rounded-xl border border-slate-800 overflow-hidden"
+          className="bg-surface rounded-xl border border-border overflow-hidden"
         />
       )}
 
@@ -911,7 +911,7 @@ export default function InspectionTemplates() {
           </Form.Item>
 
           <Divider>
-            <span className="text-sm font-semibold text-slate-300">巡检指令项配置（SmartKit 五层模型）</span>
+            <span className="text-sm font-semibold text-text-secondary">巡检指令项配置（SmartKit 五层模型）</span>
           </Divider>
 
           <div className="flex items-center justify-between gap-3 mb-2">
@@ -923,14 +923,14 @@ export default function InspectionTemplates() {
                 一键导入 SmartKit 五层标准项
               </Button>
             </div>
-            <span className="text-xs text-slate-400">已配置 {commands.length} 项指令</span>
+            <span className="text-xs text-text-secondary">已配置 {commands.length} 项指令</span>
           </div>
 
           <Collapse
             items={groupedCommands()}
             size="small"
             defaultActiveKey={['硬件层', '系统层', '资源层', '安全层', '应用层']}
-            className="bg-slate-950/40 border-slate-800"
+            className="bg-background border-border"
           />
         </Form>
       </Modal>
@@ -940,8 +940,8 @@ export default function InspectionTemplates() {
         title={
           previewTemplate && (
             <div className="flex items-center justify-between pr-4">
-              <span className="text-base font-bold text-white">{previewTemplate.name}</span>
-              <span className="text-xs px-2.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              <span className="text-base font-bold text-text-primary">{previewTemplate.name}</span>
+              <span className="text-xs px-2.5 py-0.5 rounded bg-indigo-500/20 text-indigo-600 border border-indigo-500/30">
                 共 {previewTemplate.commands?.length || 0} 条指令
               </span>
             </div>
@@ -964,21 +964,21 @@ export default function InspectionTemplates() {
       >
         {previewTemplate && (
           <div className="space-y-6">
-            <div className="p-4 bg-slate-900/80 rounded-xl border border-slate-800 space-y-2">
+            <div className="p-4 bg-surface rounded-xl border border-border space-y-2">
               <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-400">厂商:</span>
-                <span className="font-semibold text-white">{vendorMeta[previewTemplate.vendor]?.label || previewTemplate.vendor}</span>
-                <span className="text-slate-400 ml-3">类别:</span>
-                <span className="font-semibold text-white">{previewTemplate.category === 'server' ? '服务器' : '网络设备'}</span>
+                <span className="text-text-secondary">厂商:</span>
+                <span className="font-semibold text-text-primary">{vendorMeta[previewTemplate.vendor]?.label || previewTemplate.vendor}</span>
+                <span className="text-text-secondary ml-3">类别:</span>
+                <span className="font-semibold text-text-primary">{previewTemplate.category === 'server' ? '服务器' : '网络设备'}</span>
               </div>
-              <p className="text-xs text-slate-300 leading-relaxed">{previewTemplate.description || '暂无说明'}</p>
+              <p className="text-xs text-text-secondary leading-relaxed">{previewTemplate.description || '暂无说明'}</p>
             </div>
 
             {/* 按五层展示 */}
             {['硬件层', '系统层', '资源层', '安全层', '应用层'].map(groupName => {
               const layerCmds = (previewTemplate.commands || []).filter(c => (c.group || '系统层') === groupName);
               if (layerCmds.length === 0) return null;
-              const col = groupColors[groupName] || { badge: 'bg-slate-800 text-slate-300 border-slate-700' };
+              const col = groupColors[groupName] || { badge: 'bg-surface-2 text-text-secondary border-border' };
 
               return (
                 <div key={groupName} className="space-y-2">
@@ -986,15 +986,15 @@ export default function InspectionTemplates() {
                     <span className={`px-2.5 py-0.5 rounded text-xs font-semibold border ${col.badge}`}>
                       {groupName}
                     </span>
-                    <span className="text-xs text-slate-400">({layerCmds.length} 条)</span>
+                    <span className="text-xs text-text-secondary">({layerCmds.length} 条)</span>
                   </div>
 
                   <div className="space-y-2">
                     {layerCmds.map((cmd, i) => (
-                      <div key={i} className="p-3 bg-slate-900/60 rounded-lg border border-slate-800/80 space-y-1.5">
+                      <div key={i} className="p-3 bg-surface rounded-lg border border-border space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-xs text-slate-200">{cmd.name}</span>
-                          <span className="text-[10px] font-mono text-slate-400 px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800">
+                          <span className="font-semibold text-xs text-text-primary">{cmd.name}</span>
+                          <span className="text-[10px] font-mono text-text-secondary px-1.5 py-0.5 rounded bg-background border border-border">
                             {cmd.type}
                           </span>
                         </div>
@@ -1002,7 +1002,7 @@ export default function InspectionTemplates() {
                           {cmd.command}
                         </div>
                         {cmd.description && (
-                          <p className="text-[11px] text-slate-400 leading-normal">{cmd.description}</p>
+                          <p className="text-[11px] text-text-secondary leading-normal">{cmd.description}</p>
                         )}
                       </div>
                     ))}

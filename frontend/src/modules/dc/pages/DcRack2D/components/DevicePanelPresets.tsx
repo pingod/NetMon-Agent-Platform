@@ -74,7 +74,7 @@ export const DevicePanelPresets: React.FC<DevicePanelProps> = ({
               style={{ backgroundColor: ledColor, color: ledColor }}
               title={`状态: ${status}`}
             />
-            <span className="text-[7px] text-slate-500 uppercase font-mono tracking-tighter">PWR</span>
+            <span className="text-[7px] text-text-tertiary uppercase font-mono tracking-tighter">PWR</span>
           </div>
           <div className="flex flex-col">
             <span className="text-xs font-bold text-slate-800 tracking-wide truncate max-w-[140px]">
@@ -119,7 +119,7 @@ export const DevicePanelPresets: React.FC<DevicePanelProps> = ({
                 className="w-3 h-4 bg-slate-900 border border-purple-300 rounded-[1px] flex flex-col items-center justify-between p-0.5"
               >
                 <span className="w-1 h-1 rounded-full bg-purple-400 shadow-[0_0_4px_#a855f7]" />
-                <span className="text-[6px] text-slate-500 font-mono">{idx + 1}</span>
+                <span className="text-[6px] text-text-tertiary font-mono">{idx + 1}</span>
               </div>
             ))}
           </div>
@@ -187,7 +187,7 @@ export const DevicePanelPresets: React.FC<DevicePanelProps> = ({
             </div>
             <div className="w-3.5 h-3 bg-neutral-950 border border-border rounded-[1px] flex flex-col items-center justify-between p-0.5">
               <span className="w-1 h-0.5 bg-purple-400" />
-              <span className="text-[6px] text-slate-500 font-mono">CON</span>
+              <span className="text-[6px] text-text-tertiary font-mono">CON</span>
             </div>
           </div>
         </div>
@@ -216,7 +216,7 @@ export const DevicePanelPresets: React.FC<DevicePanelProps> = ({
             <span className="text-xs font-bold text-slate-700 truncate max-w-[130px]">
               {name}
             </span>
-            <span className="text-[8px] text-slate-500 font-mono">
+            <span className="text-[8px] text-text-tertiary font-mono">
               CAT6A SHIELDED PATCH PANEL
             </span>
           </div>
@@ -224,7 +224,7 @@ export const DevicePanelPresets: React.FC<DevicePanelProps> = ({
 
         {/* 中间高密端口排布条 */}
         <div className="flex-1 max-w-[340px] mx-4 py-0.5 px-2 bg-slate-100/90 rounded border border-border flex flex-col gap-0.5">
-          <div className="flex justify-between items-center px-1 text-[7px] text-slate-500 font-mono">
+          <div className="flex justify-between items-center px-1 text-[7px] text-text-tertiary font-mono">
             <span>1-12</span>
             <span>13-24</span>
           </div>
@@ -290,7 +290,7 @@ export const DevicePanelPresets: React.FC<DevicePanelProps> = ({
             >
               <div className="flex items-center justify-between">
                 <span className="w-1 h-0.5 bg-emerald-400 shadow-[0_0_2px_#10b981]" />
-                <span className="text-[5px] text-slate-500 font-mono">{idx + 1}</span>
+                <span className="text-[5px] text-text-tertiary font-mono">{idx + 1}</span>
               </div>
               <div className="w-full h-1 bg-slate-300 rounded-[0.5px] border-t border-border" />
             </div>
@@ -325,7 +325,7 @@ export const DevicePanelPresets: React.FC<DevicePanelProps> = ({
           <span className="text-xs font-bold text-slate-800 tracking-wide truncate max-w-[140px]">
             {name}
           </span>
-          <span className="text-[9px] text-slate-500 font-mono">
+          <span className="text-[9px] text-text-tertiary font-mono">
             {vendor || 'GENERIC'} {model || 'NETWORK DEVICE'}
           </span>
         </div>

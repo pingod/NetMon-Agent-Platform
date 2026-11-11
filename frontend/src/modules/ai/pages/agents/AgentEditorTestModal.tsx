@@ -24,7 +24,7 @@ export default function AgentEditorTestModal({
           </h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-700/50 rounded-xl text-text-secondary hover:text-text-primary transition-all"
+            className="p-2 hover:bg-surface-hover rounded-xl text-text-secondary hover:text-text-primary transition-all"
           >
             ✕
           </button>
@@ -68,7 +68,7 @@ export default function AgentEditorTestModal({
         <div className="p-6 border-t border-border/30 flex-shrink-0">
           <button
             onClick={onClose}
-            className="w-full px-6 py-3 bg-slate-700/50 text-text-primary rounded-xl hover:bg-slate-700/70 transition-all duration-300 font-semibold border border-slate-600/30"
+            className="w-full px-6 py-3 bg-surface-2 text-text-primary rounded-xl hover:bg-surface-hover transition-all duration-300 font-semibold border border-border"
           >
             关闭
           </button>

@@ -51,7 +51,7 @@ export default function AgentTestPanel({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-700/50 rounded-xl text-text-secondary hover:text-text-primary transition-all"
+            className="p-2 hover:bg-surface-hover rounded-xl text-text-secondary hover:text-text-primary transition-all"
           >
             ✕
           </button>
@@ -70,13 +70,13 @@ export default function AgentTestPanel({
                 {dbConnections && dbConnections.length > 0 ? (
                   <div className="space-y-2">
                     {dbConnections.filter((d) => d.enabled).map((conn) => (
-                      <label key={conn.id} className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:bg-slate-800/50 transition-all cursor-pointer">
+                      <label key={conn.id} className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:bg-surface-hover transition-all cursor-pointer">
                         <input
                           type="radio"
                           name="databaseId"
                           checked={selectedDatabaseId === conn.id}
                           onChange={() => setSelectedDatabaseId(conn.id)}
-                          className="w-4 h-4 rounded-full border-slate-600 text-blue-500 focus:ring-blue-500/50"
+                          className="w-4 h-4 rounded-full border-border text-blue-500 focus:ring-blue-500/50"
                         />
                         <div className="flex-1">
                           <div className="text-sm font-medium text-text-primary">{conn.name}</div>
@@ -103,7 +103,7 @@ export default function AgentTestPanel({
                 {servers && servers.length > 0 ? (
                   <div className="space-y-2">
                     {servers.filter((s) => s.enabled).map((server) => (
-                      <label key={server.id} className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:bg-slate-800/50 transition-all cursor-pointer">
+                      <label key={server.id} className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl hover:bg-surface-hover transition-all cursor-pointer">
                         <input
                           type="checkbox"
                           checked={selectedServerIds.includes(server.id)}
@@ -114,7 +114,7 @@ export default function AgentTestPanel({
                               setSelectedServerIds(selectedServerIds.filter((id) => id !== server.id));
                             }
                           }}
-                          className="w-4 h-4 rounded border-slate-600 text-blue-500 focus:ring-blue-500/50"
+                          className="w-4 h-4 rounded border-border text-blue-500 focus:ring-blue-500/50"
                         />
                         <div className="flex-1">
                           <div className="text-sm font-medium text-text-primary">{server.name}</div>
@@ -185,7 +185,7 @@ export default function AgentTestPanel({
           <button
             type="button"
             onClick={onClose}
-            className="w-full px-6 py-3 bg-slate-700/50 text-text-primary rounded-xl hover:bg-slate-700/70 transition-all duration-300 font-semibold border border-slate-600/30"
+            className="w-full px-6 py-3 bg-surface-2 text-text-primary rounded-xl hover:bg-surface-hover transition-all duration-300 font-semibold border border-border"
           >
             关闭
           </button>
