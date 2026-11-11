@@ -63,6 +63,9 @@ func (c *dockerSSHClient) ExecCommand(cmd string, timeout time.Duration) (string
 	select {
 	case <-time.After(timeout):
 		_ = sess.Signal(ssh.SIGKILL)
+		// 关闭会话让 Run 返回，并等 goroutine 结束后再读缓冲区，避免数据竞争
+		_ = sess.Close()
+		<-done
 		return stdoutBuf.String(), stderrBuf.String(), fmt.Errorf("command timed out after %v", timeout)
 	case err := <-done:
 		return stdoutBuf.String(), stderrBuf.String(), err
@@ -88,6 +91,8 @@ func (c *dockerSSHClient) ExecCommandInput(cmd string, input string, timeout tim
 	select {
 	case <-time.After(timeout):
 		_ = sess.Signal(ssh.SIGKILL)
+		_ = sess.Close()
+		<-done
 		return stdoutBuf.String(), stderrBuf.String(), fmt.Errorf("command timed out after %v", timeout)
 	case err := <-done:
 		return stdoutBuf.String(), stderrBuf.String(), err
@@ -342,16 +347,6 @@ func DockerMonitorRoutes() chi.Router {
 		})
 	})
 
-	// 2. 监控开关：当前未实现持久化监控任务，明确返回 501
-	r.With(middleware.RequireRole("admin")).Post("/start/{id}", func(w http.ResponseWriter, r *http.Request) {
-		httpx.RespondFailStatus(w, http.StatusNotImplemented, "容器监控启停功能尚未实现")
-	})
-
-	// 3. 停止监控
-	r.With(middleware.RequireRole("admin")).Post("/stop/{id}", func(w http.ResponseWriter, r *http.Request) {
-		httpx.RespondFailStatus(w, http.StatusNotImplemented, "容器监控启停功能尚未实现")
-	})
-
 	return r
 }
 
@@ -477,7 +472,7 @@ func FullContainerRoutes() chi.Router {
 				}
 			}
 
-			// 查询用户添加的自定义端点（排除已删除的）
+			// 查询用户添加的自定义端点（排除已删除的；TLS 私钥不出 HTTP 层，仅返回是否配置）
 			epRows, err := db.Query(`SELECT id, name, host, port, protocol, status, tls_ca, tls_cert, tls_key FROM container_endpoints WHERE id NOT IN (SELECT id FROM deleted_endpoints) ORDER BY created_at ASC`)
 			if err == nil {
 				defer epRows.Close()
@@ -493,9 +488,7 @@ func FullContainerRoutes() chi.Router {
 							"port":     port,
 							"protocol": protocol,
 							"status":   status,
-							"tlsCa":    tlsCa.String,
-							"tlsCert":  tlsCert.String,
-							"tlsKey":   tlsKey.String,
+							"hasTls":   tlsCa.String != "" || tlsCert.String != "" || tlsKey.String != "",
 						})
 					}
 				}
@@ -622,6 +615,20 @@ func FullContainerRoutes() chi.Router {
 		}
 		db := appdb.DB()
 		if db != nil {
+			// TLS 字段留空表示不修改（列表接口不再下发密钥内容，编辑表单无法回填）
+			if req.TlsCa == "" || req.TlsCert == "" || req.TlsKey == "" {
+				var oldCa, oldCert, oldKey sql.NullString
+				_ = db.QueryRow(`SELECT tls_ca, tls_cert, tls_key FROM container_endpoints WHERE id = ?`, id).Scan(&oldCa, &oldCert, &oldKey)
+				if req.TlsCa == "" {
+					req.TlsCa = oldCa.String
+				}
+				if req.TlsCert == "" {
+					req.TlsCert = oldCert.String
+				}
+				if req.TlsKey == "" {
+					req.TlsKey = oldKey.String
+				}
+			}
 			_, err := db.Exec(`UPDATE container_endpoints SET name = ?, host = ?, port = ?, protocol = ?, tls_ca = ?, tls_cert = ?, tls_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
 				req.Name, req.Host, req.Port, req.Protocol, req.TlsCa, req.TlsCert, req.TlsKey, id)
 			if err != nil {
@@ -784,6 +791,12 @@ func FullContainerRoutes() chi.Router {
 						cStat = s
 					}
 
+					// docker ps 的 CreatedAt 形如 "2026-11-10 22:14:03 +0800 CST"，解析为 Unix 秒
+					var createdUnix int64
+					if t, perr := time.Parse("2006-01-02 15:04:05 -0700 MST", createdStr); perr == nil {
+						createdUnix = t.Unix()
+					}
+
 					containersList = append(containersList, map[string]interface{}{
 						"id":           id,
 						"container_id": id,
@@ -799,8 +812,8 @@ func FullContainerRoutes() chi.Router {
 						"Ports":        portsList,
 						"host":         host,
 						"created_at":   createdStr,
-						"created":      int64(0),
-						"Created":      int64(0),
+						"created":      createdUnix,
+						"Created":      createdUnix,
 						"stats":        cStat,
 					})
 				}
@@ -811,10 +824,48 @@ func FullContainerRoutes() chi.Router {
 			containersList = []map[string]interface{}{}
 		}
 
+		// 服务端搜索 / 状态过滤 / 分页（前端一直传这些参数，此前被忽略）
+		search := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("search")))
+		statusFilter := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("status")))
+		if search != "" || statusFilter != "" {
+			filtered := make([]map[string]interface{}, 0, len(containersList))
+			for _, c := range containersList {
+				if statusFilter != "" && fmt.Sprintf("%v", c["state"]) != statusFilter {
+					continue
+				}
+				if search != "" {
+					haystack := strings.ToLower(fmt.Sprintf("%v %v %v", c["name"], c["image"], c["id"]))
+					if !strings.Contains(haystack, search) {
+						continue
+					}
+				}
+				filtered = append(filtered, c)
+			}
+			containersList = filtered
+		}
+
+		total := len(containersList)
+		page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+		pageSize, _ := strconv.Atoi(r.URL.Query().Get("pageSize"))
+		if page > 0 && pageSize > 0 {
+			if pageSize > 200 {
+				pageSize = 200
+			}
+			start := (page - 1) * pageSize
+			if start > total {
+				start = total
+			}
+			end := start + pageSize
+			if end > total {
+				end = total
+			}
+			containersList = containersList[start:end]
+		}
+
 		httpx.RespondRaw(w, http.StatusOK, map[string]interface{}{
 			"success": true,
 			"data":    containersList,
-			"total":   len(containersList),
+			"total":   total,
 		})
 	})
 
@@ -1023,6 +1074,192 @@ func FullContainerRoutes() chi.Router {
 	r.Get("/networks", handleListDockerNetworks)
 	r.Get("/networks/list", handleListDockerNetworks)
 
+	// ── 拉取镜像 ──
+	r.With(middleware.RequireRole("admin")).Post("/images/pull", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Image string `json:"image"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			httpx.RespondError(w, "参数解析失败", http.StatusBadRequest)
+			return
+		}
+		if !validContainerRef(req.Image) {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的镜像名称")
+			return
+		}
+		client, _, err := getDockerSSHClient(r.URL.Query().Get("endpointId"))
+		if err != nil {
+			respondHostUnavailable(w, err)
+			return
+		}
+		defer client.Close()
+		stdout, stderr, cmdErr := client.ExecCommand("docker pull "+shellQuote(req.Image), 120*time.Second)
+		if cmdErr != nil {
+			httpx.RespondFailStatus(w, http.StatusBadGateway, fmt.Sprintf("拉取镜像失败: %v %s", cmdErr, stderr))
+			return
+		}
+		httpx.Respond(w, map[string]interface{}{"success": true, "message": "镜像拉取成功", "output": stdout})
+	})
+
+	// ── 删除镜像 ──
+	r.With(middleware.RequireRole("admin")).Delete("/images/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		if !validContainerRef(id) {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的镜像 ID")
+			return
+		}
+		client, _, err := getDockerSSHClient(r.URL.Query().Get("endpointId"))
+		if err != nil {
+			respondHostUnavailable(w, err)
+			return
+		}
+		defer client.Close()
+		_, stderr, cmdErr := client.ExecCommand("docker rmi "+shellQuote(id), 30*time.Second)
+		if cmdErr != nil {
+			httpx.RespondFailStatus(w, http.StatusBadGateway, "删除镜像失败: "+stderr)
+			return
+		}
+		httpx.Respond(w, map[string]interface{}{"success": true, "message": "镜像已删除"})
+	})
+
+	// ── 创建数据卷 ──
+	r.With(middleware.RequireRole("admin")).Post("/volumes", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Name   string `json:"name"`
+			Driver string `json:"driver"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			httpx.RespondError(w, "参数解析失败", http.StatusBadRequest)
+			return
+		}
+		if !validContainerRef(req.Name) {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的数据卷名称")
+			return
+		}
+		cmd := "docker volume create "
+		if req.Driver != "" && req.Driver != "local" {
+			if !validContainerRef(req.Driver) {
+				httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的数据卷驱动")
+				return
+			}
+			cmd += "--driver " + shellQuote(req.Driver) + " "
+		}
+		client, _, err := getDockerSSHClient(r.URL.Query().Get("endpointId"))
+		if err != nil {
+			respondHostUnavailable(w, err)
+			return
+		}
+		defer client.Close()
+		_, stderr, cmdErr := client.ExecCommand(cmd+shellQuote(req.Name), 30*time.Second)
+		if cmdErr != nil {
+			httpx.RespondFailStatus(w, http.StatusBadGateway, "创建数据卷失败: "+stderr)
+			return
+		}
+		httpx.Respond(w, map[string]interface{}{"success": true, "message": "数据卷创建成功", "name": req.Name})
+	})
+
+	// ── 删除数据卷 ──
+	r.With(middleware.RequireRole("admin")).Delete("/volumes/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		if !validContainerRef(id) {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的数据卷名称")
+			return
+		}
+		client, _, err := getDockerSSHClient(r.URL.Query().Get("endpointId"))
+		if err != nil {
+			respondHostUnavailable(w, err)
+			return
+		}
+		defer client.Close()
+		_, stderr, cmdErr := client.ExecCommand("docker volume rm "+shellQuote(id), 30*time.Second)
+		if cmdErr != nil {
+			httpx.RespondFailStatus(w, http.StatusBadGateway, "删除数据卷失败: "+stderr)
+			return
+		}
+		httpx.Respond(w, map[string]interface{}{"success": true, "message": "数据卷已删除"})
+	})
+
+	// ── 创建网络 ──
+	r.With(middleware.RequireRole("admin")).Post("/networks", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Name       string `json:"name"`
+			Driver     string `json:"driver"`
+			Subnet     string `json:"subnet"`
+			Gateway    string `json:"gateway"`
+			Internal   bool   `json:"internal"`
+			Attachable bool   `json:"attachable"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			httpx.RespondError(w, "参数解析失败", http.StatusBadRequest)
+			return
+		}
+		if !validContainerRef(req.Name) {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的网络名称")
+			return
+		}
+		cmd := "docker network create "
+		if req.Driver != "" {
+			if !validContainerRef(req.Driver) {
+				httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的网络驱动")
+				return
+			}
+			cmd += "--driver " + shellQuote(req.Driver) + " "
+		}
+		if req.Subnet != "" {
+			if _, _, err := net.ParseCIDR(req.Subnet); err != nil {
+				httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的子网 CIDR")
+				return
+			}
+			cmd += "--subnet " + shellQuote(req.Subnet) + " "
+		}
+		if req.Gateway != "" {
+			if net.ParseIP(req.Gateway) == nil {
+				httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的网关地址")
+				return
+			}
+			cmd += "--gateway " + shellQuote(req.Gateway) + " "
+		}
+		if req.Internal {
+			cmd += "--internal "
+		}
+		if req.Attachable {
+			cmd += "--attachable "
+		}
+		client, _, err := getDockerSSHClient(r.URL.Query().Get("endpointId"))
+		if err != nil {
+			respondHostUnavailable(w, err)
+			return
+		}
+		defer client.Close()
+		stdout, stderr, cmdErr := client.ExecCommand(cmd+shellQuote(req.Name), 30*time.Second)
+		if cmdErr != nil {
+			httpx.RespondFailStatus(w, http.StatusBadGateway, "创建网络失败: "+stderr)
+			return
+		}
+		httpx.Respond(w, map[string]interface{}{"success": true, "message": "网络已创建", "id": strings.TrimSpace(stdout)})
+	})
+
+	// ── 删除网络 ──
+	r.With(middleware.RequireRole("admin")).Delete("/networks/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		if !validContainerRef(id) {
+			httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的网络 ID")
+			return
+		}
+		client, _, err := getDockerSSHClient(r.URL.Query().Get("endpointId"))
+		if err != nil {
+			respondHostUnavailable(w, err)
+			return
+		}
+		defer client.Close()
+		_, stderr, cmdErr := client.ExecCommand("docker network rm "+shellQuote(id), 30*time.Second)
+		if cmdErr != nil {
+			httpx.RespondFailStatus(w, http.StatusBadGateway, "删除网络失败: "+stderr)
+			return
+		}
+		httpx.Respond(w, map[string]interface{}{"success": true, "message": "网络已删除"})
+	})
+
 	// ── Compose 项目 ──
 	r.Get("/compose", func(w http.ResponseWriter, r *http.Request) {
 		httpx.Respond(w, []interface{}{})
@@ -1178,6 +1415,14 @@ func handleGetContainerLogs(w http.ResponseWriter, r *http.Request) {
 		httpx.RespondFailStatus(w, http.StatusBadRequest, "非法的容器 ID")
 		return
 	}
+	tail := 200
+	if v, err := strconv.Atoi(r.URL.Query().Get("tail")); err == nil && v >= 1 && v <= 5000 {
+		tail = v
+	}
+	cmd := "docker logs --tail " + strconv.Itoa(tail)
+	if r.URL.Query().Get("timestamps") == "1" {
+		cmd += " --timestamps"
+	}
 	endpointID := r.URL.Query().Get("endpointId")
 	client, _, err := getDockerSSHClient(endpointID)
 	if err != nil {
@@ -1185,15 +1430,13 @@ func handleGetContainerLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer client.Close()
-	stdout, stderr, execErr := client.ExecCommand("docker logs --tail 200 "+shellQuote(id), 8*time.Second)
+	stdout, stderr, execErr := client.ExecCommand(cmd+" "+shellQuote(id), 8*time.Second)
 	if execErr != nil {
 		httpx.RespondFailStatus(w, http.StatusBadGateway, fmt.Sprintf("获取容器日志失败: %v %s", execErr, stderr))
 		return
 	}
-	logs := stdout
-	if logs == "" {
-		logs = stderr
-	}
+	// docker 把容器 stdout/stderr 分别写到本地两个流，合并返回避免丢行
+	logs := stdout + stderr
 	httpx.Respond(w, logs)
 }
 
